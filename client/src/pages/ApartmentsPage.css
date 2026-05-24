@@ -1,0 +1,63 @@
+.apartments-page {
+  background: var(--color-white);
+}
+
+.apartments-hero {
+  background: linear-gradient(180deg, var(--color-blue-header) 0%, var(--color-blue-light) 100%);
+  padding: 2.5rem 1.5rem 3rem;
+  text-align: center;
+}
+
+.apartments-hero h1 {
+  font-size: 2rem;
+  color: var(--color-navy);
+  margin-bottom: 0.5rem;
+}
+
+.apartments-hero p {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.apartments-content {
+  padding: 2rem 1.5rem 4rem;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-blue-light);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.filters label {
+  font-weight: 600;
+  color: var(--color-navy);
+  white-space: nowrap;
+}
+
+.filters select {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: white;
+  min-width: 160px;
+}
+
+.apartments-page .apartments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.empty-text {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 3rem;
+}

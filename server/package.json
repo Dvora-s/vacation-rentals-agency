@@ -1,0 +1,17 @@
+{
+  "name": "vacation-rentals-server",
+  "version": "1.0.0",
+  "description": "Backend API for vacation rentals agency",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.3"
+  }
+}

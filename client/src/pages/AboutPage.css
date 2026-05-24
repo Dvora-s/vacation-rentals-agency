@@ -1,0 +1,379 @@
+/* ── Hero ── */
+.about-page {
+  background: #f7fafc;
+}
+
+.about-hero {
+  position: relative;
+  min-height: 380px;
+  background-size: cover;
+  background-position: center 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 42, 61, 0.45) 0%,
+    rgba(15, 42, 61, 0.65) 100%
+  );
+}
+
+.about-hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: var(--color-white);
+  padding: 2rem 1.5rem;
+  max-width: 720px;
+}
+
+.about-hero-eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.5);
+  padding-bottom: 0.35rem;
+}
+
+.about-hero-content h1 {
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  margin-bottom: 0.85rem;
+}
+
+.about-hero-content p {
+  font-size: 1.05rem;
+  opacity: 0.92;
+  font-weight: 300;
+}
+
+/* ── Body layout ── */
+.about-body {
+  padding: 3.5rem 0 5rem;
+}
+
+.about-container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* ── Story card (left column) ── */
+.about-story-card {
+  background: var(--color-white);
+  border-radius: 4px;
+  border: 1px solid rgba(197, 160, 89, 0.35);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem 2.75rem;
+}
+
+.story-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.story-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.story-header h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+  font-weight: 600;
+  color: var(--color-navy);
+  line-height: 1.45;
+}
+
+.story-block h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: 0.75rem;
+}
+
+.story-lead {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  margin-bottom: 0.75rem;
+}
+
+.story-block p {
+  font-size: 0.95rem;
+  line-height: 1.9;
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.story-divider {
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--color-border) 20%,
+    var(--color-border) 80%,
+    transparent
+  );
+  margin: 2rem 0;
+}
+
+/* Mission dual cards */
+.mission-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.mission-card {
+  background: var(--color-blue-light);
+  border-right: 3px solid var(--color-gold);
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+}
+
+.mission-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(197, 160, 89, 0.2);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  margin-bottom: 0.65rem;
+}
+
+.mission-card p {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: #4a5568;
+  margin: 0;
+}
+
+/* Invite quote */
+.about-invite {
+  margin-top: 2rem;
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, var(--color-navy) 0%, #2a5478 100%);
+  color: var(--color-white);
+  border-radius: 4px;
+  border-right: 4px solid var(--color-gold);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.85;
+  font-style: normal;
+  position: relative;
+}
+
+.about-invite::before {
+  content: '\201C';
+  position: absolute;
+  top: -0.25rem;
+  right: 1rem;
+  font-size: 3.5rem;
+  color: var(--color-gold);
+  opacity: 0.4;
+  line-height: 1;
+  font-family: Georgia, serif;
+}
+
+/* ── Sidebar (right column) ── */
+.about-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 90px;
+}
+
+.sidebar-panel {
+  background: var(--color-white);
+  border: 1px solid rgba(197, 160, 89, 0.35);
+  border-radius: 4px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.sidebar-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-gold);
+}
+
+.commitment-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.commitment-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.commitment-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(197, 160, 89, 0.15);
+  border: 1.5px solid var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--color-gold);
+  flex-shrink: 0;
+}
+
+.commitment-item strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--color-navy);
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+}
+
+.commitment-item p {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Founder card */
+.founder-card {
+  background: var(--color-white);
+  border: 1px solid rgba(197, 160, 89, 0.35);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.founder-photo {
+  height: 140px;
+  background: linear-gradient(135deg, var(--color-blue-header) 0%, var(--color-blue-light) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.founder-photo span {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  border: 3px solid var(--color-gold);
+}
+
+.founder-info {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.founder-name {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--color-navy);
+  margin-bottom: 0.2rem;
+}
+
+.founder-role {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.founder-info p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  .founder-card {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+  }
+
+  .founder-photo {
+    height: auto;
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-story-card {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .mission-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .about-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .founder-card {
+    grid-template-columns: 1fr;
+  }
+
+  .founder-photo {
+    height: 120px;
+  }
+}
