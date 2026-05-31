@@ -1,0 +1,65 @@
+.apt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.apt-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: var(--color-white);
+}
+
+.apt-fieldset legend {
+  font-weight: 700;
+  color: var(--color-navy);
+  padding: 0 0.5rem;
+}
+
+.apt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+.apt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.apt-field label {
+  font-size: 0.88rem;
+  color: var(--color-navy);
+  font-weight: 500;
+}
+
+.apt-field-full {
+  grid-column: 1 / -1;
+}
+
+.apt-checkbox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.apt-checkbox label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 400;
+}
+
+.apt-submit {
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .apt-grid {
+    grid-template-columns: 1fr;
+  }
+}

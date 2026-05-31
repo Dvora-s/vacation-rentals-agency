@@ -1,15 +1,19 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import pool, { testConnection } from './config/db.js';
-
-dotenv.config();
+import apartmentsRouter from './routes/apartments.js';
+import authRouter from './routes/auth.js';
+import paymentsRouter from './routes/payments.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+
+app.use('/api/auth', authRouter);
+app.use('/api/apartments', apartmentsRouter);
+app.use('/api/payments', paymentsRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {

@@ -36,3 +36,12 @@ export function ContactPage() {
     />
   );
 }
+
+export function BlogPage() {
+  return (
+    <PlaceholderPage
+      title="בלוג דירות לשבת"
+      description="טיפים, מדריכים והמלצות לדירות נופש לשבת — בקרוב."
+    />
+  );
+}

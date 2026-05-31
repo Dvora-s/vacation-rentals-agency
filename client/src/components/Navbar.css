@@ -56,7 +56,110 @@
 
 .navbar-cta {
   flex-shrink: 0;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   order: 3;
+}
+
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link-strong {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.95rem;
+  font-weight: 600;
+}
+
+.nav-link-strong:hover {
+  color: var(--color-white);
+  background: var(--color-primary-hover);
+}
+
+.nav-link-highlight {
+  background: linear-gradient(180deg, #f5e8c5 0%, #ead9a8 100%);
+  color: var(--color-navy);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+.nav-link-highlight:hover {
+  color: var(--color-navy);
+  background: linear-gradient(180deg, #f0dfa9 0%, #e0c98c 100%);
+}
+
+.nav-link-highlight.active {
+  color: var(--color-navy);
+}
+
+.nav-link-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+.nav-link-login:hover {
+  background: var(--color-blue-light);
+  color: var(--color-primary);
+}
+
+.nav-link-login-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(43, 108, 176, 0.08);
+  border-radius: var(--radius);
+}
+
+.navbar-user-name {
+  font-size: 0.88rem;
+  color: var(--color-navy);
+  font-weight: 500;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-logout {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  padding: 0.3rem 0.7rem;
+  transition: background 0.2s;
+}
+
+.navbar-logout:hover {
+  background: var(--color-border);
 }
 
 @media (max-width: 900px) {
@@ -76,8 +179,13 @@
     padding-bottom: 0.25rem;
   }
 
-  .navbar-cta {
+  .navbar-actions {
     order: 2;
+    gap: 0.35rem;
+  }
+
+  .navbar-user-name {
+    display: none;
   }
 }
 

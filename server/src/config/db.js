@@ -4,12 +4,20 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envLocalPath = path.join(__dirname, '../../.env.local');
+
+dotenv.config();
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath, override: true });
+}
 
 function getSslConfig() {
-  if (process.env.DB_SSL_MODE !== 'REQUIRED') {
+  const sslMode = (process.env.DB_SSL_MODE || '').toUpperCase();
+  if (sslMode === 'OFF' || sslMode === 'DISABLED' || sslMode === 'FALSE') {
+    return undefined;
+  }
+  if (sslMode !== 'REQUIRED') {
     return undefined;
   }
 

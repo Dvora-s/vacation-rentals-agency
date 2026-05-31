@@ -1,0 +1,45 @@
+.floating-publish {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 150;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.4rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #3a8b8b 0%, #2f7575 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(15, 42, 61, 0.25);
+  transition: transform 0.18s, box-shadow 0.18s, background 0.2s;
+}
+
+.floating-publish:hover {
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 42, 61, 0.3);
+  background: linear-gradient(180deg, #438f8f 0%, #357c7c 100%);
+}
+
+.floating-publish-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .floating-publish {
+    bottom: 16px;
+    left: 16px;
+    padding: 0.7rem 1.1rem;
+    font-size: 0.88rem;
+  }
+}

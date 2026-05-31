@@ -1,0 +1,3 @@
+catalog_number,title,description,location,address,property_type,rental_period,price_per_night,bedrooms,bathrooms,max_guests,rating,image_url,owner_name,owner_phone,owner_email,contact_via_whatsapp,is_available,status
+1,דירה ברמה ד3 בית שמש,תיאור מלא של הדירה...,בית שמש,תלמוד בבלי 6 רמה ד3 בית שמש,דירה,כל השנה,750,2,1,7,4.5,https://...,נחמה כץ,058-3282144,nbf1001@gmail.com,0,1,approved
+3,דירה ברמה ג בית שמש,...,בית שמש,חבקוק הנביא רמה ג בית שמש,דירה,כל השנה,1200,1,1,4,4.5,,ברדוגו,058-563-3776,naomi.berdugo@gmail.com,0,1,approved

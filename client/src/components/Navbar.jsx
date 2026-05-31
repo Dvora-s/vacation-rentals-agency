@@ -1,16 +1,25 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const navLinks = [
-  { to: '/', label: 'בית', end: true },
-  { to: '/apartments', label: 'חיפוש דירה' },
+  { to: '/apartments', label: 'מצא דירה' },
   { to: '/about', label: 'אודות' },
   { to: '/pricing', label: 'מחירון' },
   { to: '/faq', label: 'שאלות נפוצות' },
   { to: '/contact', label: 'צור קשר' },
+  { to: '/blog', label: 'בלוג דירות לשבת', highlight: true },
 ];
 
 function Navbar() {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/');
+  }
+
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
@@ -19,23 +28,67 @@ function Navbar() {
 
       <nav className="navbar-nav">
         <ul className="navbar-links">
-          {navLinks.map(({ to, label, end }) => (
+          {navLinks.map(({ to, label, highlight }) => (
             <li key={to}>
               <NavLink
                 to={to}
-                end={end}
-                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                className={({ isActive }) =>
+                  [
+                    'nav-link',
+                    isActive ? 'active' : '',
+                    highlight ? 'nav-link-highlight' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                }
               >
                 {label}
               </NavLink>
             </li>
           ))}
+          {isAuthenticated && (
+            <li>
+              <NavLink
+                to="/my-apartments"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                הדירות שלי
+              </NavLink>
+            </li>
+          )}
+          {isAdmin && (
+            <li>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ניהול
+              </NavLink>
+            </li>
+          )}
         </ul>
       </nav>
 
-      <NavLink to="/contact" className="navbar-cta btn-outline-gold">
-        פרסם נכס
-      </NavLink>
+      <div className="navbar-actions">
+        {isAuthenticated ? (
+          <div className="navbar-user">
+            <span className="navbar-user-name" title={user?.email}>
+              שלום, {user?.full_name?.split(' ')[0] || user?.email}
+            </span>
+            <button type="button" className="navbar-logout" onClick={handleLogout}>
+              התנתקות
+            </button>
+          </div>
+        ) : (
+          <NavLink to="/login" className="nav-link nav-link-login">
+            <span className="nav-link-login-icon">+</span> התחבר
+          </NavLink>
+        )}
+
+        <NavLink to="/list-apartment" className="navbar-cta btn-outline-gold">
+          פרסם נכס
+        </NavLink>
+      </div>
     </header>
   );
 }

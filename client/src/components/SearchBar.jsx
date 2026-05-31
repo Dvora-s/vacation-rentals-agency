@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CATEGORIES } from '../data/categories';
 import './SearchBar.css';
 
-function SearchBar() {
+function SearchBar({ initialCategory = '', initialLocation = '' }) {
   const navigate = useNavigate();
-  const [location, setLocation] = useState('');
-  const [guests, setGuests] = useState('');
-  const [dates, setDates] = useState('');
+  const [category, setCategory] = useState(initialCategory);
+  const [location, setLocation] = useState(initialLocation);
 
   function handleSearch(e) {
     e.preventDefault();
     const params = new URLSearchParams();
+    if (category) params.set('category', category);
     if (location) params.set('location', location);
-    if (guests) params.set('guests', guests);
     navigate(`/apartments?${params.toString()}`);
   }
 
@@ -21,31 +21,26 @@ function SearchBar() {
       <p className="search-label">חיפוש מהיר</p>
       <div className="search-fields">
         <div className="search-field">
-          <span className="field-icon">📅</span>
-          <input
-            type="text"
-            placeholder="תאריכים (מ - עד)"
-            value={dates}
-            onChange={(e) => setDates(e.target.value)}
-          />
-        </div>
-        <div className="search-divider" />
-        <div className="search-field">
-          <span className="field-icon">👤</span>
-          <input
-            type="number"
-            min="1"
-            placeholder="אורחים"
-            value={guests}
-            onChange={(e) => setGuests(e.target.value)}
-          />
+          <span className="field-icon">🏷️</span>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            aria-label="קטגוריה"
+          >
+            <option value="">בחרי קטגוריה</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="search-divider" />
         <div className="search-field">
           <span className="field-icon">📍</span>
           <input
             type="text"
-            placeholder="מיקום"
+            placeholder="ירושלים, טבריה..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
@@ -54,6 +49,9 @@ function SearchBar() {
           חיפוש
         </button>
       </div>
+      <p className="search-note">
+        ⓘ בלי תאריכים — תאמי ישירות עם בעל הדירה את הזמינות.
+      </p>
     </form>
   );
 }

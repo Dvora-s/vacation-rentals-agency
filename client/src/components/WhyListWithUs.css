@@ -1,0 +1,84 @@
+.why-list {
+  padding: 2rem 1.5rem 3.5rem;
+}
+
+.why-list-card {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.why-list-text {
+  padding: 2rem 2.25rem;
+}
+
+.why-list-text h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: 0.75rem;
+}
+
+.why-list-lead {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+.why-list-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.why-list-bullets li {
+  padding-right: 1rem;
+  position: relative;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.why-list-bullets li::before {
+  content: '✓';
+  position: absolute;
+  right: 0;
+  color: var(--color-gold);
+  font-weight: 700;
+}
+
+.why-list-bullets strong {
+  color: var(--color-navy);
+}
+
+.why-list-bullets span {
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+}
+
+.why-list-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.why-list-image {
+  background-size: cover;
+  background-position: center;
+  min-height: 320px;
+}
+
+@media (max-width: 850px) {
+  .why-list-card {
+    grid-template-columns: 1fr;
+  }
+  .why-list-image {
+    min-height: 220px;
+  }
+}

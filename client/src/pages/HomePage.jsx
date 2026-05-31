@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
+import CategoriesShowcase from '../components/CategoriesShowcase';
+import QuickCategoryGrid from '../components/QuickCategoryGrid';
+import HowToFind from '../components/HowToFind';
+import WhyListWithUs from '../components/WhyListWithUs';
 import { getFeaturedApartments } from '../services/api';
 import './HomePage.css';
 
@@ -24,10 +28,19 @@ function HomePage() {
       >
         <div className="hero-overlay" />
         <div className="hero-content">
-          <h1 className="hero-title">חופשת החלומות שלכם מחכה</h1>
+          <h1 className="hero-title">
+            דירות נופש: הדרך הפשוטה והנעימה לחופשה הבאה שלכם
+          </h1>
+          <p className="hero-subtitle">
+            כל המידע שאתם צריכים במקום אחד. בוחרים נכס, יוצרים קשר ישיר עם המארח, ויוצאים לחופשה.
+          </p>
           <SearchBar />
         </div>
       </section>
+
+      <QuickCategoryGrid />
+
+      <CategoriesShowcase />
 
       <section className="featured section-container">
         <h2 className="section-title">נכסים מומלצים</h2>
@@ -42,6 +55,10 @@ function HomePage() {
           </div>
         )}
       </section>
+
+      <HowToFind />
+
+      <WhyListWithUs />
     </div>
   );
 }

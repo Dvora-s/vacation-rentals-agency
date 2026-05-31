@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import FloatingPublishButton from './FloatingPublishButton';
 import './Layout.css';
 
 function Layout() {
@@ -11,6 +12,7 @@ function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <FloatingPublishButton />
     </div>
   );
 }
