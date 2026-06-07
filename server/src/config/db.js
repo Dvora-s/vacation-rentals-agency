@@ -23,6 +23,7 @@ function getSslConfig() {
 
   const caPath = path.join(__dirname, '../../db/ca.pem');
 
+  // אם קיים קובץ CA (db/ca.pem) — אימות מלא של תעודת השרת (מאובטח יותר).
   if (fs.existsSync(caPath)) {
     return {
       ca: fs.readFileSync(caPath),
@@ -30,7 +31,9 @@ function getSslConfig() {
     };
   }
 
-  return { rejectUnauthorized: true };
+  // ללא CA: עדיין מצפינים את החיבור ב-SSL, אך בלי אימות שרשרת התעודה.
+  // מתאים ל-Aiven שמשתמשת ב-CA פרטי. להוספת אימות מלא — שמרי את התעודה ב-db/ca.pem.
+  return { rejectUnauthorized: false };
 }
 
 const pool = mysql.createPool({
