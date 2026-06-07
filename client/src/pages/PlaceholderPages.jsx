@@ -1,4 +1,5 @@
 import './PlaceholderPage.css';
+import PricingSection from '../components/PricingSection';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -11,12 +12,7 @@ function PlaceholderPage({ title, description }) {
 }
 
 export function PricingPage() {
-  return (
-    <PlaceholderPage
-      title="מחירון"
-      description="כאן יוצגו חבילות פרסום לבעלי נכסים ומידע על עמלות השירות."
-    />
-  );
+  return <PricingSection />;
 }
 
 export function FaqPage() {

@@ -43,6 +43,11 @@ function buildInitial(apartment) {
 
 function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) {
   const [form, setForm] = useState(() => buildInitial(apartment));
+  const fileInputRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [urlInput, setUrlInput] = useState('');
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -58,12 +63,46 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
     });
   }
 
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (files.length === 0) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const urls = await uploadImages(files);
+      setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  }
+
+  function handleFileInput(e) {
+    handleFiles(e.target.files);
+    e.target.value = '';
+  }
+
+  function removeImage(index) {
+    setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+  }
+
+  function addUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setForm((prev) => ({ ...prev, images: [...prev.images, url] }));
+    setUrlInput('');
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    const images = form.imagesText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const images = form.images.filter(Boolean);
     // שמירת הקטגוריות בסדר הקבוע של CATEGORIES, מופרדות בפסיק.
     const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
       (c) => c.label,
@@ -221,18 +260,76 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
           </div>
 
           <div className="apt-field apt-field-full">
-            <label>תמונות (URL בשורה אחת לכל תמונה)</label>
-            <textarea
-              className="auth-input"
-              rows="4"
-              value={form.imagesText}
-              onChange={(e) => update('imagesText', e.target.value)}
-              placeholder="https://...&#10;/apartments/123/main.jpg"
-              dir="ltr"
-            />
-            <span className="auth-hint">
-              ניתן להדביק כתובות URL לתמונות, או נתיבים מקומיים תחת public/apartments/
-            </span>
+            <label>תמונות</label>
+            <div
+              className={`apt-dropzone ${dragOver ? 'dragover' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={handleFileInput}
+              />
+              <span className="apt-dropzone-icon">📷</span>
+              <p className="apt-dropzone-text">
+                גררו לכאן תמונות מהמחשב, או לחצו לבחירת קבצים
+              </p>
+              <span className="auth-hint">jpg, png, webp, gif · עד 8MB לתמונה</span>
+              {uploading && <p className="apt-dropzone-status">מעלה תמונות...</p>}
+            </div>
+            {uploadError && <span className="auth-error">{uploadError}</span>}
+
+            {form.images.length > 0 && (
+              <div className="apt-thumbs">
+                {form.images.map((url, index) => (
+                  <div className="apt-thumb" key={`${url}-${index}`}>
+                    <img src={url} alt="" />
+                    <button
+                      type="button"
+                      className="apt-thumb-remove"
+                      onClick={() => removeImage(index)}
+                      aria-label="הסר תמונה"
+                    >
+                      ×
+                    </button>
+                    {index === 0 && <span className="apt-thumb-badge">ראשית</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <details className="apt-url-add">
+              <summary>או הוספה לפי קישור (URL)</summary>
+              <div className="apt-url-row">
+                <input
+                  className="auth-input"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://..."
+                  dir="ltr"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addUrl();
+                    }
+                  }}
+                />
+                <button type="button" className="btn-outline-gold" onClick={addUrl}>
+                  הוסף
+                </button>
+              </div>
+            </details>
           </div>
         </div>
       </fieldset>
