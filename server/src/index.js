@@ -5,6 +5,7 @@ import pool, { testConnection } from './config/db.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
+import contactRouter from './routes/contact.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/apartments', apartmentsRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/contact', contactRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {
