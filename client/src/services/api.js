@@ -142,3 +142,12 @@ export async function payForListing({ apartment_id, months = 1, provider_referen
 export async function getMyPayments() {
   return apiFetch('/payments/mine', { auth: true });
 }
+
+// ────────── צור קשר ──────────
+export async function submitContactMessage(payload) {
+  if (USE_MOCK) {
+    await mockDelay(900);
+    return { ok: true, message: 'ההודעה נשלחה בהצלחה' };
+  }
+  return apiFetch('/contact', { method: 'POST', body: payload });
+}
