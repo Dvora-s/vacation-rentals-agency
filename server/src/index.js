@@ -6,6 +6,7 @@ import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
 import uploadsRouter, { uploadsDir } from './routes/uploads.js';
+import contactRouter from './routes/contact.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 
 dotenv.config();
@@ -23,6 +24,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/apartments', apartmentsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/uploads', uploadsRouter);
+app.use('/api/contact', contactRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {
