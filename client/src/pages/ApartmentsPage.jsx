@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
+import CategoryFilter from '../components/CategoryFilter';
 import { getApartments } from '../services/api';
-import { CATEGORIES, apartmentMatchesCategory, findCategory } from '../data/categories';
+import { apartmentMatchesCategory, findCategory } from '../data/categories';
 import './ApartmentsPage.css';
 
 function ApartmentsPage() {
@@ -20,11 +21,6 @@ function ApartmentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const locations = useMemo(
-    () => [...new Set(apartments.map((a) => a.location))],
-    [apartments],
-  );
-
   const filtered = useMemo(() => {
     return apartments.filter((a) => {
       const okCat = apartmentMatchesCategory(a, categoryFilter);
@@ -33,10 +29,10 @@ function ApartmentsPage() {
     });
   }, [apartments, categoryFilter, locationFilter]);
 
-  function updateParam(key, value) {
+  function setCategory(catId) {
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
+    if (catId) next.set('category', catId);
+    else next.delete('category');
     setSearchParams(next, { replace: true });
   }
 
@@ -55,49 +51,24 @@ function ApartmentsPage() {
       </section>
 
       <section className="section-container apartments-content">
-        <div className="filters">
-          <div className="filter-group">
-            <label htmlFor="cat-filter">קטגוריה:</label>
-            <select
-              id="cat-filter"
-              value={categoryFilter}
-              onChange={(e) => updateParam('category', e.target.value)}
-            >
-              <option value="">הכל</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <CategoryFilter value={categoryFilter} onChange={setCategory} />
 
-          <div className="filter-group">
-            <label htmlFor="location-filter">מיקום:</label>
-            <select
-              id="location-filter"
-              value={locationFilter}
-              onChange={(e) => updateParam('location', e.target.value)}
-            >
-              <option value="">הכל</option>
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {(categoryFilter || locationFilter) && (
+        {locationFilter && (
+          <p className="active-location">
+            מציג דירות באזור: <strong>{locationFilter}</strong>
             <button
               type="button"
               className="filter-clear"
-              onClick={() => setSearchParams({}, { replace: true })}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('location');
+                setSearchParams(next, { replace: true });
+              }}
             >
-              נקה סינון
+              נקה
             </button>
-          )}
-        </div>
+          </p>
+        )}
 
         {loading && <p className="loading-text">טוען דירות...</p>}
 

@@ -16,7 +16,7 @@ function QuickCategoryGrid() {
             <span className="quick-cat-icon" aria-hidden="true">
               {cat.icon}
             </span>
-            <span className="quick-cat-label">{cat.short}</span>
+            <span className="quick-cat-label">{cat.label}</span>
           </Link>
         ))}
       </div>

@@ -66,6 +66,16 @@ function Navbar() {
               </NavLink>
             </li>
           )}
+          {isAdmin && (
+            <li>
+              <NavLink
+                to="/admin/users"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                משתמשים
+              </NavLink>
+            </li>
+          )}
         </ul>
       </nav>
 

@@ -1,0 +1,45 @@
+.category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-navy);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.cat-chip:hover {
+  border-color: var(--color-gold);
+  transform: translateY(-1px);
+}
+
+.cat-chip.active {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-white);
+}
+
+.cat-chip-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .cat-chip {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+  }
+}

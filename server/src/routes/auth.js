@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
-import { signToken, requireAuth } from '../middleware/auth.js';
+import { signToken, requireAuth, requireRole } from '../middleware/auth.js';
+import { sendWelcomeEmail } from '../utils/mailer.js';
 
 const router = Router();
 
@@ -52,6 +53,11 @@ router.post('/register', async (req, res) => {
     const user = publicUser(rows[0]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
 
+    // שליחת מייל ברוכים-הבאים (best-effort — לא מפיל את ההרשמה אם נכשל)
+    sendWelcomeEmail({ to: user.email, fullName: user.full_name }).catch((err) => {
+      console.error('[mailer] שליחת מייל ברוכים-הבאים נכשלה:', err.message);
+    });
+
     res.status(201).json({ user, token });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -91,6 +97,18 @@ router.get('/me', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'המשתמש לא נמצא' });
     }
     res.json(publicUser(rows[0]));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// רשימת כל המשתמשים — למנהל בלבד
+router.get('/users', requireAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, full_name, email, phone, role, created_at FROM users ORDER BY created_at DESC',
+    );
+    res.json(rows.map(publicUser));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

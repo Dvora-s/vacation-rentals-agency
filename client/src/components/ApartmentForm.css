@@ -54,6 +54,39 @@
   font-weight: 400;
 }
 
+.apt-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.apt-category-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 400 !important;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  background: var(--color-white);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.apt-category-option:hover {
+  border-color: var(--color-gold, #b8860b);
+}
+
+.apt-category-option:has(input:checked) {
+  background: var(--color-blue-light, #faf7ef);
+  border-color: var(--color-gold, #b8860b);
+}
+
+.apt-category-icon {
+  font-size: 1rem;
+}
+
 .apt-submit {
   align-self: flex-start;
 }

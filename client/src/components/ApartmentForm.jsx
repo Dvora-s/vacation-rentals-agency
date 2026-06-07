@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { CATEGORIES, ALL_YEAR_LABEL, getApartmentCategories } from '../data/categories';
+import { uploadImages } from '../services/api';
 import './ApartmentForm.css';
 
 const EMPTY = {
@@ -7,7 +9,7 @@ const EMPTY = {
   location: '',
   address: '',
   property_type: 'דירה',
-  rental_period: 'כל השנה',
+  categories: [ALL_YEAR_LABEL],
   price_per_night: '',
   bedrooms: 1,
   bathrooms: 1,
@@ -17,18 +19,20 @@ const EMPTY = {
   owner_email: '',
   contact_via_whatsapp: false,
   is_available: true,
-  imagesText: '',
+  images: [],
 };
 
 const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח'];
 
 function buildInitial(apartment) {
   if (!apartment) return EMPTY;
+  const cats = getApartmentCategories(apartment);
   return {
     ...EMPTY,
     ...apartment,
+    categories: cats.length > 0 ? cats : [ALL_YEAR_LABEL],
     price_per_night: apartment.price_per_night ?? '',
-    imagesText: (apartment.images || []).join('\n'),
+    images: apartment.images || [],
     owner_phone: apartment.owner_phone || '',
     owner_email: apartment.owner_email || '',
     owner_name: apartment.owner_name || '',
@@ -44,19 +48,34 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function toggleCategory(label) {
+    setForm((prev) => {
+      const exists = prev.categories.includes(label);
+      const categories = exists
+        ? prev.categories.filter((c) => c !== label)
+        : [...prev.categories, label];
+      return { ...prev, categories };
+    });
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     const images = form.imagesText
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
+    // שמירת הקטגוריות בסדר הקבוע של CATEGORIES, מופרדות בפסיק.
+    const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
+      (c) => c.label,
+    );
+    const rental_period = orderedCats.length > 0 ? orderedCats.join(', ') : ALL_YEAR_LABEL;
     onSubmit({
       title: form.title.trim(),
       description: form.description.trim() || null,
       location: form.location.trim(),
       address: form.address.trim() || null,
       property_type: form.property_type,
-      rental_period: form.rental_period,
+      rental_period,
       price_per_night: Number(form.price_per_night),
       bedrooms: Number(form.bedrooms),
       bathrooms: Number(form.bathrooms),
@@ -135,13 +154,24 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
             </select>
           </div>
 
-          <div className="apt-field">
-            <label>תקופת השכרה</label>
-            <input
-              className="auth-input"
-              value={form.rental_period}
-              onChange={(e) => update('rental_period', e.target.value)}
-            />
+          <div className="apt-field apt-field-full">
+            <label>קטגוריות (ניתן לבחור כמה)</label>
+            <div className="apt-categories">
+              {CATEGORIES.map((cat) => (
+                <label key={cat.id} className="apt-category-option">
+                  <input
+                    type="checkbox"
+                    checked={form.categories.includes(cat.label)}
+                    onChange={() => toggleCategory(cat.label)}
+                  />
+                  <span className="apt-category-icon">{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </label>
+              ))}
+            </div>
+            <span className="auth-hint">
+              דירה שמסומנת "כל השנה" תופיע בכל הקטגוריות בסינון.
+            </span>
           </div>
 
           <div className="apt-field">

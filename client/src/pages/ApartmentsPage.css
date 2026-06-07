@@ -23,52 +23,31 @@
   padding: 2rem 1.5rem 4rem;
 }
 
-.filters {
+.active-location {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem 1.25rem;
-  background: var(--color-blue-light);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
 }
 
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filters label {
-  font-weight: 600;
+.active-location strong {
   color: var(--color-navy);
-  white-space: nowrap;
-}
-
-.filters select {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font-family: inherit;
-  font-size: 0.95rem;
-  background: white;
-  min-width: 160px;
 }
 
 .filter-clear {
-  margin-inline-start: auto;
   background: transparent;
   border: 1px solid var(--color-border);
   color: var(--color-text);
   border-radius: var(--radius);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.88rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
 }
 
 .filter-clear:hover {
-  background: white;
+  background: var(--color-blue-light);
 }
 
 .apartments-page .apartments-grid {

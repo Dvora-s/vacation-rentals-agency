@@ -105,6 +105,29 @@ export async function rejectApartment(id, reason) {
   });
 }
 
+// ────────── העלאת תמונות ──────────
+export async function uploadImages(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (list.length === 0) return [];
+  const formData = new FormData();
+  for (const file of list) formData.append('images', file);
+
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/uploads`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || `שגיאה ${res.status}`);
+  }
+  return data.urls || [];
+}
+
 // ────────── אוטנטיקציה ──────────
 export async function register(payload) {
   const data = await apiFetch('/auth/register', { method: 'POST', body: payload });
@@ -124,6 +147,11 @@ export async function getMe() {
 
 export function logout() {
   clearToken();
+}
+
+// רשימת כל המשתמשים — למנהל בלבד
+export async function getUsers() {
+  return apiFetch('/auth/users', { auth: true });
 }
 
 // ────────── תשלומים ──────────

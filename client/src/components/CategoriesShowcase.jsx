@@ -3,7 +3,7 @@ import { CATEGORIES } from '../data/categories';
 import './CategoriesShowcase.css';
 
 // 4 הקטגוריות הראשיות שמופיעות ב"הקטגוריות שלנו" — בכרטיסים גדולים עם תמונה.
-const MAIN_IDS = ['hotels', 'bein-hazmanim', 'holidays', 'shabbat'];
+const MAIN_IDS = ['bein-hazmanim', 'shabbat', 'holidays', 'pesach'];
 
 function CategoriesShowcase() {
   const items = MAIN_IDS
