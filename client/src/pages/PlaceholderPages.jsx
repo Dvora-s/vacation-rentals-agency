@@ -24,15 +24,6 @@ export function FaqPage() {
   );
 }
 
-export function ContactPage() {
-  return (
-    <PlaceholderPage
-      title="צור קשר"
-      description="פרטי התקשרות, טופס פנייה ופרסום נכס — בקרוב."
-    />
-  );
-}
-
 export function BlogPage() {
   return (
     <PlaceholderPage
