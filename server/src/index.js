@@ -1,9 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import pool, { testConnection } from './config/db.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
+import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +45,11 @@ app.get('/api/db-info', async (_req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  try {
+    await ensureAdminUser();
+  } catch (err) {
+    console.warn('[Auth] Could not ensure admin user:', err.message);
+  }
 });
