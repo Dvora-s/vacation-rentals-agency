@@ -1,6 +1,6 @@
 /* ── Hero ── */
 .about-page {
-  background: #f7fafc;
+  background: var(--color-cream);
 }
 
 .about-hero {

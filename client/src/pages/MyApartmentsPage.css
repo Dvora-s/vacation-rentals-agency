@@ -14,9 +14,11 @@
 }
 
 .page-title {
-  font-size: 1.7rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
   font-weight: 700;
   color: var(--color-navy);
+  letter-spacing: -0.02em;
 }
 
 .page-subtitle {
@@ -51,11 +53,17 @@
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 1.25rem;
-  background: var(--color-white);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.my-apt-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
 .my-apt-card.status-pending {

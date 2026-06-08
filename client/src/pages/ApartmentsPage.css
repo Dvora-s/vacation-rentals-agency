@@ -1,32 +1,56 @@
 .apartments-page {
-  background: var(--color-white);
+  background: var(--color-cream);
+  min-height: 100vh;
 }
 
 .apartments-hero {
-  background: linear-gradient(180deg, var(--color-blue-header) 0%, var(--color-blue-light) 100%);
-  padding: 2.5rem 1.5rem 3rem;
+  position: relative;
+  background: linear-gradient(160deg, var(--color-navy) 0%, var(--color-navy-dark) 100%);
+  padding: 3.5rem 1.5rem 3.5rem;
   text-align: center;
+  overflow: hidden;
+}
+
+.apartments-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at 20% 0%,
+      rgba(193, 154, 91, 0.18),
+      transparent 45%
+    ),
+    radial-gradient(circle at 85% 100%, rgba(31, 94, 128, 0.4), transparent 50%);
+}
+
+.apartments-hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .apartments-hero h1 {
-  font-size: 2rem;
-  color: var(--color-navy);
-  margin-bottom: 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  color: var(--color-white);
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
 }
 
 .apartments-hero p {
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 1.75rem;
+  font-size: 1.05rem;
+  font-weight: 300;
 }
 
 .apartments-content {
-  padding: 2rem 1.5rem 4rem;
+  padding: 2.75rem 1.5rem 5rem;
 }
 
 .active-location {
   text-align: center;
   color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,24 +64,108 @@
 .filter-clear {
   background: transparent;
   border: 1px solid var(--color-border);
-  color: var(--color-text);
-  border-radius: var(--radius);
-  padding: 0.3rem 0.7rem;
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
   font-size: 0.82rem;
+  font-weight: 500;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
 }
 
 .filter-clear:hover {
-  background: var(--color-blue-light);
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-white);
+}
+
+.apartments-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.filters-sidebar {
+  position: sticky;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.4rem 1.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.filters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.filters-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.filters-reset {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.filters-reset:hover {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-white);
 }
 
 .apartments-page .apartments-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.75rem;
+}
+
+@media (max-width: 880px) {
+  .apartments-shell {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .filters-sidebar {
+    position: static;
+  }
 }
 
 .empty-text {
+  max-width: 460px;
+  margin: 2rem auto;
   text-align: center;
   color: var(--color-text-muted);
-  padding: 3rem;
+  font-size: 1.05rem;
+  padding: 3.5rem 2rem;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.empty-text::before {
+  content: '🔍';
+  display: block;
+  font-size: 2.6rem;
+  margin-bottom: 1rem;
+  opacity: 0.85;
 }

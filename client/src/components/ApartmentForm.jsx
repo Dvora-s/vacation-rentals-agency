@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { CATEGORIES, ALL_YEAR_LABEL, getApartmentCategories } from '../data/categories';
+import { CITY_NAMES, getStreetsForCity, cityHasStreets } from '../data/locations';
+import Combobox from './Combobox';
 import { uploadImages } from '../services/api';
 import './ApartmentForm.css';
 
@@ -7,7 +9,8 @@ const EMPTY = {
   title: '',
   description: '',
   location: '',
-  address: '',
+  street: '',
+  house_number: '',
   property_type: 'דירה',
   categories: [ALL_YEAR_LABEL],
   price_per_night: '',
@@ -24,9 +27,21 @@ const EMPTY = {
 
 const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח'];
 
+// מפרק כתובת מאוחסנת (למשל "הרצל 5") לרחוב ומספר בית, לצורך עריכה.
+function splitAddress(address) {
+  const raw = (address || '').trim();
+  if (!raw) return { street: '', house_number: '' };
+  const match = raw.match(/^(.*?)[\s,]*(\d+\w*)$/);
+  if (match) {
+    return { street: match[1].trim(), house_number: match[2].trim() };
+  }
+  return { street: raw, house_number: '' };
+}
+
 function buildInitial(apartment) {
   if (!apartment) return EMPTY;
   const cats = getApartmentCategories(apartment);
+  const { street, house_number } = splitAddress(apartment.address);
   return {
     ...EMPTY,
     ...apartment,
@@ -36,7 +51,8 @@ function buildInitial(apartment) {
     owner_phone: apartment.owner_phone || '',
     owner_email: apartment.owner_email || '',
     owner_name: apartment.owner_name || '',
-    address: apartment.address || '',
+    street,
+    house_number,
     description: apartment.description || '',
   };
 }
@@ -51,6 +67,15 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  // בחירת עיר חדשה מאפסת את הרחוב (הרחובות תלויים בעיר שנבחרה).
+  function setCity(city) {
+    setForm((prev) => ({
+      ...prev,
+      location: city,
+      street: prev.location === city ? prev.street : '',
+    }));
   }
 
   function toggleCategory(label) {
@@ -108,11 +133,13 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
       (c) => c.label,
     );
     const rental_period = orderedCats.length > 0 ? orderedCats.join(', ') : ALL_YEAR_LABEL;
+    const address =
+      [form.street.trim(), String(form.house_number).trim()].filter(Boolean).join(' ') || null;
     onSubmit({
       title: form.title.trim(),
       description: form.description.trim() || null,
       location: form.location.trim(),
-      address: form.address.trim() || null,
+      address,
       property_type: form.property_type,
       rental_period,
       price_per_night: Number(form.price_per_night),
@@ -161,20 +188,45 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
 
           <div className="apt-field">
             <label>עיר *</label>
-            <input
-              className="auth-input"
+            <Combobox
               value={form.location}
-              onChange={(e) => update('location', e.target.value)}
+              onChange={setCity}
+              options={CITY_NAMES}
+              placeholder="בחרי עיר מהרשימה"
+              emptyText="לא נמצאה עיר תואמת"
               required
             />
           </div>
 
           <div className="apt-field">
-            <label>כתובת מלאה</label>
+            <label>רחוב</label>
+            {cityHasStreets(form.location) ? (
+              <Combobox
+                value={form.street}
+                onChange={(v) => update('street', v)}
+                options={getStreetsForCity(form.location)}
+                placeholder="בחרי רחוב מהרשימה"
+                emptyText="לא נמצא רחוב תואם"
+              />
+            ) : (
+              <input
+                className="auth-input"
+                value={form.street}
+                onChange={(e) => update('street', e.target.value)}
+                placeholder={form.location ? 'הקלידי שם רחוב' : 'בחרי קודם עיר'}
+                disabled={!form.location}
+              />
+            )}
+          </div>
+
+          <div className="apt-field">
+            <label>מספר בית</label>
             <input
               className="auth-input"
-              value={form.address}
-              onChange={(e) => update('address', e.target.value)}
+              value={form.house_number}
+              onChange={(e) => update('house_number', e.target.value)}
+              placeholder="לדוגמה: 12"
+              inputMode="numeric"
             />
           </div>
 
