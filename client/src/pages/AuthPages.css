@@ -114,3 +114,68 @@
   color: var(--color-navy);
   text-decoration: underline;
 }
+
+/* ───────── התחברות עם גוגל ───────── */
+.google-signin {
+  margin-top: 1.25rem;
+}
+
+.google-signin-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  margin: 0.5rem 0 1.1rem;
+}
+
+.google-signin-divider::before,
+.google-signin-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-soft);
+}
+
+.google-signin-btn {
+  display: flex;
+  justify-content: center;
+}
+
+/* ───────── מצבי אימות אימייל ───────── */
+.auth-notice {
+  background: #f0f7f1;
+  border: 1px solid #c9e3cd;
+  color: #1f6b34;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.auth-verify-card {
+  text-align: center;
+}
+
+.auth-verify-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.auth-resend {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.auth-resend:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+  text-decoration: none;
+}

@@ -6,9 +6,11 @@ import {
   attachImagesToApartments,
 } from '../utils/mapApartment.js';
 import { requireAuth, requireRole, optionalAuth } from '../middleware/auth.js';
-import { sendNewListingToAdmin, sendListingApprovedToOwner } from '../utils/mailer.js';
+import { sendNewListingToAdmin, sendListingLiveEmail } from '../utils/mailer.js';
 
 const router = Router();
+
+const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // מחזיר את כתובות המייל לקבלת התראות מנהל.
 // עדיפות ל-ADMIN_NOTIFY_EMAIL (.env). אחרת — מיילים אמיתיים של מנהלים מה-DB
@@ -283,7 +285,7 @@ router.post('/:id/approve', requireAuth, requireRole('admin'), async (req, res) 
     const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [req.params.id]);
     const apartment = await attachImagesToApartment(pool, rows[0]);
 
-    // מייל למפרסם שהדירה אושרה (best-effort)
+    // מייל למפרסם שהמודעה פורסמה וגלויה לכולם, עם קישורי צפייה ועריכה (best-effort)
     (async () => {
       try {
         let ownerEmail = apartment.owner_email || null;
@@ -299,9 +301,15 @@ router.post('/:id/approve', requireAuth, requireRole('admin'), async (req, res) 
           }
         }
         if (!ownerEmail) return;
-        await sendListingApprovedToOwner({ to: ownerEmail, apartment, ownerName });
+        await sendListingLiveEmail({
+          to: ownerEmail,
+          ownerName,
+          apartment,
+          listingUrl: `${APP_URL}/apartments/${apartment.id}`,
+          editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+        });
       } catch (err) {
-        console.error('[mailer] מייל אישור דירה למפרסם נכשל:', err.message);
+        console.error('[mailer] מייל "המודעה פורסמה" נכשל:', err.message);
       }
     })();
 

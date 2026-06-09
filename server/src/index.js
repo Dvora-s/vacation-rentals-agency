@@ -8,6 +8,7 @@ import paymentsRouter from './routes/payments.js';
 import uploadsRouter, { uploadsDir } from './routes/uploads.js';
 import contactRouter from './routes/contact.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
+import { startListingExpiryJob } from './jobs/listingExpiry.js';
 
 dotenv.config();
 
@@ -58,5 +59,10 @@ app.listen(PORT, async () => {
     await ensureAdminUser();
   } catch (err) {
     console.warn('[Auth] Could not ensure admin user:', err.message);
+  }
+  try {
+    startListingExpiryJob();
+  } catch (err) {
+    console.warn('[expiry] לא ניתן להפעיל את תזמון תוקף המודעות:', err.message);
   }
 });

@@ -3,12 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const navLinks = [
+  { to: '/', label: 'בלוג דירות לשבת', highlight: true, end: true },
   { to: '/apartments', label: 'מצא דירה' },
   { to: '/about', label: 'אודות' },
   { to: '/pricing', label: 'מחירון' },
   { to: '/faq', label: 'שאלות נפוצות' },
   { to: '/contact', label: 'צור קשר' },
-  { to: '/blog', label: 'בלוג דירות לשבת', highlight: true },
 ];
 
 function Navbar() {
@@ -28,10 +28,11 @@ function Navbar() {
 
       <nav className="navbar-nav">
         <ul className="navbar-links">
-          {navLinks.map(({ to, label, highlight }) => (
-            <li key={to}>
+          {navLinks.map(({ to, label, highlight, end }) => (
+            <li key={label}>
               <NavLink
                 to={to}
+                end={end}
                 className={({ isActive }) =>
                   [
                     'nav-link',

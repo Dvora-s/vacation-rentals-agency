@@ -65,7 +65,8 @@ export async function getApartmentById(id) {
     if (!apartment) throw new Error('Apartment not found');
     return apartment;
   }
-  return apiFetch(`/apartments/${id}`);
+  // auth נשלח אם קיים טוקן — מאפשר לבעלים/מנהל לצפות גם במודעה שאינה מאושרת (pending/expired).
+  return apiFetch(`/apartments/${id}`, { auth: true });
 }
 
 export async function getFeaturedApartments(limit = 3) {
@@ -129,16 +130,30 @@ export async function uploadImages(files) {
 }
 
 // ────────── אוטנטיקציה ──────────
+// הרשמה רגילה: מחזירה pending_verification (אין טוקן עד לאימות האימייל).
 export async function register(payload) {
-  const data = await apiFetch('/auth/register', { method: 'POST', body: payload });
-  if (data?.token) setToken(data.token);
-  return data;
+  return apiFetch('/auth/register', { method: 'POST', body: payload });
 }
 
 export async function login(payload) {
   const data = await apiFetch('/auth/login', { method: 'POST', body: payload });
   if (data?.token) setToken(data.token);
   return data;
+}
+
+// התחברות/הרשמה דרך גוגל — מקבלת credential (ID token) ומחזירה user+token.
+export async function loginWithGoogle(credential) {
+  const data = await apiFetch('/auth/google', { method: 'POST', body: { credential } });
+  if (data?.token) setToken(data.token);
+  return data;
+}
+
+export async function verifyEmail(token) {
+  return apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resendVerification(email) {
+  return apiFetch('/auth/resend-verification', { method: 'POST', body: { email } });
 }
 
 export async function getMe() {

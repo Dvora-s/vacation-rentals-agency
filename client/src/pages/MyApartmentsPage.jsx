@@ -8,6 +8,7 @@ const STATUS_LABEL = {
   pending: 'ממתינה לאישור מנהל',
   approved: 'מאושרת ומפורסמת',
   rejected: 'נדחתה',
+  expired: 'פג תוקף — הושעתה',
 };
 
 function MyApartmentsPage() {
@@ -83,7 +84,15 @@ function MyApartmentsPage() {
                 {apt.status === 'rejected' && apt.rejection_reason && (
                   <p className="my-apt-reject">סיבת דחייה: {apt.rejection_reason}</p>
                 )}
+                {apt.status === 'expired' && (
+                  <p className="my-apt-reject">תוקף הפרסום פג והמודעה הושעתה. ניתן לחדש את הפרסום.</p>
+                )}
                 <div className="my-apt-actions">
+                  {apt.status === 'expired' && (
+                    <Link to={`/my-apartments/${apt.id}/renew`} className="btn-primary">
+                      חדש מודעה
+                    </Link>
+                  )}
                   <Link to={`/my-apartments/${apt.id}/edit`} className="btn-outline-gold">ערוך</Link>
                   <Link to={`/apartments/${apt.id}`} className="my-apt-link">צפייה</Link>
                   <button

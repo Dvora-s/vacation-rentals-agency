@@ -5,6 +5,7 @@ import {
   clearToken,
   login as apiLogin,
   register as apiRegister,
+  loginWithGoogle as apiLoginWithGoogle,
   getMe,
 } from '../services/api';
 
@@ -43,8 +44,13 @@ export function AuthProvider({ children }) {
     return result.user;
   }, []);
 
+  // הרשמה רגילה אינה מחברת אוטומטית — המשתמש צריך לאמת את האימייל קודם.
   const register = useCallback(async (payload) => {
-    const result = await apiRegister(payload);
+    return apiRegister(payload);
+  }, []);
+
+  const loginWithGoogle = useCallback(async (credential) => {
+    const result = await apiLoginWithGoogle(credential);
     setUser(result.user);
     return result.user;
   }, []);
@@ -72,6 +78,7 @@ export function AuthProvider({ children }) {
     isOwner: user?.role === 'owner' || user?.role === 'admin',
     login,
     register,
+    loginWithGoogle,
     logout,
     refresh,
     setToken,

@@ -11,6 +11,22 @@ export function signToken(payload) {
   });
 }
 
+// טוקן ייעודי לאימות אימייל (תוקף קצר). purpose מבדיל אותו מטוקן ההתחברות.
+export function signEmailToken(payload, expiresIn = '24h') {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return jwt.sign({ ...payload, purpose: 'email-verify' }, JWT_SECRET, { expiresIn });
+}
+
+export function verifyEmailToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.purpose !== 'email-verify') {
+    throw new Error('Invalid token purpose');
+  }
+  return decoded;
+}
+
 function readToken(req) {
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) return null;
