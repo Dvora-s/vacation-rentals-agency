@@ -56,6 +56,15 @@ export const CATEGORIES = [
       'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=800&q=80',
     keywords: ['סוכות', 'סוכה'],
   },
+  {
+    id: 'midweek',
+    label: 'אמצ"ש',
+    description: 'אירוח באמצע השבוע',
+    icon: '📅',
+    image:
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80',
+    keywords: ['אמצ"ש', 'אמצע שבוע', 'אמצש', 'חול'],
+  },
 ];
 
 // אפשרויות לטופס פרסום דירה (ערכי rental_period).
@@ -63,6 +72,11 @@ export const CATEGORY_OPTIONS = CATEGORIES.map((c) => c.label);
 
 // הקטגוריה "כל השנה" — דירות כאלה מופיעות בכל סינון קטגוריה.
 export const ALL_YEAR_LABEL = 'כל השנה';
+
+// קטגוריות לחיפוש/סינון — ללא "כל השנה".
+// בפרסום עדיין אפשר לסמן "כל השנה" (הדירה תיכלל בכל החיפושים),
+// אך אי אפשר לחפש לפי "כל השנה" עצמה.
+export const SEARCH_CATEGORIES = CATEGORIES.filter((c) => c.id !== 'all-year');
 
 export function findCategory(id) {
   return CATEGORIES.find((c) => c.id === id) || null;

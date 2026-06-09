@@ -215,6 +215,14 @@
   width: 100%;
 }
 
+/* כתובת המייל שנחשפת בלחיצה — ניתנת לבחירה והעתקה */
+.contact-email-revealed {
+  cursor: text;
+  user-select: all;
+  word-break: break-all;
+  font-weight: 600;
+}
+
 .contact-note {
   font-size: 0.8rem;
   color: var(--color-text-muted);

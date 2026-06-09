@@ -69,9 +69,18 @@ export async function getApartmentById(id) {
   return apiFetch(`/apartments/${id}`, { auth: true });
 }
 
+// נכסים מומלצים = הנכסים החדשים ביותר שהתווספו (לפי created_at, ובהיעדרו לפי id).
 export async function getFeaturedApartments(limit = 3) {
   const apartments = await getApartments();
-  return apartments.filter((a) => a.is_available).slice(0, limit);
+  return [...apartments]
+    .filter((a) => a.is_available)
+    .sort((a, b) => {
+      const ta = new Date(a.created_at || 0).getTime();
+      const tb = new Date(b.created_at || 0).getTime();
+      if (tb !== ta) return tb - ta;
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
+    })
+    .slice(0, limit);
 }
 
 export async function createApartment(payload) {
@@ -174,10 +183,10 @@ export async function getListingFee() {
   return apiFetch('/payments/fee');
 }
 
-export async function payForListing({ apartment_id, months = 1, provider_reference }) {
+export async function payForListing({ apartment_id, months = 1, tier = 'standard', provider_reference }) {
   return apiFetch('/payments', {
     method: 'POST',
-    body: { apartment_id, months, provider_reference },
+    body: { apartment_id, months, tier, provider_reference },
     auth: true,
   });
 }

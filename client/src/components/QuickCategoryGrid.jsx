@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '../data/categories';
+import { SEARCH_CATEGORIES } from '../data/categories';
 import './QuickCategoryGrid.css';
 
 function QuickCategoryGrid() {
@@ -7,7 +7,7 @@ function QuickCategoryGrid() {
     <section className="quick-cats section-container">
       <h2 className="quick-cats-title">קטגוריות חיפוש מהיר</h2>
       <div className="quick-cats-grid">
-        {CATEGORIES.map((cat) => (
+        {SEARCH_CATEGORIES.map((cat) => (
           <Link
             key={cat.id}
             to={`/apartments?category=${cat.id}`}

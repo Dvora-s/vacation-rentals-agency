@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const navLinks = [
-  { to: '/', label: 'בלוג דירות לשבת', highlight: true, end: true },
+  { to: '/', label: 'בלוג דירות נופש', highlight: true, end: true },
   { to: '/apartments', label: 'מצא דירה' },
   { to: '/about', label: 'אודות' },
   { to: '/pricing', label: 'מחירון' },

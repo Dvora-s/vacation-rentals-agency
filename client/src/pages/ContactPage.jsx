@@ -5,8 +5,8 @@ import { submitContactMessage } from '../services/api';
 import './ContactPage.css';
 
 const MESSAGE_MAX = 1000;
-const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'support@nofesh.local';
-const SUPPORT_PHONE = import.meta.env.VITE_SUPPORT_PHONE || '03-1234567';
+const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'tivuch.shabat@gmail.com';
+const SUPPORT_PHONE = import.meta.env.VITE_SUPPORT_PHONE || '053-8882145';
 
 const TRUST_ITEMS = [
   'הנתונים מועברים בצורה מאובטחת',

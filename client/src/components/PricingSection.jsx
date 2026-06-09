@@ -17,17 +17,19 @@ function CheckIcon() {
   );
 }
 
-function PricingPostButton({ children, variant = 'primary', className = '' }) {
+function PricingPostButton({ children, variant = 'primary', className = '', plan = null }) {
   const navigate = useNavigate();
   const { isAuthenticated, loading } = useAuth();
 
   const handleClick = () => {
     if (loading) return;
+    const target = '/list-apartment';
+    const options = plan ? { state: { plan } } : undefined;
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/list-apartment' } });
+      navigate('/login', { state: { from: target, plan } });
       return;
     }
-    navigate('/list-apartment');
+    navigate(target, options);
   };
 
   return (
@@ -50,6 +52,7 @@ function PricingCard({
   badge,
   variant = 'default',
   months,
+  tier = 'standard',
 }) {
   return (
     <article className={`pricing-card pricing-card--${variant}`}>
@@ -77,7 +80,10 @@ function PricingCard({
         ))}
       </ul>
 
-      <PricingPostButton variant={variant === 'premium' || variant === 'featured' ? 'accent' : 'primary'}>
+      <PricingPostButton
+        variant={variant === 'premium' || variant === 'featured' ? 'accent' : 'primary'}
+        plan={{ tier, months, title }}
+      >
         בחירת מסלול
       </PricingPostButton>
     </article>
@@ -89,6 +95,7 @@ const CATEGORY_ONE = [
     title: 'חודש',
     price: '₪30.00',
     months: 1,
+    tier: 'standard',
     features: [
       'קבלת הודעות מהאתר למייל',
       'המלצות ודירוג הדירה',
@@ -100,6 +107,7 @@ const CATEGORY_ONE = [
     title: '2 חודשים',
     price: '₪60.00',
     months: 2,
+    tier: 'standard',
     badge: 'הכי פופולרי',
     variant: 'featured',
     features: [
@@ -113,6 +121,7 @@ const CATEGORY_ONE = [
     title: '12 חודשים',
     price: '₪330.00',
     months: 12,
+    tier: 'standard',
     features: [
       'קבלת הודעות מהאתר למייל',
       'המלצות ודירוג הדירה',
@@ -128,6 +137,7 @@ const CATEGORY_TWO = [
     title: 'פרסום לחודש',
     price: '₪80.00',
     months: 1,
+    tier: 'premium',
     features: [
       'קבלת הודעות מהאתר למייל',
       'המלצות ודירוג',
@@ -142,6 +152,7 @@ const CATEGORY_TWO = [
     price: '₪550.00',
     originalPrice: '₪800.00',
     months: 12,
+    tier: 'premium',
     badge: 'חיסכון משמעותי',
     variant: 'premium',
     features: [
