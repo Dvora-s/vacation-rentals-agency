@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { CATEGORIES, ALL_YEAR_LABEL, getApartmentCategories } from '../data/categories';
+import { CITY_NAMES, getStreetsForCity } from '../data/locations';
+import { COMPLEX_PROPERTY_TYPE, MAX_GUESTS_NON_COMPLEX } from '../data/pricing';
+import Combobox from './Combobox';
+import { uploadImages } from '../services/api';
 import './ApartmentForm.css';
 
 const EMPTY = {
   title: '',
   description: '',
   location: '',
-  address: '',
+  street: '',
+  house_number: '',
   property_type: 'דירה',
-  rental_period: 'כל השנה',
+  categories: [ALL_YEAR_LABEL],
   price_per_night: '',
   bedrooms: 1,
   bathrooms: 1,
@@ -17,46 +23,138 @@ const EMPTY = {
   owner_email: '',
   contact_via_whatsapp: false,
   is_available: true,
-  imagesText: '',
+  images: [],
 };
 
-const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח'];
+const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח', COMPLEX_PROPERTY_TYPE];
+
+// מפרק כתובת מאוחסנת (למשל "הרצל 5") לרחוב ומספר בית, לצורך עריכה.
+function splitAddress(address) {
+  const raw = (address || '').trim();
+  if (!raw) return { street: '', house_number: '' };
+  const match = raw.match(/^(.*?)[\s,]*(\d+\w*)$/);
+  if (match) {
+    return { street: match[1].trim(), house_number: match[2].trim() };
+  }
+  return { street: raw, house_number: '' };
+}
 
 function buildInitial(apartment) {
   if (!apartment) return EMPTY;
+  const cats = getApartmentCategories(apartment);
+  const { street, house_number } = splitAddress(apartment.address);
   return {
     ...EMPTY,
     ...apartment,
+    categories: cats.length > 0 ? cats : [ALL_YEAR_LABEL],
     price_per_night: apartment.price_per_night ?? '',
-    imagesText: (apartment.images || []).join('\n'),
+    images: apartment.images || [],
     owner_phone: apartment.owner_phone || '',
     owner_email: apartment.owner_email || '',
     owner_name: apartment.owner_name || '',
-    address: apartment.address || '',
+    street,
+    house_number,
     description: apartment.description || '',
   };
 }
 
 function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) {
   const [form, setForm] = useState(() => buildInitial(apartment));
+  const fileInputRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [urlInput, setUrlInput] = useState('');
+  const [formError, setFormError] = useState(null);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  // בחירת עיר חדשה מאפסת את הרחוב (הרחובות תלויים בעיר שנבחרה).
+  function setCity(city) {
+    setForm((prev) => ({
+      ...prev,
+      location: city,
+      street: prev.location === city ? prev.street : '',
+    }));
+  }
+
+  function toggleCategory(label) {
+    setForm((prev) => {
+      const exists = prev.categories.includes(label);
+      const categories = exists
+        ? prev.categories.filter((c) => c !== label)
+        : [...prev.categories, label];
+      return { ...prev, categories };
+    });
+  }
+
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (files.length === 0) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const urls = await uploadImages(files);
+      setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  }
+
+  function handleFileInput(e) {
+    handleFiles(e.target.files);
+    e.target.value = '';
+  }
+
+  function removeImage(index) {
+    setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+  }
+
+  function addUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setForm((prev) => ({ ...prev, images: [...prev.images, url] }));
+    setUrlInput('');
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    const images = form.imagesText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    setFormError(null);
+
+    // מעל סף המיטות לנכס שאינו "מתחמי אירוח" — חוסם המשך.
+    if (
+      form.property_type !== COMPLEX_PROPERTY_TYPE &&
+      Number(form.max_guests) > MAX_GUESTS_NON_COMPLEX
+    ) {
+      setFormError('אופס, יותר מדי מיטות זה מתחמי אירוח.');
+      return;
+    }
+
+    const images = form.images.filter(Boolean);
+    // שמירת הקטגוריות בסדר הקבוע של CATEGORIES, מופרדות בפסיק.
+    const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
+      (c) => c.label,
+    );
+    const rental_period = orderedCats.length > 0 ? orderedCats.join(', ') : ALL_YEAR_LABEL;
+    const address =
+      [form.street.trim(), String(form.house_number).trim()].filter(Boolean).join(' ') || null;
     onSubmit({
       title: form.title.trim(),
       description: form.description.trim() || null,
       location: form.location.trim(),
-      address: form.address.trim() || null,
+      address,
       property_type: form.property_type,
-      rental_period: form.rental_period,
+      rental_period,
       price_per_night: Number(form.price_per_night),
       bedrooms: Number(form.bedrooms),
       bathrooms: Number(form.bathrooms),
@@ -74,6 +172,7 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
   return (
     <form className="apt-form" onSubmit={handleSubmit}>
       {error && <div className="auth-error">{error}</div>}
+      {formError && <div className="auth-error">{formError}</div>}
 
       <fieldset className="apt-fieldset">
         <legend>פרטי הנכס</legend>
@@ -103,20 +202,43 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
 
           <div className="apt-field">
             <label>עיר *</label>
-            <input
-              className="auth-input"
+            <Combobox
               value={form.location}
-              onChange={(e) => update('location', e.target.value)}
+              onChange={setCity}
+              options={CITY_NAMES}
+              placeholder="בחרי עיר מהרשימה"
+              emptyText="לא נמצאה עיר תואמת"
               required
             />
           </div>
 
           <div className="apt-field">
-            <label>כתובת מלאה</label>
+            <label>רחוב</label>
+            {/* בחירה מתוך מאגר הרחובות של העיר, או הקלדת רחוב חדש שאינו ברשימה */}
             <input
               className="auth-input"
-              value={form.address}
-              onChange={(e) => update('address', e.target.value)}
+              list="street-options"
+              value={form.street}
+              onChange={(e) => update('street', e.target.value)}
+              placeholder={form.location ? 'בחרי רחוב מהרשימה או הקלידי רחוב חדש' : 'בחרי קודם עיר'}
+              disabled={!form.location}
+              autoComplete="off"
+            />
+            <datalist id="street-options">
+              {getStreetsForCity(form.location).map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="apt-field">
+            <label>מספר בית</label>
+            <input
+              className="auth-input"
+              value={form.house_number}
+              onChange={(e) => update('house_number', e.target.value)}
+              placeholder="לדוגמה: 12"
+              inputMode="numeric"
             />
           </div>
 
@@ -135,13 +257,24 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
             </select>
           </div>
 
-          <div className="apt-field">
-            <label>תקופת השכרה</label>
-            <input
-              className="auth-input"
-              value={form.rental_period}
-              onChange={(e) => update('rental_period', e.target.value)}
-            />
+          <div className="apt-field apt-field-full">
+            <label>קטגוריות (ניתן לבחור כמה)</label>
+            <div className="apt-categories">
+              {CATEGORIES.map((cat) => (
+                <label key={cat.id} className="apt-category-option">
+                  <input
+                    type="checkbox"
+                    checked={form.categories.includes(cat.label)}
+                    onChange={() => toggleCategory(cat.label)}
+                  />
+                  <span className="apt-category-icon">{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </label>
+              ))}
+            </div>
+            <span className="auth-hint">
+              דירה שמסומנת "כל השנה" תופיע בכל הקטגוריות בסינון.
+            </span>
           </div>
 
           <div className="apt-field">
@@ -191,18 +324,76 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
           </div>
 
           <div className="apt-field apt-field-full">
-            <label>תמונות (URL בשורה אחת לכל תמונה)</label>
-            <textarea
-              className="auth-input"
-              rows="4"
-              value={form.imagesText}
-              onChange={(e) => update('imagesText', e.target.value)}
-              placeholder="https://...&#10;/apartments/123/main.jpg"
-              dir="ltr"
-            />
-            <span className="auth-hint">
-              ניתן להדביק כתובות URL לתמונות, או נתיבים מקומיים תחת public/apartments/
-            </span>
+            <label>תמונות</label>
+            <div
+              className={`apt-dropzone ${dragOver ? 'dragover' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={handleFileInput}
+              />
+              <span className="apt-dropzone-icon">📷</span>
+              <p className="apt-dropzone-text">
+                גררו לכאן תמונות מהמחשב, או לחצו לבחירת קבצים
+              </p>
+              <span className="auth-hint">jpg, png, webp, gif · עד 8MB לתמונה</span>
+              {uploading && <p className="apt-dropzone-status">מעלה תמונות...</p>}
+            </div>
+            {uploadError && <span className="auth-error">{uploadError}</span>}
+
+            {form.images.length > 0 && (
+              <div className="apt-thumbs">
+                {form.images.map((url, index) => (
+                  <div className="apt-thumb" key={`${url}-${index}`}>
+                    <img src={url} alt="" />
+                    <button
+                      type="button"
+                      className="apt-thumb-remove"
+                      onClick={() => removeImage(index)}
+                      aria-label="הסר תמונה"
+                    >
+                      ×
+                    </button>
+                    {index === 0 && <span className="apt-thumb-badge">ראשית</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <details className="apt-url-add">
+              <summary>או הוספה לפי קישור (URL)</summary>
+              <div className="apt-url-row">
+                <input
+                  className="auth-input"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://..."
+                  dir="ltr"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addUrl();
+                    }
+                  }}
+                />
+                <button type="button" className="btn-outline-gold" onClick={addUrl}>
+                  הוסף
+                </button>
+              </div>
+            </details>
           </div>
         </div>
       </fieldset>

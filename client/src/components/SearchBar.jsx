@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CATEGORIES } from '../data/categories';
+import { SEARCH_CATEGORIES } from '../data/categories';
+import { CITY_NAMES } from '../data/locations';
+import Combobox from './Combobox';
 import './SearchBar.css';
 
 function SearchBar({ initialCategory = '', initialLocation = '' }) {
@@ -28,7 +30,7 @@ function SearchBar({ initialCategory = '', initialLocation = '' }) {
             aria-label="קטגוריה"
           >
             <option value="">בחרי קטגוריה</option>
-            {CATEGORIES.map((c) => (
+            {SEARCH_CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>
@@ -38,11 +40,13 @@ function SearchBar({ initialCategory = '', initialLocation = '' }) {
         <div className="search-divider" />
         <div className="search-field">
           <span className="field-icon">📍</span>
-          <input
-            type="text"
-            placeholder="ירושלים, טבריה..."
+          <Combobox
+            className="search-combobox"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
+            options={CITY_NAMES}
+            placeholder="בחרי עיר"
+            emptyText="לא נמצאה עיר תואמת"
           />
         </div>
         <button type="submit" className="search-btn btn-primary">

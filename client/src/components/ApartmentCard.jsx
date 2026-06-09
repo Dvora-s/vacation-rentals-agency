@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
+import { getApartmentCategories } from '../data/categories';
 import './ApartmentCard.css';
 
 function ApartmentCard({ apartment }) {
-  const rating = apartment.rating ?? 4.8;
-
+  const categories = getApartmentCategories(apartment);
   return (
     <article className={`apartment-card ${!apartment.is_available ? 'unavailable' : ''}`}>
       <div className="card-image-wrap">
@@ -13,13 +13,22 @@ function ApartmentCard({ apartment }) {
       <div className="card-body">
         <div className="card-header-row">
           <h3 className="card-title">{apartment.title}</h3>
-          <span className="card-rating">★ {rating}/5</span>
         </div>
 
         <div className="card-meta">
-          <span className="meta-item">🛏 {apartment.bedrooms}</span>
-          <span className="meta-item">🛁 {apartment.bathrooms}</span>
+          <span className="meta-item">🚪 {apartment.bedrooms} חדרים</span>
+          <span className="meta-item">👥 {apartment.max_guests} אורחים</span>
         </div>
+
+        {categories.length > 0 && (
+          <div className="card-categories">
+            {categories.map((cat) => (
+              <span key={cat} className="meta-category">
+                {cat}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="card-footer">
           <p className="card-price">

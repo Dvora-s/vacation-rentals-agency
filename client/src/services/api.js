@@ -65,12 +65,22 @@ export async function getApartmentById(id) {
     if (!apartment) throw new Error('Apartment not found');
     return apartment;
   }
-  return apiFetch(`/apartments/${id}`);
+  // auth נשלח אם קיים טוקן — מאפשר לבעלים/מנהל לצפות גם במודעה שאינה מאושרת (pending/expired).
+  return apiFetch(`/apartments/${id}`, { auth: true });
 }
 
+// נכסים מומלצים = הנכסים החדשים ביותר שהתווספו (לפי created_at, ובהיעדרו לפי id).
 export async function getFeaturedApartments(limit = 3) {
   const apartments = await getApartments();
-  return apartments.filter((a) => a.is_available).slice(0, limit);
+  return [...apartments]
+    .filter((a) => a.is_available)
+    .sort((a, b) => {
+      const ta = new Date(a.created_at || 0).getTime();
+      const tb = new Date(b.created_at || 0).getTime();
+      if (tb !== ta) return tb - ta;
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
+    })
+    .slice(0, limit);
 }
 
 export async function createApartment(payload) {
@@ -105,17 +115,54 @@ export async function rejectApartment(id, reason) {
   });
 }
 
+// ────────── העלאת תמונות ──────────
+export async function uploadImages(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (list.length === 0) return [];
+  const formData = new FormData();
+  for (const file of list) formData.append('images', file);
+
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/uploads`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || `שגיאה ${res.status}`);
+  }
+  return data.urls || [];
+}
+
 // ────────── אוטנטיקציה ──────────
+// הרשמה רגילה: מחזירה pending_verification (אין טוקן עד לאימות האימייל).
 export async function register(payload) {
-  const data = await apiFetch('/auth/register', { method: 'POST', body: payload });
-  if (data?.token) setToken(data.token);
-  return data;
+  return apiFetch('/auth/register', { method: 'POST', body: payload });
 }
 
 export async function login(payload) {
   const data = await apiFetch('/auth/login', { method: 'POST', body: payload });
   if (data?.token) setToken(data.token);
   return data;
+}
+
+// התחברות/הרשמה דרך גוגל — מקבלת credential (ID token) ומחזירה user+token.
+export async function loginWithGoogle(credential) {
+  const data = await apiFetch('/auth/google', { method: 'POST', body: { credential } });
+  if (data?.token) setToken(data.token);
+  return data;
+}
+
+export async function verifyEmail(token) {
+  return apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resendVerification(email) {
+  return apiFetch('/auth/resend-verification', { method: 'POST', body: { email } });
 }
 
 export async function getMe() {
@@ -126,15 +173,20 @@ export function logout() {
   clearToken();
 }
 
+// רשימת כל המשתמשים — למנהל בלבד
+export async function getUsers() {
+  return apiFetch('/auth/users', { auth: true });
+}
+
 // ────────── תשלומים ──────────
 export async function getListingFee() {
   return apiFetch('/payments/fee');
 }
 
-export async function payForListing({ apartment_id, months = 1, provider_reference }) {
+export async function payForListing({ apartment_id, months = 1, tier = 'standard', provider_reference }) {
   return apiFetch('/payments', {
     method: 'POST',
-    body: { apartment_id, months, provider_reference },
+    body: { apartment_id, months, tier, provider_reference },
     auth: true,
   });
 }
@@ -179,4 +231,13 @@ export async function adminUpdatePromotion(id, body) {
 
 export async function adminDeletePromotion(id) {
   return apiFetch(`/admin/pricing/promotions/${id}`, { method: 'DELETE', auth: true });
+}
+
+// ────────── צור קשר ──────────
+export async function submitContactMessage(payload) {
+  if (USE_MOCK) {
+    await mockDelay(900);
+    return { ok: true, message: 'ההודעה נשלחה בהצלחה' };
+  }
+  return apiFetch('/contact', { method: 'POST', body: payload });
 }

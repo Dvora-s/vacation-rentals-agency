@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getApartmentById } from '../services/api';
+import { getApartmentCategories } from '../data/categories';
 import './ApartmentDetailPage.css';
-
-const DEFAULT_AMENITIES = [
-  { icon: '❄️', label: 'מיזוג אוויר' },
-  { icon: '📶', label: 'אינטרנט מהיר' },
-  { icon: '🅿️', label: 'חניה שמורה' },
-  { icon: '🌅', label: 'מרפסת פרטית' },
-  { icon: '🍳', label: 'מטבח מאובזר' },
-];
 
 function ApartmentDetailPage() {
   const { id } = useParams();
@@ -17,6 +10,7 @@ function ApartmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [showEmail, setShowEmail] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -46,8 +40,8 @@ function ApartmentDetailPage() {
   }
 
   const images = apartment.images?.length ? apartment.images : [apartment.image];
-  const amenities = apartment.amenities?.length ? apartment.amenities : DEFAULT_AMENITIES;
-  const rating = apartment.rating ?? 4.9;
+  const phone = apartment.owner_phone;
+  const whatsappNumber = phone ? phone.replace(/[^0-9]/g, '').replace(/^0/, '972') : null;
 
   return (
     <div className="detail-page section-container">
@@ -71,65 +65,77 @@ function ApartmentDetailPage() {
         </div>
 
         <div className="detail-info-card">
-          <h1>{apartment.title.toUpperCase()}</h1>
+          <h1>{apartment.title}</h1>
           <p className="detail-description">{apartment.description}</p>
           <p className="detail-address">📍 {apartment.address || apartment.location}</p>
 
           <div className="detail-specs">
             <span>{apartment.max_guests} אורחים</span>
-            <span>{apartment.bedrooms} חדרים</span>
+            <span>{apartment.bedrooms} חדרי שינה</span>
             <span>{apartment.bathrooms} חדרי רחצה</span>
           </div>
 
-          <div className="amenities-section">
-            <div className="amenities-header">
-              <h3>מתקנים</h3>
-              <span className="detail-rating">★ {rating}/5</span>
-            </div>
-            <ul className="amenities-list">
-              {amenities.map((item) => (
-                <li key={item.label}>
-                  <span>{item.icon}</span> {item.label}
-                </li>
-              ))}
-            </ul>
+          <div className="detail-tags">
+            {apartment.property_type && (
+              <span className="detail-tag">{apartment.property_type}</span>
+            )}
+            {getApartmentCategories(apartment).map((cat) => (
+              <span key={cat} className="detail-tag">
+                {cat}
+              </span>
+            ))}
           </div>
         </div>
 
         <aside className="detail-booking">
-          <div className="booking-card">
-            <h3>בדיקת זמינות והזמנה</h3>
-            <div className="booking-field">
-              <span>📅</span>
-              <input type="text" placeholder="תאריכים" />
-            </div>
-            <div className="booking-field">
-              <span>👤</span>
-              <input type="number" min="1" placeholder="אורחים" />
-            </div>
-            <p className="booking-price">₪{apartment.price_per_night} / לילה</p>
-            <button
-              type="button"
-              className="book-btn btn-primary"
-              disabled={!apartment.is_available}
-            >
-              {apartment.is_available ? 'הזמן עכשיו' : 'לא זמין'}
-            </button>
-          </div>
+          <div className="contact-card">
+            <h3>יצירת קשר עם בעל הנכס</h3>
+            <p className="contact-price">החל מ-₪{apartment.price_per_night} / לילה</p>
 
-          <div className="calendar-placeholder">
-            <p className="calendar-title">לוח שנה</p>
-            <div className="calendar-grid">
-              {Array.from({ length: 28 }, (_, i) => (
-                <span
-                  key={i}
-                  className={i >= 11 && i <= 26 ? 'day booked' : 'day'}
+            {(apartment.owner_name || phone) && (
+              <div className="contact-info">
+                {apartment.owner_name && (
+                  <p className="contact-name">{apartment.owner_name}</p>
+                )}
+                {phone && <p className="contact-phone" dir="ltr">{phone}</p>}
+              </div>
+            )}
+
+            <div className="contact-actions">
+              {phone && (
+                <a className="btn-primary contact-btn" href={`tel:${phone}`}>
+                  📞 התקשרו
+                </a>
+              )}
+              {whatsappNumber && (
+                <a
+                  className="btn-outline-gold contact-btn"
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  {i + 1}
-                </span>
-              ))}
+                  💬 וואטסאפ
+                </a>
+              )}
+              {apartment.owner_email &&
+                (showEmail ? (
+                  <span className="btn-outline-gold contact-btn contact-email-revealed" dir="ltr">
+                    {apartment.owner_email}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-outline-gold contact-btn"
+                    onClick={() => setShowEmail(true)}
+                  >
+                    ✉️ אימייל
+                  </button>
+                ))}
             </div>
-            <p className="calendar-note">תאריכים מסומנים — תפוסים (דוגמה)</p>
+
+            <p className="contact-note">
+              ⓘ הזמינות והתאריכים מתואמים ישירות מול בעל הנכס.
+            </p>
           </div>
         </aside>
       </div>
@@ -138,4 +144,3 @@ function ApartmentDetailPage() {
 }
 
 export default ApartmentDetailPage;
-

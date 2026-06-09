@@ -1,0 +1,52 @@
+.admin-users-page {
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+
+.users-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+}
+
+.users-table thead th {
+  background: #faf7ef;
+  color: #6b5b2e;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 14px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid #efe7d2;
+}
+
+.users-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 0.95rem;
+  color: #2a2a2a;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table tbody tr:hover {
+  background: #fcfbf6;
+}
+
+.users-table a {
+  color: #b8860b;
+  text-decoration: none;
+}
+
+.users-table a:hover {
+  text-decoration: underline;
+}

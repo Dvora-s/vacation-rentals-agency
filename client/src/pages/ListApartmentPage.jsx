@@ -1,27 +1,40 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
-import { createApartment, getListingFee, payForListing } from '../services/api';
+import { createApartment, payForListing } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import {
+  STANDARD_PLANS,
+  PREMIUM_PLANS,
+  getPlanAmount,
+  requiresPremium,
+  monthsLabel,
+} from '../data/pricing';
 import './ListApartmentPage.css';
 
 function ListApartmentPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // מסלול שנבחר במחירון (אם הגיעו דרך "בחירת מסלול").
+  const selectedPlan = location.state?.plan || null;
 
   const [step, setStep] = useState('details'); // details → payment → done
   const [createdApt, setCreatedApt] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [fee, setFee] = useState({ amount_per_month: 30, currency: 'ILS' });
-  const [months, setMonths] = useState(1);
+  const [tier, setTier] = useState(selectedPlan?.tier || 'standard');
+  const [planId, setPlanId] = useState(null);
+  const [premiumForced, setPremiumForced] = useState(false);
   const [paymentRef, setPaymentRef] = useState('');
 
-  useEffect(() => {
-    getListingFee()
-      .then(setFee)
-      .catch(() => {});
-  }, []);
+  const detailsSubtitle = selectedPlan
+    ? `מלאי את פרטי הדירה. בשלב הבא תועברי לתשלום של ₪${getPlanAmount(
+        selectedPlan.tier,
+        selectedPlan.months,
+      )} ל${monthsLabel(selectedPlan.months)}, ולאחר מכן המנהל יאשר את הפרסום.`
+    : 'מלאי את פרטי הדירה. בשלב הבא תבחרי מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
 
   async function handleCreate(payload) {
     setError(null);
@@ -34,6 +47,22 @@ function ListApartmentPage() {
         owner_phone: payload.owner_phone || user?.phone || null,
       });
       setCreatedApt(apt);
+
+      // תעריף נקבע לפי סוג הנכס: "מתחמי אירוח" => פרימיום.
+      const mustPremium = requiresPremium(apt);
+      const effectiveTier = mustPremium ? 'premium' : 'standard';
+      const planList = effectiveTier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
+
+      // ברירת מחדל: המסלול שנבחר במחירון (אם תואם ל-tier), אחרת הראשון ברשימה.
+      let initialPlanId = planList[0].id;
+      if (selectedPlan) {
+        const match = planList.find((p) => p.months === selectedPlan.months);
+        if (match) initialPlanId = match.id;
+      }
+
+      setTier(effectiveTier);
+      setPlanId(initialPlanId);
+      setPremiumForced(mustPremium && (selectedPlan?.tier || 'standard') !== 'premium');
       setStep('payment');
     } catch (err) {
       setError(err.message);
@@ -42,13 +71,17 @@ function ListApartmentPage() {
     }
   }
 
+  const planList = tier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
+  const chosenPlan = planList.find((p) => p.id === planId) || planList[0];
+
   async function handlePay() {
     setError(null);
     setSubmitting(true);
     try {
       await payForListing({
         apartment_id: createdApt.id,
-        months,
+        months: chosenPlan.months,
+        tier,
         provider_reference: paymentRef || null,
       });
       setStep('done');
@@ -83,35 +116,52 @@ function ListApartmentPage() {
   }
 
   if (step === 'payment') {
-    const total = fee.amount_per_month * months;
+    const total = chosenPlan.price;
     return (
       <div className="list-apt-page section-container">
         <h1 className="page-title">תשלום על פרסום הדירה</h1>
         <p className="page-subtitle">
-          הדירה <strong>"{createdApt?.title}"</strong> נשמרה. כדי להעביר אותה לאישור המנהל יש להשלים תשלום.
+          הדירה <strong>"{createdApt?.title}"</strong> נשמרה. בחרי מסלול פרסום כדי להעביר אותה לאישור המנהל.
         </p>
 
         {error && <div className="auth-error">{error}</div>}
 
-        <div className="payment-card">
-          <h3>פירוט החיוב</h3>
-          <div className="payment-row">
-            <span>עלות פרסום לחודש</span>
-            <strong>₪{fee.amount_per_month}</strong>
+        {premiumForced && (
+          <div className="auth-notice">
+            הנכס שלך הוא <strong>מתחם אירוח</strong>, ולכן חלים עליו מסלולי החבילות של מתחמי אירוח.
           </div>
+        )}
 
-          <div className="payment-row">
-            <label htmlFor="months">מספר חודשים</label>
-            <input
-              id="months"
-              type="number"
-              min="1"
-              max="24"
-              className="auth-input"
-              value={months}
-              onChange={(e) => setMonths(Math.max(1, Number(e.target.value) || 1))}
-              style={{ width: '90px' }}
-            />
+        <div className="payment-card">
+          <h3>
+            {tier === 'premium' ? 'מסלולי מתחמי אירוח' : 'בחירת מסלול פרסום'}
+          </h3>
+
+          <div className="plan-options">
+            {planList.map((plan) => (
+              <label
+                key={plan.id}
+                className={`plan-option ${planId === plan.id ? 'selected' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="plan"
+                  value={plan.id}
+                  checked={planId === plan.id}
+                  onChange={() => setPlanId(plan.id)}
+                />
+                <span className="plan-option-body">
+                  <span className="plan-option-title">{plan.title}</span>
+                  <span className="plan-option-price">
+                    {plan.originalPrice && (
+                      <span className="plan-option-old">₪{plan.originalPrice}</span>
+                    )}
+                    ₪{plan.price}
+                  </span>
+                </span>
+                {plan.badge && <span className="plan-option-badge">{plan.badge}</span>}
+              </label>
+            ))}
           </div>
 
           <div className="payment-row payment-total">
@@ -151,9 +201,7 @@ function ListApartmentPage() {
   return (
     <div className="list-apt-page section-container">
       <h1 className="page-title">פרסום דירה חדשה</h1>
-      <p className="page-subtitle">
-        מלאי את פרטי הדירה. בשלב הבא תועברי לתשלום ₪{fee.amount_per_month} לחודש, ולאחר מכן המנהל יאשר את הפרסום.
-      </p>
+      <p className="page-subtitle">{detailsSubtitle}</p>
 
       <ApartmentForm
         onSubmit={handleCreate}

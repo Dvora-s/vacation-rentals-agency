@@ -13,8 +13,14 @@ CREATE TABLE IF NOT EXISTS users (
   full_name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(50),
-  password_hash VARCHAR(255) NOT NULL,
+  -- password_hash יכול להיות NULL עבור משתמשים שנרשמו דרך גוגל
+  password_hash VARCHAR(255) NULL,
   role ENUM('owner', 'admin') NOT NULL DEFAULT 'owner',
+  -- אימות אימייל: 0 = ממתין לאימות, 1 = מאומת
+  email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  -- שיטת ההרשמה: local (אימייל+סיסמה) או google
+  auth_provider VARCHAR(20) NOT NULL DEFAULT 'local',
+  google_id VARCHAR(255) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -43,12 +49,17 @@ CREATE TABLE IF NOT EXISTS apartments (
   owner_email VARCHAR(255),
   contact_via_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
-  status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  status ENUM('pending', 'approved', 'rejected', 'expired') NOT NULL DEFAULT 'pending',
   rejection_reason VARCHAR(500),
   approved_at TIMESTAMP NULL,
+  -- תוקף הפרסום (מחושב מהתשלום). לאחר תאריך זה המודעה מושעית.
+  expires_at DATETIME NULL,
+  -- האם נשלחה תזכורת על פקיעת תוקף קרובה (כדי לא לשלוח כפול)
+  expiry_reminder_sent TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_apartments_status (status),
+  INDEX idx_apartments_expires (expires_at),
   INDEX idx_apartments_owner (owner_id),
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -82,6 +93,16 @@ CREATE TABLE IF NOT EXISTS listing_payments (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (apartment_id) REFERENCES apartments(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ───────── פניות "צור קשר" ─────────
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ───────── הזמנות ─────────

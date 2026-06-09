@@ -1,12 +1,24 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import pool from '../config/db.js';
-import { signToken, requireAuth } from '../middleware/auth.js';
+import {
+  signToken,
+  signEmailToken,
+  verifyEmailToken,
+  requireAuth,
+  requireRole,
+} from '../middleware/auth.js';
+import { sendWelcomeEmail, sendVerificationEmail } from '../utils/mailer.js';
 
 const router = Router();
 
 // סיסמה חזקה: לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 function publicUser(row) {
   if (!row) return null;
@@ -16,8 +28,17 @@ function publicUser(row) {
     email: row.email,
     phone: row.phone,
     role: row.role,
+    email_verified: !!row.email_verified,
+    auth_provider: row.auth_provider || 'local',
     created_at: row.created_at,
   };
+}
+
+// בונה קישור אימות ושולח את מייל האימות (best-effort).
+async function sendVerification(user) {
+  const token = signEmailToken({ id: user.id, email: user.email });
+  const verifyUrl = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  await sendVerificationEmail({ to: user.email, fullName: user.full_name, verifyUrl });
 }
 
 router.post('/register', async (req, res) => {
@@ -43,16 +64,83 @@ router.post('/register', async (req, res) => {
     const password_hash = await bcrypt.hash(password, 12);
 
     const [result] = await pool.query(
-      `INSERT INTO users (full_name, email, phone, password_hash, role)
-       VALUES (?, ?, ?, ?, 'owner')`,
+      `INSERT INTO users (full_name, email, phone, password_hash, role, email_verified, auth_provider)
+       VALUES (?, ?, ?, ?, 'owner', 0, 'local')`,
       [full_name.trim(), normalizedEmail, phone || null, password_hash],
     );
 
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
     const user = publicUser(rows[0]);
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
 
-    res.status(201).json({ user, token });
+    // שולחים מייל אימות. ההרשמה מסתיימת רק לאחר אימות — לא מחזירים טוקן התחברות.
+    try {
+      await sendVerification(user);
+    } catch (err) {
+      console.error('[mailer] שליחת מייל אימות נכשלה:', err.message);
+    }
+
+    res.status(201).json({
+      pending_verification: true,
+      email: user.email,
+      message: 'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// אימות אימייל לפי טוקן — מפעיל את החשבון ושולח מייל ברוכים-הבאים.
+router.get('/verify-email', async (req, res) => {
+  try {
+    const token = req.query.token;
+    if (!token) {
+      return res.status(400).json({ error: 'חסר טוקן אימות' });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyEmailToken(token);
+    } catch {
+      return res.status(400).json({ error: 'קישור האימות אינו תקין או שפג תוקפו' });
+    }
+
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'המשתמש לא נמצא' });
+    }
+    const user = rows[0];
+
+    const wasVerified = !!user.email_verified;
+    if (!wasVerified) {
+      await pool.query('UPDATE users SET email_verified = 1 WHERE id = ?', [user.id]);
+      // מייל ברוכים-הבאים נשלח פעם אחת, לאחר אימות מוצלח (best-effort)
+      sendWelcomeEmail({ to: user.email, fullName: user.full_name }).catch((err) =>
+        console.error('[mailer] מייל ברוכים-הבאים נכשל:', err.message),
+      );
+    }
+
+    res.json({ ok: true, email: user.email, already_verified: wasVerified });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// שליחה חוזרת של מייל אימות.
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'נדרש אימייל' });
+
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    // לא חושפים אם המשתמש קיים — מחזירים תמיד הצלחה.
+    if (rows.length > 0 && !rows[0].email_verified) {
+      try {
+        await sendVerification(publicUser(rows[0]));
+      } catch (err) {
+        console.error('[mailer] שליחה חוזרת של מייל אימות נכשלה:', err.message);
+      }
+    }
+    res.json({ ok: true, message: 'אם קיים חשבון שאינו מאומת, נשלח אליו מייל אימות חדש.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -72,13 +160,98 @@ router.post('/login', async (req, res) => {
     }
 
     const user = rows[0];
+
+    // משתמש שנרשם דרך גוגל ואין לו סיסמה
+    if (!user.password_hash) {
+      return res.status(401).json({
+        error: 'החשבון נוצר באמצעות התחברות עם גוגל. יש להתחבר דרך כפתור "התחברות עם Google".',
+      });
+    }
+
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
       return res.status(401).json({ error: 'אימייל או סיסמה שגויים' });
     }
 
+    if (!user.email_verified) {
+      return res.status(403).json({
+        error: 'החשבון עדיין לא אומת. נשלח אליך מייל אימות — יש ללחוץ על הקישור שבו.',
+        needs_verification: true,
+        email: user.email,
+      });
+    }
+
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ user: publicUser(user), token });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// התחברות/הרשמה דרך גוגל. מקבל credential (ID token) מצד הלקוח.
+router.post('/google', async (req, res) => {
+  try {
+    if (!googleClient) {
+      return res.status(503).json({ error: 'התחברות עם גוגל אינה מוגדרת בשרת.' });
+    }
+    const { credential } = req.body || {};
+    if (!credential) {
+      return res.status(400).json({ error: 'חסר אסימון התחברות מגוגל' });
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ error: 'אימות מול גוגל נכשל' });
+    }
+
+    if (!payload?.email || !payload.email_verified) {
+      return res.status(401).json({ error: 'חשבון הגוגל אינו כולל אימייל מאומת' });
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const fullName = payload.name || email.split('@')[0];
+    const googleId = payload.sub;
+
+    const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    let userRow;
+    let isNew = false;
+    if (existing.length > 0) {
+      userRow = existing[0];
+      // מקשר את החשבון לגוגל ומוודא שהוא מאומת
+      await pool.query(
+        `UPDATE users
+         SET google_id = COALESCE(google_id, ?),
+             email_verified = 1,
+             auth_provider = IF(auth_provider = 'local' AND password_hash IS NOT NULL, auth_provider, 'google')
+         WHERE id = ?`,
+        [googleId, userRow.id],
+      );
+    } else {
+      isNew = true;
+      const [result] = await pool.query(
+        `INSERT INTO users (full_name, email, phone, password_hash, role, email_verified, auth_provider, google_id)
+         VALUES (?, ?, NULL, NULL, 'owner', 1, 'google', ?)`,
+        [fullName, email, googleId],
+      );
+      const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+      userRow = rows[0];
+    }
+
+    if (isNew) {
+      sendWelcomeEmail({ to: email, fullName }).catch((err) =>
+        console.error('[mailer] מייל ברוכים-הבאים (גוגל) נכשל:', err.message),
+      );
+    }
+
+    const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
+    res.json({ user: publicUser(userRow), token });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -91,6 +264,18 @@ router.get('/me', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'המשתמש לא נמצא' });
     }
     res.json(publicUser(rows[0]));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// רשימת כל המשתמשים — למנהל בלבד
+router.get('/users', requireAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, full_name, email, phone, role, email_verified, auth_provider, created_at FROM users ORDER BY created_at DESC',
+    );
+    res.json(rows.map(publicUser));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

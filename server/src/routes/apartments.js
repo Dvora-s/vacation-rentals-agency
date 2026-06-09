@@ -6,8 +6,25 @@ import {
   attachImagesToApartments,
 } from '../utils/mapApartment.js';
 import { requireAuth, requireRole, optionalAuth } from '../middleware/auth.js';
+import { sendNewListingToAdmin, sendListingLiveEmail } from '../utils/mailer.js';
 
 const router = Router();
+
+const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+// מחזיר את כתובות המייל לקבלת התראות מנהל.
+// עדיפות ל-ADMIN_NOTIFY_EMAIL (.env). אחרת — מיילים אמיתיים של מנהלים מה-DB
+// (מתעלם מכתובות placeholder כמו admin@nofesh.local שאי אפשר לשלוח אליהן).
+async function getAdminEmails() {
+  if (process.env.ADMIN_NOTIFY_EMAIL) {
+    return process.env.ADMIN_NOTIFY_EMAIL.split(',').map((e) => e.trim()).filter(Boolean);
+  }
+  const [rows] = await pool.query("SELECT email FROM users WHERE role = 'admin'");
+  return rows
+    .map((r) => r.email)
+    .filter(Boolean)
+    .filter((email) => !email.endsWith('.local'));
+}
 
 // ─────────────────────────────────────────────
 // רישום ציבורי — מציג רק דירות שאושרו על ידי המנהל.
@@ -136,7 +153,29 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [result.insertId]);
-    res.status(201).json(await attachImagesToApartment(pool, rows[0]));
+    const apartment = await attachImagesToApartment(pool, rows[0]);
+
+    // התראה למנהל על דירה חדשה הממתינה לאישור (best-effort)
+    (async () => {
+      try {
+        const adminEmails = await getAdminEmails();
+        if (adminEmails.length === 0) return;
+        let publisherName = body.owner_name || null;
+        if (!publisherName) {
+          const [u] = await pool.query('SELECT full_name FROM users WHERE id = ?', [req.user.id]);
+          publisherName = u[0]?.full_name || req.user.email;
+        }
+        await sendNewListingToAdmin({
+          to: adminEmails.join(', '),
+          apartment,
+          publisherName,
+        });
+      } catch (err) {
+        console.error('[mailer] התראת דירה חדשה למנהל נכשלה:', err.message);
+      }
+    })();
+
+    res.status(201).json(apartment);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -244,7 +283,37 @@ router.post('/:id/approve', requireAuth, requireRole('admin'), async (req, res) 
       [req.params.id],
     );
     const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [req.params.id]);
-    res.json(await attachImagesToApartment(pool, rows[0]));
+    const apartment = await attachImagesToApartment(pool, rows[0]);
+
+    // מייל למפרסם שהמודעה פורסמה וגלויה לכולם, עם קישורי צפייה ועריכה (best-effort)
+    (async () => {
+      try {
+        let ownerEmail = apartment.owner_email || null;
+        let ownerName = apartment.owner_name || null;
+        if (apartment.owner_id) {
+          const [u] = await pool.query(
+            'SELECT full_name, email FROM users WHERE id = ?',
+            [apartment.owner_id],
+          );
+          if (u[0]) {
+            ownerEmail = ownerEmail || u[0].email;
+            ownerName = ownerName || u[0].full_name;
+          }
+        }
+        if (!ownerEmail) return;
+        await sendListingLiveEmail({
+          to: ownerEmail,
+          ownerName,
+          apartment,
+          listingUrl: `${APP_URL}/apartments/${apartment.id}`,
+          editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+        });
+      } catch (err) {
+        console.error('[mailer] מייל "המודעה פורסמה" נכשל:', err.message);
+      }
+    })();
+
+    res.json(apartment);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

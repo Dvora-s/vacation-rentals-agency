@@ -24,19 +24,10 @@ export function FaqPage() {
   );
 }
 
-export function ContactPage() {
-  return (
-    <PlaceholderPage
-      title="צור קשר"
-      description="פרטי התקשרות, טופס פנייה ופרסום נכס — בקרוב."
-    />
-  );
-}
-
 export function BlogPage() {
   return (
     <PlaceholderPage
-      title="בלוג דירות לשבת"
+      title="בלוג דירות נופש"
       description="טיפים, מדריכים והמלצות לדירות נופש לשבת — בקרוב."
     />
   );
