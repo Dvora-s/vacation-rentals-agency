@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CATEGORIES } from '../data/categories';
+import { SEARCH_CATEGORIES } from '../data/categories';
 import { CITY_NAMES } from '../data/locations';
 import Combobox from './Combobox';
 import './SearchBar.css';
@@ -30,7 +30,7 @@ function SearchBar({ initialCategory = '', initialLocation = '' }) {
             aria-label="קטגוריה"
           >
             <option value="">בחרי קטגוריה</option>
-            {CATEGORIES.map((c) => (
+            {SEARCH_CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>

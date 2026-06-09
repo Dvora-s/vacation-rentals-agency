@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { CATEGORIES, ALL_YEAR_LABEL, getApartmentCategories } from '../data/categories';
-import { CITY_NAMES, getStreetsForCity, cityHasStreets } from '../data/locations';
+import { CITY_NAMES, getStreetsForCity } from '../data/locations';
+import { COMPLEX_PROPERTY_TYPE, MAX_GUESTS_NON_COMPLEX } from '../data/pricing';
 import Combobox from './Combobox';
 import { uploadImages } from '../services/api';
 import './ApartmentForm.css';
@@ -25,7 +26,7 @@ const EMPTY = {
   images: [],
 };
 
-const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח'];
+const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח', COMPLEX_PROPERTY_TYPE];
 
 // מפרק כתובת מאוחסנת (למשל "הרצל 5") לרחוב ומספר בית, לצורך עריכה.
 function splitAddress(address) {
@@ -64,6 +65,7 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [urlInput, setUrlInput] = useState('');
+  const [formError, setFormError] = useState(null);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -127,6 +129,17 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
 
   function handleSubmit(e) {
     e.preventDefault();
+    setFormError(null);
+
+    // מעל סף המיטות לנכס שאינו "מתחמי אירוח" — חוסם המשך.
+    if (
+      form.property_type !== COMPLEX_PROPERTY_TYPE &&
+      Number(form.max_guests) > MAX_GUESTS_NON_COMPLEX
+    ) {
+      setFormError('אופס, יותר מדי מיטות זה מתחמי אירוח.');
+      return;
+    }
+
     const images = form.images.filter(Boolean);
     // שמירת הקטגוריות בסדר הקבוע של CATEGORIES, מופרדות בפסיק.
     const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
@@ -159,6 +172,7 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
   return (
     <form className="apt-form" onSubmit={handleSubmit}>
       {error && <div className="auth-error">{error}</div>}
+      {formError && <div className="auth-error">{formError}</div>}
 
       <fieldset className="apt-fieldset">
         <legend>פרטי הנכס</legend>
@@ -200,23 +214,21 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
 
           <div className="apt-field">
             <label>רחוב</label>
-            {cityHasStreets(form.location) ? (
-              <Combobox
-                value={form.street}
-                onChange={(v) => update('street', v)}
-                options={getStreetsForCity(form.location)}
-                placeholder="בחרי רחוב מהרשימה"
-                emptyText="לא נמצא רחוב תואם"
-              />
-            ) : (
-              <input
-                className="auth-input"
-                value={form.street}
-                onChange={(e) => update('street', e.target.value)}
-                placeholder={form.location ? 'הקלידי שם רחוב' : 'בחרי קודם עיר'}
-                disabled={!form.location}
-              />
-            )}
+            {/* בחירה מתוך מאגר הרחובות של העיר, או הקלדת רחוב חדש שאינו ברשימה */}
+            <input
+              className="auth-input"
+              list="street-options"
+              value={form.street}
+              onChange={(e) => update('street', e.target.value)}
+              placeholder={form.location ? 'בחרי רחוב מהרשימה או הקלידי רחוב חדש' : 'בחרי קודם עיר'}
+              disabled={!form.location}
+              autoComplete="off"
+            />
+            <datalist id="street-options">
+              {getStreetsForCity(form.location).map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </div>
 
           <div className="apt-field">

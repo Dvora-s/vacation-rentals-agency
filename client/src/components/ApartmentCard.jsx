@@ -16,8 +16,8 @@ function ApartmentCard({ apartment }) {
         </div>
 
         <div className="card-meta">
-          <span className="meta-item">🛏 {apartment.bedrooms}</span>
-          <span className="meta-item">🛁 {apartment.bathrooms}</span>
+          <span className="meta-item">🚪 {apartment.bedrooms} חדרים</span>
+          <span className="meta-item">👥 {apartment.max_guests} אורחים</span>
         </div>
 
         {categories.length > 0 && (

@@ -10,6 +10,8 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from || '/my-apartments';
+  // שמירת המסלול שנבחר במחירון כדי להעבירו הלאה לעמוד הפרסום לאחר ההתחברות.
+  const forwardState = location.state?.plan ? { plan: location.state.plan } : undefined;
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
@@ -28,7 +30,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       await login(form.email.trim(), form.password);
-      navigate(redirectTo, { replace: true });
+      navigate(redirectTo, { replace: true, state: forwardState });
     } catch (err) {
       setError(err.message);
       // השרת מסמן צורך באימות עם הטקסט; מזהים זאת לפי המילה "אומת"
@@ -101,7 +103,7 @@ function LoginPage() {
       </form>
 
       <GoogleSignInButton
-        onSuccess={() => navigate(redirectTo, { replace: true })}
+        onSuccess={() => navigate(redirectTo, { replace: true, state: forwardState })}
         onError={(msg) => setError(msg)}
       />
 

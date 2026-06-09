@@ -2,10 +2,11 @@ import { Router } from 'express';
 import pool from '../config/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { sendPaymentReceiptEmail } from '../utils/mailer.js';
+import { getPlanAmount, isPremiumApartment } from '../config/pricing.js';
 
 const router = Router();
 
-const LISTING_FEE_PER_MONTH = 30; // ש"ח
+const LISTING_FEE_PER_MONTH = 30; // ש"ח — תעריף בסיס (דירה רגילה לחודש)
 
 function formatHebrewDate(date) {
   try {
@@ -28,8 +29,13 @@ function formatHebrewDate(date) {
  */
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { apartment_id, months = 1, provider = 'manual', provider_reference = null } =
-      req.body || {};
+    const {
+      apartment_id,
+      months = 1,
+      tier: requestedTier = 'standard',
+      provider = 'manual',
+      provider_reference = null,
+    } = req.body || {};
 
     if (!apartment_id) {
       return res.status(400).json({ error: 'נדרש מזהה דירה (apartment_id)' });
@@ -46,7 +52,9 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'אין הרשאה לשלם עבור דירה זו' });
     }
 
-    const amount = LISTING_FEE_PER_MONTH * monthsInt;
+    // הנכס מחייב פרימיום אם סוג הנכס הוא "מתחמי אירוח" — אכיפה בצד השרת.
+    const tier = isPremiumApartment(apt) || requestedTier === 'premium' ? 'premium' : 'standard';
+    const amount = getPlanAmount(tier, monthsInt);
     const periodStart = new Date();
     const periodEnd = new Date(periodStart);
     periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
@@ -104,7 +112,13 @@ router.post('/', requireAuth, async (req, res) => {
           order: {
             number: String(10000 + payment.id),
             date: formatHebrewDate(periodStart),
-            items: [{ name: 'מנוי מודעה - חודש', qty: monthsInt, price: LISTING_FEE_PER_MONTH }],
+            items: [
+              {
+                name: `מנוי פרסום מודעה${tier === 'premium' ? ' (מתחם אירוח)' : ''} – ${monthsInt} ${monthsInt === 1 ? 'חודש' : 'חודשים'}`,
+                qty: 1,
+                price: amount,
+              },
+            ],
             total: amount,
             paymentMethod: 'תשלום מאובטח בכרטיס אשראי',
             billing: { name: billingName, address: billingAddress, email: billingEmail },

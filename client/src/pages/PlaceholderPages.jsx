@@ -27,7 +27,7 @@ export function FaqPage() {
 export function BlogPage() {
   return (
     <PlaceholderPage
-      title="בלוג דירות לשבת"
+      title="בלוג דירות נופש"
       description="טיפים, מדריכים והמלצות לדירות נופש לשבת — בקרוב."
     />
   );

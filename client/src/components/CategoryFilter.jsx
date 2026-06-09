@@ -1,4 +1,4 @@
-import { CATEGORIES } from '../data/categories';
+import { SEARCH_CATEGORIES } from '../data/categories';
 import './CategoryFilter.css';
 
 function CategoryFilter({ value, onChange }) {
@@ -13,7 +13,7 @@ function CategoryFilter({ value, onChange }) {
         <span className="cat-chip-label">הכל</span>
       </button>
 
-      {CATEGORIES.map((cat) => (
+      {SEARCH_CATEGORIES.map((cat) => (
         <button
           key={cat.id}
           type="button"

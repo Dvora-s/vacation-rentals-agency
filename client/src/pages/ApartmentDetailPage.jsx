@@ -10,6 +10,7 @@ function ApartmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [showEmail, setShowEmail] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -116,14 +117,20 @@ function ApartmentDetailPage() {
                   💬 וואטסאפ
                 </a>
               )}
-              {apartment.owner_email && (
-                <a
-                  className="btn-outline-gold contact-btn"
-                  href={`mailto:${apartment.owner_email}`}
-                >
-                  ✉️ אימייל
-                </a>
-              )}
+              {apartment.owner_email &&
+                (showEmail ? (
+                  <span className="btn-outline-gold contact-btn contact-email-revealed" dir="ltr">
+                    {apartment.owner_email}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-outline-gold contact-btn"
+                    onClick={() => setShowEmail(true)}
+                  >
+                    ✉️ אימייל
+                  </button>
+                ))}
             </div>
 
             <p className="contact-note">
