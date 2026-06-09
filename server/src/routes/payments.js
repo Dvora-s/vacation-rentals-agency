@@ -1,10 +1,23 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { sendPaymentReceiptEmail } from '../utils/mailer.js';
 
 const router = Router();
 
 const LISTING_FEE_PER_MONTH = 30; // ש"ח
+
+function formatHebrewDate(date) {
+  try {
+    return new Intl.DateTimeFormat('he-IL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
 
 /**
  * רישום תשלום על פרסום דירה.
@@ -58,7 +71,51 @@ router.post('/', requireAuth, async (req, res) => {
     const [payRows] = await pool.query('SELECT * FROM listing_payments WHERE id = ?', [
       result.insertId,
     ]);
-    res.status(201).json(payRows[0]);
+    const payment = payRows[0];
+
+    // עדכון תוקף המודעה (expires_at) ואיפוס תזכורת. אם המודעה הייתה "פגת תוקף" — מחזירים אותה לאוויר.
+    if (apt.status === 'expired') {
+      await pool.query(
+        `UPDATE apartments
+         SET expires_at = ?, expiry_reminder_sent = 0, status = 'approved', approved_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [periodEnd, apartment_id],
+      );
+    } else {
+      await pool.query(
+        'UPDATE apartments SET expires_at = ?, expiry_reminder_sent = 0 WHERE id = ?',
+        [periodEnd, apartment_id],
+      );
+    }
+
+    // שליחת מייל אישור הזמנה/תשלום (best-effort)
+    (async () => {
+      try {
+        const [u] = await pool.query('SELECT full_name, email FROM users WHERE id = ?', [
+          req.user.id,
+        ]);
+        const billingName = apt.owner_name || u[0]?.full_name || '';
+        const billingEmail = u[0]?.email || apt.owner_email || req.user.email;
+        const billingAddress = [apt.address, apt.location].filter(Boolean).join(', ');
+        if (!billingEmail) return;
+
+        await sendPaymentReceiptEmail({
+          to: billingEmail,
+          order: {
+            number: String(10000 + payment.id),
+            date: formatHebrewDate(periodStart),
+            items: [{ name: 'מנוי מודעה - חודש', qty: monthsInt, price: LISTING_FEE_PER_MONTH }],
+            total: amount,
+            paymentMethod: 'תשלום מאובטח בכרטיס אשראי',
+            billing: { name: billingName, address: billingAddress, email: billingEmail },
+          },
+        });
+      } catch (err) {
+        console.error('[mailer] מייל אישור תשלום נכשל:', err.message);
+      }
+    })();
+
+    res.status(201).json(payment);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

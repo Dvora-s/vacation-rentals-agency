@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { resendVerification } from '../services/api';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
 function LoginPage() {
@@ -12,6 +14,8 @@ function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resent, setResent] = useState(false);
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -20,14 +24,29 @@ function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setNeedsVerification(false);
     setSubmitting(true);
     try {
       await login(form.email.trim(), form.password);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message);
+      // השרת מסמן צורך באימות עם הטקסט; מזהים זאת לפי המילה "אומת"
+      if (/אומת|אימות/.test(err.message || '')) {
+        setNeedsVerification(true);
+      }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    try {
+      await resendVerification(form.email.trim());
+    } catch {
+      /* ignore */
+    } finally {
+      setResent(true);
     }
   }
 
@@ -38,6 +57,15 @@ function LoginPage() {
 
       <form className="auth-form" onSubmit={handleSubmit}>
         {error && <div className="auth-error">{error}</div>}
+
+        {needsVerification && (
+          <div className="auth-notice">
+            עדיין לא אימתת את האימייל?{' '}
+            <button type="button" className="auth-resend" onClick={handleResend} disabled={resent}>
+              {resent ? 'מייל אימות נשלח שוב' : 'שלחי מייל אימות שוב'}
+            </button>
+          </div>
+        )}
 
         <div className="auth-field">
           <label htmlFor="login-email">אימייל</label>
@@ -67,14 +95,15 @@ function LoginPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="btn-primary auth-submit"
-          disabled={submitting}
-        >
+        <button type="submit" className="btn-primary auth-submit" disabled={submitting}>
           {submitting ? 'מתחברת...' : 'כניסה'}
         </button>
       </form>
+
+      <GoogleSignInButton
+        onSuccess={() => navigate(redirectTo, { replace: true })}
+        onError={(msg) => setError(msg)}
+      />
 
       <p className="auth-switch">
         אין לך חשבון עדיין? <Link to="/register">הירשמי כאן</Link>

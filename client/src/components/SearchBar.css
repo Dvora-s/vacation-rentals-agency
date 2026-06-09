@@ -1,38 +1,54 @@
 .search-bar {
-  background: var(--color-white);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  max-width: 900px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem 1.6rem 1.5rem;
+  box-shadow: 0 24px 60px -24px rgba(8, 24, 40, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  max-width: 920px;
   width: 100%;
   margin: 0 auto;
 }
 
 .search-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--color-navy);
-  letter-spacing: 0.08em;
-  margin-bottom: 0.75rem;
+  color: var(--color-gold-dark);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.9rem;
 }
 
 .search-fields {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 0.5rem;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.4rem 0.4rem 0.5rem;
 }
 
 .search-field {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0 1rem;
+  gap: 0.6rem;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  transition: background 0.2s var(--ease);
+}
+
+.search-field:focus-within {
+  background: var(--color-white);
 }
 
 .field-icon {
-  font-size: 1.1rem;
-  opacity: 0.7;
+  font-size: 1.15rem;
+  opacity: 0.75;
+  flex-shrink: 0;
 }
 
 .search-field input,
@@ -41,40 +57,69 @@
   border: none;
   outline: none;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
+  font-weight: 500;
   color: var(--color-text);
   background: transparent;
-  padding: 0.25rem 0;
+  padding: 0.3rem 0;
+  cursor: pointer;
+}
+
+.search-field input {
+  cursor: text;
 }
 
 .search-field input::placeholder {
   color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* שילוב ה-Combobox של בחירת העיר בתוך עיצוב ה"גלולה" של החיפוש */
+.search-combobox {
+  flex: 1;
+}
+
+.search-field .search-combobox .combobox-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0.3rem 0;
+  padding-inline-end: 1.5rem;
+  font-size: 0.98rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.search-field .search-combobox .combobox-arrow {
+  inset-inline-end: 0.25rem;
 }
 
 .search-note {
-  margin-top: 0.75rem;
-  font-size: 0.78rem;
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   text-align: center;
+  letter-spacing: 0.01em;
 }
 
 .search-divider {
   width: 1px;
-  height: 36px;
+  height: 28px;
   background: var(--color-border);
   flex-shrink: 0;
 }
 
 .search-btn {
   flex-shrink: 0;
-  margin-right: 0.5rem;
-  padding: 0.85rem 2rem;
+  padding: 0.85rem 2.2rem;
 }
 
 @media (max-width: 768px) {
   .search-fields {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
+    border-radius: var(--radius-lg);
+    padding: 0.6rem;
   }
 
   .search-divider {
@@ -83,12 +128,12 @@
 
   .search-field {
     width: 100%;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border);
+    background: var(--color-white);
+    border: 1px solid var(--color-border-soft);
   }
 
   .search-btn {
     width: 100%;
-    margin: 0.5rem 0 0;
+    margin: 0.25rem 0 0;
   }
 }

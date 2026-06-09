@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { resendVerification } from '../services/api';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -17,6 +19,8 @@ function RegisterPage() {
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [sentTo, setSentTo] = useState(null);
+  const [resent, setResent] = useState(false);
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -31,26 +35,60 @@ function RegisterPage() {
       return;
     }
     if (!PASSWORD_RULE.test(form.password)) {
-      setError(
-        'סיסמה חלשה. חייבת לכלול לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.',
-      );
+      setError('סיסמה חלשה. חייבת לכלול לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await register({
+      const result = await register({
         full_name: form.full_name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || null,
         password: form.password,
       });
-      navigate('/my-apartments', { replace: true });
+      // הרשמה רגילה — ממתינים לאימות אימייל
+      setSentTo(result?.email || form.email.trim());
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleResend() {
+    if (!sentTo) return;
+    try {
+      await resendVerification(sentTo);
+      setResent(true);
+    } catch {
+      setResent(true);
+    }
+  }
+
+  // מסך אישור לאחר הרשמה — בקשה לאמת אימייל
+  if (sentTo) {
+    return (
+      <div className="auth-wrap auth-verify-card">
+        <span className="auth-verify-icon" aria-hidden="true">📩</span>
+        <h1 className="auth-title">כמעט סיימנו!</h1>
+        <p className="auth-subtitle">
+          שלחנו מייל אימות אל <strong dir="ltr">{sentTo}</strong>.
+          <br />
+          יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.
+        </p>
+        <div className="auth-notice">
+          לא קיבלת את המייל? בדקי גם בתיקיית הספאם, או{' '}
+          <button type="button" className="auth-resend" onClick={handleResend} disabled={resent}>
+            {resent ? 'המייל נשלח שוב' : 'שלחי שוב'}
+          </button>
+          .
+        </div>
+        <p className="auth-switch">
+          אימתת את החשבון? <Link to="/login">להתחברות</Link>
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -131,14 +169,15 @@ function RegisterPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="btn-primary auth-submit"
-          disabled={submitting}
-        >
+        <button type="submit" className="btn-primary auth-submit" disabled={submitting}>
           {submitting ? 'נרשמת...' : 'הרשמה'}
         </button>
       </form>
+
+      <GoogleSignInButton
+        onSuccess={() => navigate('/my-apartments', { replace: true })}
+        onError={(msg) => setError(msg)}
+      />
 
       <p className="auth-switch">
         כבר יש לך חשבון? <Link to="/login">היכנסי כאן</Link>

@@ -65,7 +65,8 @@ export async function getApartmentById(id) {
     if (!apartment) throw new Error('Apartment not found');
     return apartment;
   }
-  return apiFetch(`/apartments/${id}`);
+  // auth נשלח אם קיים טוקן — מאפשר לבעלים/מנהל לצפות גם במודעה שאינה מאושרת (pending/expired).
+  return apiFetch(`/apartments/${id}`, { auth: true });
 }
 
 export async function getFeaturedApartments(limit = 3) {
@@ -105,11 +106,33 @@ export async function rejectApartment(id, reason) {
   });
 }
 
+// ────────── העלאת תמונות ──────────
+export async function uploadImages(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (list.length === 0) return [];
+  const formData = new FormData();
+  for (const file of list) formData.append('images', file);
+
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/uploads`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || `שגיאה ${res.status}`);
+  }
+  return data.urls || [];
+}
+
 // ────────── אוטנטיקציה ──────────
+// הרשמה רגילה: מחזירה pending_verification (אין טוקן עד לאימות האימייל).
 export async function register(payload) {
-  const data = await apiFetch('/auth/register', { method: 'POST', body: payload });
-  if (data?.token) setToken(data.token);
-  return data;
+  return apiFetch('/auth/register', { method: 'POST', body: payload });
 }
 
 export async function login(payload) {
@@ -118,12 +141,32 @@ export async function login(payload) {
   return data;
 }
 
+// התחברות/הרשמה דרך גוגל — מקבלת credential (ID token) ומחזירה user+token.
+export async function loginWithGoogle(credential) {
+  const data = await apiFetch('/auth/google', { method: 'POST', body: { credential } });
+  if (data?.token) setToken(data.token);
+  return data;
+}
+
+export async function verifyEmail(token) {
+  return apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resendVerification(email) {
+  return apiFetch('/auth/resend-verification', { method: 'POST', body: { email } });
+}
+
 export async function getMe() {
   return apiFetch('/auth/me', { auth: true });
 }
 
 export function logout() {
   clearToken();
+}
+
+// רשימת כל המשתמשים — למנהל בלבד
+export async function getUsers() {
+  return apiFetch('/auth/users', { auth: true });
 }
 
 // ────────── תשלומים ──────────

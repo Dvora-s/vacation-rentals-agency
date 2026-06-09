@@ -5,8 +5,10 @@ import pool, { testConnection } from './config/db.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
+import uploadsRouter, { uploadsDir } from './routes/uploads.js';
 import contactRouter from './routes/contact.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
+import { startListingExpiryJob } from './jobs/listingExpiry.js';
 
 dotenv.config();
 
@@ -16,9 +18,13 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
+// הגשת תמונות שהועלו (סטטי)
+app.use('/uploads', express.static(uploadsDir));
+
 app.use('/api/auth', authRouter);
 app.use('/api/apartments', apartmentsRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/uploads', uploadsRouter);
 app.use('/api/contact', contactRouter);
 
 app.get('/api/health', async (_req, res) => {
@@ -53,5 +59,10 @@ app.listen(PORT, async () => {
     await ensureAdminUser();
   } catch (err) {
     console.warn('[Auth] Could not ensure admin user:', err.message);
+  }
+  try {
+    startListingExpiryJob();
+  } catch (err) {
+    console.warn('[expiry] לא ניתן להפעיל את תזמון תוקף המודעות:', err.message);
   }
 });

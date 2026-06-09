@@ -11,10 +11,13 @@ import { PricingPage, FaqPage, BlogPage } from './pages/PlaceholderPages';
 import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import MyApartmentsPage from './pages/MyApartmentsPage';
 import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
+import RenewApartmentPage from './pages/RenewApartmentPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 
 function App() {
   return (
@@ -33,6 +36,7 @@ function App() {
 
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+            <Route path="verify-email" element={<VerifyEmailPage />} />
 
             <Route
               path="my-apartments"
@@ -51,6 +55,14 @@ function App() {
               }
             />
             <Route
+              path="my-apartments/:id/renew"
+              element={
+                <ProtectedRoute>
+                  <RenewApartmentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="list-apartment"
               element={
                 <ProtectedRoute>
@@ -63,6 +75,14 @@ function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/users"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminUsersPage />
                 </ProtectedRoute>
               }
             />
