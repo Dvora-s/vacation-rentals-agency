@@ -17,6 +17,7 @@ import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
 import RenewApartmentPage from './pages/RenewApartmentPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminPricingPage from './pages/AdminPricingPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 
 function App() {
@@ -83,6 +84,15 @@ function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminUsersPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="admin/pricing"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminPricingPage />
                 </ProtectedRoute>
               }
             />
