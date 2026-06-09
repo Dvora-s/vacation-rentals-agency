@@ -1,7 +1,4 @@
--- ═══════════════════════════════════════════════════════════════
--- נתוני התחלה — הריצי אחרי schema.sql (או setup-local.sql).
--- מוסיף משתמש אדמין דיפולטיבי + 5 דירות ההתחלה עם גלריות תמונות.
--- ═══════════════════════════════════════════════════════════════
+
 
 USE vacation_rentals;
 
@@ -11,15 +8,13 @@ DELETE FROM apartment_images;
 DELETE FROM apartments;
 DELETE FROM users;
 
--- ───────── משתמש אדמין דיפולטיבי ─────────
--- אימייל: admin@nofesh.local
--- סיסמה: Admin1234!  (החליפי בכניסה הראשונה)
+
 INSERT INTO users (full_name, email, phone, password_hash, role) VALUES
 ('מנהל המערכת', 'admin@nofesh.local', NULL,
  '$2b$12$iGMomoZpvjlg5uOPHGr23OyQdC9j2Ir.vy4AS/OriTno3aHknEV2i',
  'admin');
 
--- ───────── 5 דירות ההתחלה (מתוך ה-Sheet שבזיפ התמונות) ─────────
+
 INSERT INTO apartments (
   id, catalog_number, title, description, location, address,
   property_type, rental_period, price_per_night,
@@ -72,20 +67,18 @@ INSERT INTO apartments (
   'מוישי', NULL, NULL, TRUE,
   TRUE, 'approved', CURRENT_TIMESTAMP );
 
--- ───────── גלריית תמונות ─────────
 INSERT INTO apartment_images (apartment_id, image_url, sort_order) VALUES
--- דירה 1 (קטלוג 1)
+
 (1, '/apartments/1/1.png', 0),
 (1, '/apartments/1/1-1.png', 1),
 
--- דירה 2 (קטלוג 16)
+
 (2, '/apartments/16/16.png', 0),
 (2, '/apartments/16/16-1.png', 1),
 (2, '/apartments/16/16-2.png', 2),
 (2, '/apartments/16/16-3.png', 3),
 (2, '/apartments/16/16-4.png', 4),
 
--- דירה 3 (קטלוג 11)
 (3, '/apartments/11/11.jpg', 0),
 (3, '/apartments/11/11-1.jpg', 1),
 (3, '/apartments/11/11-2.jpg', 2),

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getPricingCatalog } from '../services/api';
 import './PricingSection.css';
 
 function CheckIcon() {
@@ -50,6 +52,7 @@ function PricingCard({
   badge,
   variant = 'default',
   months,
+  durationLabel,
 }) {
   return (
     <article className={`pricing-card pricing-card--${variant}`}>
@@ -64,13 +67,17 @@ function PricingCard({
             </span>
           )}
           <span className="pricing-card-price">{price}</span>
-          {months && <span className="pricing-card-period">ל-{months} חודשי פרסום</span>}
+          {(durationLabel || months) && (
+            <span className="pricing-card-period">
+              {durationLabel || `ל-${months} חודשי פרסום`}
+            </span>
+          )}
         </div>
       </div>
 
       <ul className="pricing-card-features">
-        {features.map((feature) => (
-          <li key={feature}>
+        {features.map((feature, idx) => (
+          <li key={`${title}-${idx}-${feature.slice(0, 20)}`}>
             <CheckIcon />
             <span>{feature}</span>
           </li>
@@ -84,7 +91,20 @@ function PricingCard({
   );
 }
 
-const CATEGORY_ONE = [
+const CATEGORY_LABELS = {
+  hosts: {
+    title: 'דירות, יחידות אירוח או צימרים',
+    subtitle: 'מסלולים גמישים לבעלי דירות ויחידות אירוח קטנות',
+    gridClass: 'pricing-grid--3',
+  },
+  hotels: {
+    title: 'מלונות, מתחמי אירוח וקמפוסים',
+    subtitle: 'חבילות פרימיום עם חשיפה מקסימלית בתוצאות החיפוש',
+    gridClass: 'pricing-grid--2',
+  },
+};
+
+const FALLBACK_HOSTS = [
   {
     title: 'חודש',
     price: '₪30.00',
@@ -123,7 +143,7 @@ const CATEGORY_ONE = [
   },
 ];
 
-const CATEGORY_TWO = [
+const FALLBACK_HOTELS = [
   {
     title: 'פרסום לחודש',
     price: '₪80.00',
@@ -161,7 +181,52 @@ const TRUST_ITEMS = [
   { icon: '✓', label: 'ללא עמלות נסתרות' },
 ];
 
+function mapApiPlanToCard(plan) {
+  const variant =
+    plan.highlightType === 'popular' ? 'featured' : plan.highlightType === 'premium' ? 'premium' : 'default';
+  return {
+    key: `api-${plan.id}`,
+    title: plan.name,
+    price: plan.effectivePriceFormatted,
+    originalPrice: plan.originalPriceFormatted || undefined,
+    features: plan.features || [],
+    badge: plan.badgeText || undefined,
+    variant,
+    months: plan.durationMonths,
+    durationLabel: plan.durationLabel || undefined,
+  };
+}
+
 function PricingSection() {
+  const [dynamicGroups, setDynamicGroups] = useState(null);
+  const [catalogError, setCatalogError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getPricingCatalog();
+        if (!cancelled) {
+          setDynamicGroups(data.groups || []);
+          setCatalogError(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setDynamicGroups(null);
+          setCatalogError(e.message);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hostsPlans =
+    dynamicGroups?.find((g) => g.category === 'hosts')?.plans?.map(mapApiPlanToCard) || FALLBACK_HOSTS;
+  const hotelsPlans =
+    dynamicGroups?.find((g) => g.category === 'hotels')?.plans?.map(mapApiPlanToCard) || FALLBACK_HOTELS;
+
   return (
     <section className="pricing-section" aria-labelledby="pricing-heading">
       <div className="pricing-section-bg" aria-hidden="true" />
@@ -180,6 +245,12 @@ function PricingSection() {
           </PricingPostButton>
         </header>
 
+        {catalogError && dynamicGroups === null && (
+          <p className="pricing-catalog-note" role="status">
+            מציגים מחירון ברירת מחדל (השרת: {catalogError})
+          </p>
+        )}
+
         <ul className="pricing-trust" aria-label="יתרונות השירות">
           {TRUST_ITEMS.map(({ icon, label }) => (
             <li key={label}>
@@ -191,29 +262,26 @@ function PricingSection() {
           ))}
         </ul>
 
-        <div className="pricing-category">
-          <div className="pricing-category-head">
-            <h2 className="pricing-category-title">דירות, יחידות אירוח או צימרים</h2>
-            <p className="pricing-category-desc">מסלולים גמישים לבעלי דירות ויחידות אירוח קטנות</p>
-          </div>
-          <div className="pricing-grid pricing-grid--3">
-            {CATEGORY_ONE.map((plan) => (
-              <PricingCard key={plan.title} {...plan} />
-            ))}
-          </div>
-        </div>
-
-        <div className="pricing-category pricing-category--premium">
-          <div className="pricing-category-head">
-            <h2 className="pricing-category-title">מלונות, מתחמי אירוח וקמפוסים</h2>
-            <p className="pricing-category-desc">חבילות פרימיום עם חשיפה מקסימלית בתוצאות החיפוש</p>
-          </div>
-          <div className="pricing-grid pricing-grid--2">
-            {CATEGORY_TWO.map((plan) => (
-              <PricingCard key={plan.title} {...plan} />
-            ))}
-          </div>
-        </div>
+        {(['hosts', 'hotels']).map((cat) => {
+          const meta = CATEGORY_LABELS[cat];
+          const plans = cat === 'hosts' ? hostsPlans : hotelsPlans;
+          return (
+            <div
+              key={cat}
+              className={cat === 'hotels' ? 'pricing-category pricing-category--premium' : 'pricing-category'}
+            >
+              <div className="pricing-category-head">
+                <h2 className="pricing-category-title">{meta.title}</h2>
+                <p className="pricing-category-desc">{meta.subtitle}</p>
+              </div>
+              <div className={`pricing-grid ${meta.gridClass}`}>
+                {plans.map((plan) => (
+                  <PricingCard key={plan.key || plan.title} {...plan} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

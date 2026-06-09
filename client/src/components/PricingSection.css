@@ -478,3 +478,11 @@
     min-width: unset;
   }
 }
+
+.pricing-catalog-note {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: -1.5rem auto 2rem;
+  max-width: 560px;
+}

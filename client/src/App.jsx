@@ -14,6 +14,7 @@ import MyApartmentsPage from './pages/MyApartmentsPage';
 import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminPricingPage from './pages/AdminPricingPage';
 
 function App() {
   return (
@@ -62,6 +63,15 @@ function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="admin/pricing"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminPricingPage />
                 </ProtectedRoute>
               }
             />

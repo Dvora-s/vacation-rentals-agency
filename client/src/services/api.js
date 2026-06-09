@@ -142,3 +142,41 @@ export async function payForListing({ apartment_id, months = 1, provider_referen
 export async function getMyPayments() {
   return apiFetch('/payments/mine', { auth: true });
 }
+
+// ────────── מחירון (ציבורי) ──────────
+export async function getPricingCatalog() {
+  return apiFetch('/pricing/catalog');
+}
+
+// ────────── מחירון — ניהול מנהל ──────────
+export async function adminListPricingPlans() {
+  return apiFetch('/admin/pricing/plans', { auth: true });
+}
+
+export async function adminCreatePricingPlan(body) {
+  return apiFetch('/admin/pricing/plans', { method: 'POST', body, auth: true });
+}
+
+export async function adminUpdatePricingPlan(id, body) {
+  return apiFetch(`/admin/pricing/plans/${id}`, { method: 'PUT', body, auth: true });
+}
+
+export async function adminDeletePricingPlan(id) {
+  return apiFetch(`/admin/pricing/plans/${id}`, { method: 'DELETE', auth: true });
+}
+
+export async function adminListPromotions() {
+  return apiFetch('/admin/pricing/promotions', { auth: true });
+}
+
+export async function adminCreatePromotion(body) {
+  return apiFetch('/admin/pricing/promotions', { method: 'POST', body, auth: true });
+}
+
+export async function adminUpdatePromotion(id, body) {
+  return apiFetch(`/admin/pricing/promotions/${id}`, { method: 'PUT', body, auth: true });
+}
+
+export async function adminDeletePromotion(id) {
+  return apiFetch(`/admin/pricing/promotions/${id}`, { method: 'DELETE', auth: true });
+}

@@ -5,7 +5,7 @@ import './Navbar.css';
 const navLinks = [
   { to: '/apartments', label: 'מצא דירה' },
   { to: '/about', label: 'אודות' },
-  { to: '/pricing', label: 'מחירון' },
+  { to: '/pricing', label: 'מחירון פרסום' },
   { to: '/faq', label: 'שאלות נפוצות' },
   { to: '/contact', label: 'צור קשר' },
   { to: '/blog', label: 'בלוג דירות לשבת', highlight: true },
@@ -23,7 +23,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <img src="/logo.png" alt="דירות נופש" />
+        <img src="/logo.svg" alt="דירות נופש" />
       </NavLink>
 
       <nav className="navbar-nav">
