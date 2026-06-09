@@ -1,0 +1,150 @@
+.admin-pricing {
+  padding-bottom: 3rem;
+}
+
+.admin-pricing-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-pricing-back {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.admin-pricing-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-pricing-tabs button {
+  padding: 0.6rem 1.25rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-pricing-tabs button.active {
+  border-color: var(--color-primary);
+  background: var(--color-blue-light);
+  color: var(--color-primary);
+}
+
+.admin-pricing-form {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-card);
+}
+
+.admin-pricing-form h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--color-navy);
+}
+
+.admin-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.admin-pricing-span2 {
+  grid-column: 1 / -1;
+}
+
+.admin-pricing-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.admin-pricing-grid input,
+.admin-pricing-grid select,
+.admin-pricing-grid textarea {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: inherit;
+}
+
+.admin-pricing-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.admin-pricing-cancel {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.admin-pricing-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-pricing-table-wrap h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  color: var(--color-navy);
+}
+
+.admin-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: var(--color-white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.admin-pricing-table th,
+.admin-pricing-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-pricing-table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.admin-pricing-row-actions {
+  white-space: nowrap;
+}
+
+.admin-pricing-row-actions .linklike {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  margin-inline-start: 0.75rem;
+}
+
+.admin-pricing-row-actions .linklike.danger {
+  color: #c53030;
+}
+
+.admin-pricing-dates {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  direction: ltr;
+  text-align: left;
+}

@@ -63,8 +63,13 @@ function AdminDashboardPage() {
           <h1 className="page-title">ניהול אישורי דירות</h1>
           <p className="page-subtitle">דירות שממתינות לאישור פרסום</p>
         </div>
+
+        <Link to="/admin/pricing" className="btn-outline-gold">
+          ניהול מחירון ומבצעים
+=======
         <Link to="/admin/users" className="my-apt-link">
           רשימת משתמשים
+
         </Link>
       </div>
 
