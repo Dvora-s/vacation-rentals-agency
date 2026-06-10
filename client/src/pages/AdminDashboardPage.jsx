@@ -70,6 +70,9 @@ function AdminDashboardPage() {
         <Link to="/admin/users" className="my-apt-link">
           רשימת משתמשים
         </Link>
+        <Link to="/admin/faq" className="my-apt-link">
+          שאלות נפוצות
+        </Link>
       </div>
 
       {loading && <p className="loading-text">טוען...</p>}

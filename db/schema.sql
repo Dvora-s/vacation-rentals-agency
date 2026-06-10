@@ -158,3 +158,15 @@ CREATE TABLE IF NOT EXISTS pricing_promotions (
   INDEX idx_promo_plan (pricing_plan_id),
   CONSTRAINT fk_promo_plan FOREIGN KEY (pricing_plan_id) REFERENCES pricing_plans (id) ON DELETE CASCADE
 );
+
+-- ───────── שאלות נפוצות (ניהול מנהל) ─────────
+CREATE TABLE IF NOT EXISTS faq_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  section ENUM('renters', 'hosts') NOT NULL COMMENT 'renters=שוכרים, hosts=מארחים',
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_faq_section_sort (section, sort_order)
+);

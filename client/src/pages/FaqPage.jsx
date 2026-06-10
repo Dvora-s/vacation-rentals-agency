@@ -1,63 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getFaq } from '../services/api';
+import { FAQ_FALLBACK } from '../data/faqFallback.js';
 import './FaqPage.css';
 
-const FAQ_SECTIONS = [
-  {
-    id: 'renters',
-    icon: '🏠',
-    title: 'שאלות נפוצות – למחפשי דירות (שוכרים)',
-    items: [
-      {
-        q: 'האם השימוש באתר הוא חינמי?',
-        a: 'בהחלט. הגלישה באתר, החיפוש ומציאת דירות הנופש הם חינמיים לחלוטין ופתוחים לכולם. אין צורך בתשלום או בהרשמה – פשוט נכנסים, מוצאים את הדירה המתאימה, ויוצרים קשר ישיר עם בעל הנכס.',
-      },
-      {
-        q: 'האם ניתן להזמין ולשלם על הדירה ישירות דרך האתר?',
-        a: 'לא. האתר משמש כלוח פרסום דיגיטלי ומקשר ביניכם לבין בעלי הדירות. סגירת העסקה, סיכומי המחיר, תנאי האירוח והתשלום עצמו מתבצעים ישירות מול בעל הנכס בטלפון או באמצעות כפתור "שליחת הודעה" שבעמוד המודעה.',
-      },
-      {
-        q: 'לפי מה נקבע המחיר המופיע במודעה?',
-        a: 'המחיר המצוין באתר הוא בדרך כלל מחיר בסיס (מינימום) לאירוח זוגי בסוף שבוע רגיל (שבת). תעריפי האירוח עשויים להשתנות בהתאם לכמות האורחים, עונות השנה, חגים, ותנאים מיוחדים. אנו ממליצים לוודא את המחיר הסופי ישירות מול בעל הדירה בעת הפנייה.',
-      },
-      {
-        q: 'האם האתר בודק את אמינות הדירות או נותן אחריות עליהן?',
-        a: 'האתר פועל כפלטפורמה מתווכת בלבד. התכנים, התיאורים והתמונות מועלים באחריותם הבלעדית של בעלי הנכסים. הנהלת האתר אינה מבצעת בדיקות פיזיות של הנכסים ואינה נושאת באחריות על טיב האירוח או על חילוקי דעות בין הצדדים. אנו ממליצים לשוכרים להפעיל שיקול דעת ולבדוק את כל הפרטים הרלוונטיים טרם סגירת העסקה.',
-      },
-    ],
-  },
-  {
-    id: 'hosts',
-    icon: '🔑',
-    title: 'שאלות נפוצות – למפרסמי דירות (מארחים)',
-    items: [
-      {
-        q: 'מדוע כדאי לי לפרסם את דירת הנופש שלי דווקא כאן?',
-        a: 'חבל להשאיר כסף על השולחן! הפלטפורמה שלנו נולדה כדי לעזור לכם לייצר הכנסה נוספת ויציבה מהנכס שלכם, במינימום זמן ומאמץ ובמקסימום רווח. אתם לא צריכים להוסיף שעות עבודה או לשנות את שגרת החיים – המערכת שלנו מנגישה את הדירה שלכם ישירות לקהל יעד ענק וממוקד של משפחות שמחפשות פתרונות אירוח ונופש, ומאפשרת לכם להתחיל להרוויח בראש שקט לגמרי.',
-      },
-      {
-        q: 'האם פרסום דירה באתר כרוך בתשלום?',
-        a: 'האתר מציע מספר מסלולי פרסום ומנויים אטרקטיביים ומשתלמים (חודשי, דו-חודשי או שנתי), המאפשרים לכם לקבל חשיפה מקסימלית לנכס שלכם. את פירוט המסלולים והעלויות העדכניות ניתן לראות בעמוד "הוספת נכס" או באזור האישי לאחר ההרשמה.',
-      },
-      {
-        q: 'פרסמתי דירה או עדכנתי פרטים, מדוע אני לא רואה את המודעה מיד?',
-        a: 'כדי לשמור על רמת אמינות גבוהה ואיכות התוכן באתר, כל מודעה חדשה או עדכון מהותי עוברים אישור ידני על ידי צוות הנהלת האתר. המודעות מאושרות ועולות לאוויר בדרך כלל בתוך שעות ספורות מרגע הזנתן.',
-      },
-      {
-        q: 'האם ניתן להקפיא את המנוי או לקבל החזר במידה והשכרתי את הדירה?',
-        a: 'המנויים באתר נרכשים לתקופת זמן קצובה מראש, והעסקאות הינן סופיות ללא אפשרות להחזר כספי או הקפאה (כמפורט בתקנון האתר). יחד עם זאת, המערכת מעניקה לכם גמישות מלאה – בכל שלב במהלך תקופת המנוי תוכלו להיכנס לאזור האישי, לערוך את פרטי המודעה, לשנות תמונות, לעדכן תאריכי זמינות או להפוך את המודעה ל"לא זמינה זמנית" ולפתוח אותה מחדש כשתרצו.',
-      },
-      {
-        q: 'למה האתר צריך את כתובת המייל שלי ואיך מתחברים?',
-        a: 'כתובת הדואר האלקטרוני נדרשת לצורך אימות זהותכם, יצירת האזור האישי המאובטח שלכם (שם תוכלו לנהל את המודעות), וקבלת הודעות תפעוליות חשובות משוכרים פוטנציאליים. ניתן להירשם בקלות באמצעות המייל או בחיבור מהיר בלחיצה אחת דרך חשבון Google.',
-      },
-    ],
-  },
-];
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 
 function FaqItem({ id, question, answer }) {
   const [open, setOpen] = useState(false);
-  const panelId = `${id}-panel`;
-  const buttonId = `${id}-button`;
+  const panelId = `faq-panel-${id}`;
+  const buttonId = `faq-btn-${id}`;
 
   return (
     <div className={`faq-item ${open ? 'open' : ''}`}>
@@ -88,32 +41,80 @@ function FaqItem({ id, question, answer }) {
 }
 
 function FaqPage() {
+  const { isAdmin } = useAuth();
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await getFaq();
+        const list = Array.isArray(data?.sections) ? data.sections : [];
+        if (active) {
+          setSections(list);
+          setLoadError(null);
+        }
+      } catch (err) {
+        if (active) {
+          setLoadError(err.message);
+          setSections(FAQ_FALLBACK.sections);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="faq-page section-container">
       <header className="faq-header">
-        <h1 className="page-title">שאלות נפוצות</h1>
-        <p className="page-subtitle">
-          ריכזנו עבורכם את התשובות לשאלות הנפוצות ביותר. לחצו על השאלה כדי לפתוח את התשובה.
-        </p>
+        <div className="faq-header-row">
+          <div>
+            <h1 className="page-title">שאלות נפוצות</h1>
+            <p className="page-subtitle">
+              ריכזנו עבורכם את התשובות לשאלות הנפוצות ביותר. לחצו על השאלה כדי לפתוח את התשובה.
+            </p>
+            {USE_MOCK && isAdmin && (
+              <p className="faq-warn" role="status">
+                <strong>מצב דמו (VITE_USE_MOCK):</strong> כאן מוצג תוכן סטטי מהקוד — לא מהמסד. עמוד הניהול טוען רק מ־DB; כדי לסנכרן, הגדירו{' '}
+                <code>VITE_USE_MOCK=false</code> ב־<code>client/.env</code>, הפעילו מחדש את Vite, והריצו בשרת{' '}
+                <code>npm run setup-faq</code>.
+              </p>
+            )}
+            {loadError && (
+              <p className="faq-warn" role="status">
+                לא נטען מהשרת ({loadError}) — מוצג תוכן גיבוי. ודאי שהרצת <code>npm run setup-faq</code> בשרת.
+              </p>
+            )}
+          </div>
+          {isAdmin && (
+            <Link to="/admin/faq" className="btn-outline-gold faq-admin-link">
+              ניהול שאלות (מנהל)
+            </Link>
+          )}
+        </div>
       </header>
 
-      {FAQ_SECTIONS.map((section) => (
-        <section key={section.id} className="faq-section">
-          <h2 className="faq-section-title">
-            <span aria-hidden="true">{section.icon}</span> {section.title}
-          </h2>
-          <div className="faq-list">
-            {section.items.map((item, index) => (
-              <FaqItem
-                key={`${section.id}-${index}`}
-                id={`${section.id}-${index}`}
-                question={item.q}
-                answer={item.a}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      {loading && <p className="loading-text">טוען...</p>}
+
+      {!loading &&
+        sections.map((section) => (
+          <section key={section.id} className="faq-section">
+            <h2 className="faq-section-title">
+              <span aria-hidden="true">{section.icon}</span> {section.title}
+            </h2>
+            <div className="faq-list">
+              {(section.items || []).map((item) => (
+                <FaqItem key={item.id} id={item.id} question={item.question} answer={item.answer} />
+              ))}
+            </div>
+          </section>
+        ))}
     </div>
   );
 }

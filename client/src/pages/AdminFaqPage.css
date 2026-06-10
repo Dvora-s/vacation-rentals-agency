@@ -1,0 +1,152 @@
+.admin-faq-mock-banner code {
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.admin-faq-mock-banner {
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+  border-radius: 10px;
+  color: #5c4a00;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.admin-faq-page {
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+
+.admin-faq-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-faq-form {
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+}
+
+.admin-faq-form h2 {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  color: #1a2b4a;
+}
+
+.admin-faq-field {
+  margin-bottom: 14px;
+}
+
+.admin-faq-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
+  font-size: 0.92rem;
+}
+
+.admin-faq-field input[type='number'],
+.admin-faq-field select {
+  max-width: 220px;
+}
+
+.admin-faq-field textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.admin-faq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.admin-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-faq-card {
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.admin-faq-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.admin-faq-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #faf7ef;
+  color: #6b5b2e;
+}
+
+.admin-faq-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-faq-card-actions button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.admin-faq-card-actions button:hover {
+  background: #f8f8f8;
+}
+
+.admin-faq-card-actions .btn-danger {
+  border-color: #e8a0a0;
+  color: #a32020;
+}
+
+.admin-faq-preview-q {
+  font-weight: 700;
+  color: #1a2b4a;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.admin-faq-preview-a {
+  margin: 0;
+  color: #555;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  max-height: 4.6em;
+  overflow: hidden;
+}

@@ -8,6 +8,8 @@ import pricingPublicRouter from './routes/pricingPublic.js';
 import pricingAdminRouter from './routes/pricingAdmin.js';
 import uploadsRouter, { uploadsDir } from './routes/uploads.js';
 import contactRouter from './routes/contact.js';
+import faqPublicRouter from './routes/faqPublic.js';
+import faqAdminRouter from './routes/faqAdmin.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
 
@@ -97,6 +99,8 @@ app.use('/api/pricing', pricingPublicRouter);
 app.use('/api/admin/pricing', pricingAdminRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/faq', faqPublicRouter);
+app.use('/api/admin/faq', faqAdminRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {

@@ -1,3 +1,5 @@
+import { FAQ_FALLBACK } from '../data/faqFallback.js';
+
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const TOKEN_KEY = 'nofesh.token';
@@ -252,6 +254,33 @@ export async function adminUpdatePromotion(id, body) {
 
 export async function adminDeletePromotion(id) {
   return apiFetch(`/admin/pricing/promotions/${id}`, { method: 'DELETE', auth: true });
+}
+
+// ────────── שאלות נפוצות (ציבורי) ──────────
+export async function getFaq() {
+  if (USE_MOCK) {
+    await mockDelay(150);
+    return { sections: FAQ_FALLBACK.sections };
+  }
+  return apiFetch('/faq');
+}
+
+// ────────── שאלות נפוצות — ניהול מנהל ──────────
+export async function adminListFaqItems() {
+  const data = await apiFetch('/admin/faq/items', { auth: true });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function adminCreateFaqItem(body) {
+  return apiFetch('/admin/faq/items', { method: 'POST', body, auth: true });
+}
+
+export async function adminUpdateFaqItem(id, body) {
+  return apiFetch(`/admin/faq/items/${id}`, { method: 'PUT', body, auth: true });
+}
+
+export async function adminDeleteFaqItem(id) {
+  return apiFetch(`/admin/faq/items/${id}`, { method: 'DELETE', auth: true });
 }
 
 // ────────── צור קשר ──────────
