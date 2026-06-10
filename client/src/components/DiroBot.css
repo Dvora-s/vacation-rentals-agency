@@ -1,0 +1,406 @@
+/* ───────── כפתור צף (בצד ימין למטה, מנגד לכפתור "פרסם נכס") ───────── */
+.dirobot-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 150;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.25rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--color-navy, #1a2b4a) 0%, #243b63 100%);
+  color: #fff;
+  box-shadow: var(--shadow-float, 0 14px 40px -12px rgba(8, 24, 40, 0.5));
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.dirobot-fab:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.08);
+}
+
+.dirobot-fab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 1.1rem;
+}
+
+.dirobot-fab-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.dirobot-fab-label strong {
+  font-size: 1rem;
+}
+
+.dirobot-fab-label small {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+/* ───────── חלון הצ'אט ───────── */
+.dirobot-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+  width: 370px;
+  max-width: calc(100vw - 32px);
+  height: 560px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg, #f7f5f0);
+  border: 1px solid var(--color-border, #e6e0d4);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -18px rgba(8, 24, 40, 0.45);
+  animation: dirobot-in 0.2s ease;
+}
+
+@keyframes dirobot-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dirobot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, var(--color-navy, #1a2b4a) 0%, #243b63 100%);
+  color: #fff;
+}
+
+.dirobot-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dirobot-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 1.2rem;
+}
+
+.dirobot-header-title strong {
+  display: block;
+  font-size: 1.02rem;
+}
+
+.dirobot-status {
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+
+.dirobot-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dirobot-newchat {
+  background: rgba(255, 255, 255, 0.14);
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.32rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.dirobot-newchat:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.dirobot-newchat:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dirobot-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0.85;
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+}
+
+.dirobot-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ───────── הודעות ───────── */
+.dirobot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.dirobot-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 92%;
+}
+
+.dirobot-msg-bot {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.dirobot-msg-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.dirobot-bubble {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.dirobot-msg-bot .dirobot-bubble {
+  background: #fff;
+  color: var(--color-text, #2a2a2a);
+  border: 1px solid var(--color-border, #e6e0d4);
+  border-top-right-radius: 4px;
+}
+
+.dirobot-msg-user .dirobot-bubble {
+  background: var(--color-navy, #1a2b4a);
+  color: #fff;
+  border-top-left-radius: 4px;
+}
+
+/* כרטיסי דירות */
+.dirobot-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.dirobot-card {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--color-border, #e6e0d4);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: right;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.dirobot-card:hover {
+  border-color: var(--color-gold, #b8860b);
+  box-shadow: 0 8px 20px -12px rgba(8, 24, 40, 0.4);
+  transform: translateY(-1px);
+}
+
+.dirobot-card-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.dirobot-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.dirobot-card-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-navy, #1a2b4a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.dirobot-card-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b6b6b);
+}
+
+.dirobot-card-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-gold-dark, #8a6508);
+}
+
+/* כפתורי פעולה */
+.dirobot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.dirobot-action {
+  background: var(--color-gold, #b8860b);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.dirobot-action:hover {
+  filter: brightness(1.08);
+}
+
+/* הצעות פתיחה */
+.dirobot-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+}
+
+.dirobot-suggestion {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px dashed var(--color-gold, #b8860b);
+  color: var(--color-navy, #1a2b4a);
+  border-radius: 12px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: right;
+  transition: background 0.15s ease;
+}
+
+.dirobot-suggestion:hover {
+  background: var(--color-blue-light, #eef3f8);
+}
+
+/* אנימציית הקלדה */
+.dirobot-typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.dirobot-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-muted, #9a9a9a);
+  animation: dirobot-blink 1.2s infinite ease-in-out;
+}
+
+.dirobot-typing span:nth-child(2) { animation-delay: 0.2s; }
+.dirobot-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dirobot-blink {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* שורת קלט */
+.dirobot-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border-top: 1px solid var(--color-border, #e6e0d4);
+  background: #fff;
+}
+
+.dirobot-input {
+  flex: 1;
+  border: 1px solid var(--color-border, #e6e0d4);
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.dirobot-input:focus {
+  border-color: var(--color-gold, #b8860b);
+}
+
+.dirobot-send {
+  background: var(--color-navy, #1a2b4a);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.dirobot-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dirobot-send:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+
+@media (max-width: 600px) {
+  .dirobot-fab {
+    bottom: 16px;
+    right: 16px;
+    padding: 0.7rem 1rem;
+  }
+
+  .dirobot-fab-label small {
+    display: none;
+  }
+
+  .dirobot-panel {
+    bottom: 0;
+    right: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
