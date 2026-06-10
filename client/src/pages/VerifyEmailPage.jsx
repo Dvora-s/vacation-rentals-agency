@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { verifyEmail } from '../services/api';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './AuthPages.css';
 
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const navigate = useNavigate();
+  const { completeEmailVerification } = useAuth();
   const [status, setStatus] = useState('loading'); // loading | success | error
   const [message, setMessage] = useState('');
   const ran = useRef(false);
@@ -20,15 +22,20 @@ function VerifyEmailPage() {
       return;
     }
 
-    verifyEmail(token)
-      .then(() => {
+    completeEmailVerification(token)
+      .then((result) => {
+        // אם התקבל טוקן — המשתמש כבר מחובר; מעבירים ישירות לדף הבית.
+        if (result?.token) {
+          navigate('/', { replace: true });
+          return;
+        }
         setStatus('success');
       })
       .catch((err) => {
         setStatus('error');
         setMessage(err.message || 'אימות האימייל נכשל.');
       });
-  }, [token]);
+  }, [token, completeEmailVerification, navigate]);
 
   return (
     <div className="auth-wrap auth-verify-card">

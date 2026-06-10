@@ -12,6 +12,8 @@ function LoginPage() {
   const redirectTo = location.state?.from || '/my-apartments';
   // שמירת המסלול שנבחר במחירון כדי להעבירו הלאה לעמוד הפרסום לאחר ההתחברות.
   const forwardState = location.state?.plan ? { plan: location.state.plan } : undefined;
+  // הודעת מערכת (למשל לאחר איפוס סיסמה מוצלח).
+  const notice = location.state?.notice || null;
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
@@ -58,6 +60,7 @@ function LoginPage() {
       <p className="auth-subtitle">היכנסי כדי לנהל את הדירות שלך ולפרסם דירות חדשות</p>
 
       <form className="auth-form" onSubmit={handleSubmit}>
+        {notice && <div className="auth-notice">{notice}</div>}
         {error && <div className="auth-error">{error}</div>}
 
         {needsVerification && (
@@ -95,6 +98,10 @@ function LoginPage() {
             autoComplete="current-password"
             dir="ltr"
           />
+        </div>
+
+        <div className="auth-forgot">
+          <Link to="/forgot-password">שכחתי סיסמה</Link>
         </div>
 
         <button type="submit" className="btn-primary auth-submit" disabled={submitting}>

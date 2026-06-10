@@ -6,10 +6,16 @@ import {
   signToken,
   signEmailToken,
   verifyEmailToken,
+  signResetToken,
+  verifyResetToken,
   requireAuth,
   requireRole,
 } from '../middleware/auth.js';
-import { sendWelcomeEmail, sendVerificationEmail } from '../utils/mailer.js';
+import {
+  sendWelcomeEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from '../utils/mailer.js';
 
 const router = Router();
 
@@ -118,8 +124,17 @@ router.get('/verify-email', async (req, res) => {
         console.error('[mailer] מייל ברוכים-הבאים נכשל:', err.message),
       );
     }
+    user.email_verified = 1;
 
-    res.json({ ok: true, email: user.email, already_verified: wasVerified });
+    // מנפיקים טוקן התחברות כדי שהמשתמש יחובר אוטומטית מיד לאחר האימות.
+    const authToken = signToken({ id: user.id, email: user.email, role: user.role });
+    res.json({
+      ok: true,
+      email: user.email,
+      already_verified: wasVerified,
+      user: publicUser(user),
+      token: authToken,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -141,6 +156,94 @@ router.post('/resend-verification', async (req, res) => {
       }
     }
     res.json({ ok: true, message: 'אם קיים חשבון שאינו מאומת, נשלח אליו מייל אימות חדש.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// "טביעת אצבע" של הסיסמה הנוכחית — משובצת בטוקן האיפוס כדי שהקישור יהפוך לחד-פעמי
+// (לאחר שינוי הסיסמה, ה-hash משתנה והטוקן הישן כבר אינו תקף).
+function passwordFingerprint(passwordHash) {
+  return String(passwordHash || '').slice(-12);
+}
+
+// שלב 1: בקשת איפוס סיסמה — שולח מייל עם קישור (תמיד מחזיר הצלחה כדי לא לחשוף קיום משתמש).
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'נדרש אימייל' });
+
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const user = rows[0];
+
+    // שולחים מייל רק אם קיים חשבון עם סיסמה (לא חשבון גוגל בלבד).
+    if (user && user.password_hash) {
+      const token = signResetToken({
+        id: user.id,
+        email: user.email,
+        fp: passwordFingerprint(user.password_hash),
+      });
+      const resetUrl = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
+      try {
+        await sendPasswordResetEmail({
+          to: user.email,
+          fullName: user.full_name,
+          resetUrl,
+        });
+      } catch (err) {
+        console.error('[mailer] שליחת מייל איפוס סיסמה נכשלה:', err.message);
+      }
+    }
+
+    res.json({
+      ok: true,
+      message: 'אם קיים חשבון עם האימייל הזה, נשלח אליו קישור לאיפוס הסיסמה.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// שלב 2: איפוס בפועל — מקבל token + סיסמה חדשה, מעדכן את הסיסמה.
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) {
+      return res.status(400).json({ error: 'נדרשים טוקן וסיסמה חדשה' });
+    }
+    if (!STRONG_PASSWORD.test(password)) {
+      return res.status(400).json({
+        error:
+          'הסיסמה חלשה מדי. חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.',
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyResetToken(token);
+    } catch {
+      return res.status(400).json({ error: 'קישור האיפוס אינו תקין או שפג תוקפו' });
+    }
+
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'המשתמש לא נמצא' });
+    }
+    const user = rows[0];
+
+    // קישור חד-פעמי: אם הסיסמה כבר שונתה מאז שהונפק הטוקן — הוא אינו תקף עוד.
+    if (decoded.fp !== passwordFingerprint(user.password_hash)) {
+      return res.status(400).json({ error: 'קישור האיפוס כבר נוצל או שאינו תקף עוד' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 12);
+    // איפוס סיסמה מהמייל מאשר גם בעלות על תיבת הדואר — מסמנים כמאומת.
+    await pool.query('UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?', [
+      password_hash,
+      user.id,
+    ]);
+
+    res.json({ ok: true, message: 'הסיסמה עודכנה בהצלחה. אפשר להתחבר עם הסיסמה החדשה.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

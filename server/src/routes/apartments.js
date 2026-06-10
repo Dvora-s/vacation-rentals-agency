@@ -5,12 +5,46 @@ import {
   attachImagesToApartment,
   attachImagesToApartments,
 } from '../utils/mapApartment.js';
-import { requireAuth, requireRole, optionalAuth } from '../middleware/auth.js';
-import { sendNewListingToAdmin, sendListingLiveEmail } from '../utils/mailer.js';
+import {
+  requireAuth,
+  requireRole,
+  optionalAuth,
+  signApproveToken,
+  verifyApproveToken,
+} from '../middleware/auth.js';
+import {
+  sendNewListingToAdmin,
+  sendListingLiveEmail,
+  sendListingInquiryEmail,
+} from '../utils/mailer.js';
 
 const router = Router();
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+// בסיס ה-API לבניית קישורים בתוך מיילים (קישור אישור בקליק).
+// בפרודקשן ה-/api ממופה לשרת; בפיתוח Vite ממפה /api ל-localhost:5000.
+const PUBLIC_API_URL = (process.env.PUBLIC_API_URL || `${APP_URL}/api`).replace(/\/$/, '');
+
+// הופך כתובת תמונה יחסית לכתובת מלאה (לתצוגה במיילים).
+function absoluteImageUrl(url) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${APP_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+// מאתר את פרטי הקשר של בעל הנכס (מהמודעה או מחשבון המשתמש).
+async function resolveOwnerContact(apt) {
+  let ownerEmail = apt.owner_email || null;
+  let ownerName = apt.owner_name || null;
+  if (apt.owner_id) {
+    const [u] = await pool.query('SELECT full_name, email FROM users WHERE id = ?', [apt.owner_id]);
+    if (u[0]) {
+      ownerEmail = ownerEmail || u[0].email;
+      ownerName = ownerName || u[0].full_name;
+    }
+  }
+  return { ownerEmail, ownerName };
+}
 
 // מחזיר את כתובות המייל לקבלת התראות מנהל.
 // עדיפות ל-ADMIN_NOTIFY_EMAIL (.env). אחרת — מיילים אמיתיים של מנהלים מה-DB
@@ -91,7 +125,75 @@ router.get('/:id', optionalAuth, async (req, res) => {
       }
     }
 
-    res.json(await attachImagesToApartment(pool, apt));
+    const apartment = await attachImagesToApartment(pool, apt);
+    const { ownerEmail } = await resolveOwnerContact(apt);
+    // האם ניתן לשלוח הודעה במייל דרך הטופס (מודעה מאושרת + לבעלים יש מייל).
+    apartment.can_inquire = apt.status === 'approved' && !!ownerEmail;
+    res.json(apartment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// פנייה ישירה מהמודעה — ציבורי (גם ללא התחברות).
+// הפונה ממלא מייל + הודעה, ובעל הנכס מקבל מייל עם reply-to לכתובת הפונה.
+// ─────────────────────────────────────────────
+router.post('/:id/inquiry', async (req, res) => {
+  try {
+    const { email, message } = req.body || {};
+
+    if (!email?.trim() || !message?.trim()) {
+      return res.status(400).json({ error: 'יש למלא כתובת מייל ותוכן הודעה' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+      return res.status(400).json({ error: 'כתובת אימייל לא תקינה' });
+    }
+    if (String(message).trim().length < 10) {
+      return res.status(400).json({ error: 'ההודעה קצרה מדי' });
+    }
+
+    const aptId = Number(req.params.id);
+    if (!Number.isFinite(aptId) || aptId <= 0) {
+      return res.status(400).json({ error: 'מזהה דירה לא תקין' });
+    }
+
+    const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [aptId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'דירה לא נמצאה' });
+    }
+    const apt = rows[0];
+
+    if (apt.status !== 'approved') {
+      return res.status(400).json({
+        error: 'ניתן לשלוח הודעה רק למודעות שאושרו ופורסמו באתר',
+      });
+    }
+
+    const { ownerEmail, ownerName } = await resolveOwnerContact(apt);
+
+    if (!ownerEmail) {
+      return res.status(422).json({
+        error: 'לבעל הנכס אין כתובת מייל במערכת. נסו ליצור קשר בטלפון או בוואטסאפ',
+      });
+    }
+
+    const senderEmail = email.trim().toLowerCase();
+    try {
+      await sendListingInquiryEmail({
+        to: ownerEmail,
+        ownerName,
+        apartment: apt,
+        senderEmail,
+        message: message.trim(),
+        listingUrl: `${APP_URL}/apartments/${apt.id}`,
+      });
+    } catch (err) {
+      console.error('[mailer] מייל פנייה לבעל הנכס נכשל:', err.message);
+      return res.status(502).json({ error: 'שליחת ההודעה נכשלה. נסו שוב מאוחר יותר.' });
+    }
+
+    res.status(201).json({ ok: true, message: 'ההודעה נשלחה לבעל הנכס בהצלחה' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -160,15 +262,38 @@ router.post('/', requireAuth, async (req, res) => {
       try {
         const adminEmails = await getAdminEmails();
         if (adminEmails.length === 0) return;
+
         let publisherName = body.owner_name || null;
-        if (!publisherName) {
-          const [u] = await pool.query('SELECT full_name FROM users WHERE id = ?', [req.user.id]);
-          publisherName = u[0]?.full_name || req.user.email;
+        let publisherEmail = body.owner_email || null;
+        let publisherPhone = body.owner_phone || null;
+        if (!publisherName || !publisherEmail) {
+          const [u] = await pool.query(
+            'SELECT full_name, email, phone FROM users WHERE id = ?',
+            [req.user.id],
+          );
+          publisherName = publisherName || u[0]?.full_name || req.user.email;
+          publisherEmail = publisherEmail || u[0]?.email || req.user.email;
+          publisherPhone = publisherPhone || u[0]?.phone || null;
         }
+
+        // קישור אישור בקליק (טוקן חתום) + קישור לפאנל הניהול
+        const approveToken = signApproveToken({ id: apartment.id });
+        const approveUrl = `${PUBLIC_API_URL}/apartments/${apartment.id}/email-approve?token=${encodeURIComponent(approveToken)}`;
+        const adminPanelUrl = `${APP_URL}/admin`;
+
+        const emailApartment = {
+          ...apartment,
+          images: (apartment.images || []).map(absoluteImageUrl).filter(Boolean),
+        };
+
         await sendNewListingToAdmin({
           to: adminEmails.join(', '),
-          apartment,
+          apartment: emailApartment,
           publisherName,
+          publisherPhone,
+          publisherEmail,
+          approveUrl,
+          adminPanelUrl,
         });
       } catch (err) {
         console.error('[mailer] התראת דירה חדשה למנהל נכשלה:', err.message);
@@ -270,52 +395,109 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// מאשר מודעה לפי מזהה ושולח את מייל "המודעה פורסמה" לבעלים. מחזיר את הדירה או null.
+async function approveApartmentById(id) {
+  const [check] = await pool.query('SELECT id FROM apartments WHERE id = ?', [id]);
+  if (check.length === 0) return null;
+
+  await pool.query(
+    `UPDATE apartments
+     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
+     WHERE id = ?`,
+    [id],
+  );
+  const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [id]);
+  const apartment = await attachImagesToApartment(pool, rows[0]);
+
+  // מייל למפרסם שהמודעה פורסמה וגלויה לכולם, עם קישורי צפייה ועריכה (best-effort)
+  (async () => {
+    try {
+      let ownerEmail = apartment.owner_email || null;
+      let ownerName = apartment.owner_name || null;
+      if (apartment.owner_id) {
+        const [u] = await pool.query('SELECT full_name, email FROM users WHERE id = ?', [
+          apartment.owner_id,
+        ]);
+        if (u[0]) {
+          ownerEmail = ownerEmail || u[0].email;
+          ownerName = ownerName || u[0].full_name;
+        }
+      }
+      if (!ownerEmail) return;
+      await sendListingLiveEmail({
+        to: ownerEmail,
+        ownerName,
+        apartment,
+        listingUrl: `${APP_URL}/apartments/${apartment.id}`,
+        editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+      });
+    } catch (err) {
+      console.error('[mailer] מייל "המודעה פורסמה" נכשל:', err.message);
+    }
+  })();
+
+  return apartment;
+}
+
 router.post('/:id/approve', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const [check] = await pool.query('SELECT id FROM apartments WHERE id = ?', [req.params.id]);
-    if (check.length === 0) {
+    const apartment = await approveApartmentById(req.params.id);
+    if (!apartment) {
       return res.status(404).json({ error: 'דירה לא נמצאה' });
     }
-    await pool.query(
-      `UPDATE apartments
-       SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
-       WHERE id = ?`,
-      [req.params.id],
-    );
-    const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [req.params.id]);
-    const apartment = await attachImagesToApartment(pool, rows[0]);
-
-    // מייל למפרסם שהמודעה פורסמה וגלויה לכולם, עם קישורי צפייה ועריכה (best-effort)
-    (async () => {
-      try {
-        let ownerEmail = apartment.owner_email || null;
-        let ownerName = apartment.owner_name || null;
-        if (apartment.owner_id) {
-          const [u] = await pool.query(
-            'SELECT full_name, email FROM users WHERE id = ?',
-            [apartment.owner_id],
-          );
-          if (u[0]) {
-            ownerEmail = ownerEmail || u[0].email;
-            ownerName = ownerName || u[0].full_name;
-          }
-        }
-        if (!ownerEmail) return;
-        await sendListingLiveEmail({
-          to: ownerEmail,
-          ownerName,
-          apartment,
-          listingUrl: `${APP_URL}/apartments/${apartment.id}`,
-          editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
-        });
-      } catch (err) {
-        console.error('[mailer] מייל "המודעה פורסמה" נכשל:', err.message);
-      }
-    })();
-
     res.json(apartment);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// אישור מודעה בקליק מתוך מייל המנהל — מאומת באמצעות טוקן חתום (ללא צורך בהתחברות).
+router.get('/:id/email-approve', async (req, res) => {
+  const renderPage = (title, body) =>
+    res.type('html').send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title}</title></head>
+<body style="font-family:Arial,Helvetica,sans-serif;background:#f4f1ea;text-align:center;padding:48px 16px;">
+<div style="max-width:440px;margin:0 auto;background:#fff;border:1px solid #ece6d8;border-radius:16px;padding:32px 24px;">
+${body}</div></body></html>`);
+
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).send('חסר טוקן אישור');
+    }
+
+    let decoded;
+    try {
+      decoded = verifyApproveToken(token);
+    } catch {
+      return renderPage(
+        'קישור לא תקין',
+        `<h2 style="color:#b8860b;">הקישור אינו תקין או שפג תוקפו</h2>
+         <p>ניתן להיכנס לפאנל הניהול ולאשר את המודעה ידנית.</p>
+         <a href="${APP_URL}/admin" style="color:#1a2b4a;font-weight:700;">למעבר לפאנל הניהול</a>`,
+      );
+    }
+
+    if (String(decoded.id) !== String(req.params.id)) {
+      return res.status(400).send('טוקן אינו תואם למודעה');
+    }
+
+    const apartment = await approveApartmentById(req.params.id);
+    if (!apartment) {
+      return renderPage('המודעה לא נמצאה', `<h2>המודעה לא נמצאה</h2>`);
+    }
+
+    return renderPage(
+      'המודעה אושרה',
+      `<h2 style="color:#237804;">✅ המודעה אושרה ופורסמה!</h2>
+       <p>"${apartment.title}" גלויה כעת לכולם.</p>
+       <a href="${APP_URL}/apartments/${apartment.id}"
+          style="display:inline-block;margin-top:8px;padding:12px 26px;background:#b8860b;color:#fff;
+                 border-radius:10px;text-decoration:none;font-weight:700;">צפייה במודעה</a>
+       <p style="margin-top:14px;"><a href="${APP_URL}/admin" style="color:#1a2b4a;">לפאנל הניהול</a></p>`,
+    );
+  } catch (error) {
+    return res.status(500).send('אירעה שגיאה באישור המודעה');
   }
 });
 

@@ -6,6 +6,7 @@ import {
   login as apiLogin,
   register as apiRegister,
   loginWithGoogle as apiLoginWithGoogle,
+  verifyEmail as apiVerifyEmail,
   getMe,
 } from '../services/api';
 
@@ -55,6 +56,13 @@ export function AuthProvider({ children }) {
     return result.user;
   }, []);
 
+  // אימות אימייל מהקישור במייל — מחבר את המשתמש אוטומטית אם התקבל טוקן.
+  const completeEmailVerification = useCallback(async (token) => {
+    const result = await apiVerifyEmail(token);
+    if (result?.user) setUser(result.user);
+    return result;
+  }, []);
+
   const logout = useCallback(() => {
     clearToken();
     setUser(null);
@@ -79,6 +87,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     loginWithGoogle,
+    completeEmailVerification,
     logout,
     refresh,
     setToken,

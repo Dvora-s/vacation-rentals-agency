@@ -15,15 +15,6 @@ export function PricingPage() {
   return <PricingSection />;
 }
 
-export function FaqPage() {
-  return (
-    <PlaceholderPage
-      title="שאלות נפוצות"
-      description="תשובות לשאלות נפוצות על הזמנת דירות, ביטולים ופרסום נכס."
-    />
-  );
-}
-
 export function BlogPage() {
   return (
     <PlaceholderPage

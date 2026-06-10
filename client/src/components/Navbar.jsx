@@ -23,7 +23,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <img src="/logo.svg" alt="דירות נופש" />
+        <img src="/logo.png" alt="דירות נופש" />
       </NavLink>
 
       <nav className="navbar-nav">

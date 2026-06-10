@@ -7,11 +7,14 @@ import ApartmentsPage from './pages/ApartmentsPage';
 import ApartmentDetailPage from './pages/ApartmentDetailPage';
 import AboutPage from './pages/AboutPage';
 import NotFoundPage from './pages/NotFoundPage';
-import { PricingPage, FaqPage, BlogPage } from './pages/PlaceholderPages';
+import { PricingPage, BlogPage } from './pages/PlaceholderPages';
+import FaqPage from './pages/FaqPage';
 import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import MyApartmentsPage from './pages/MyApartmentsPage';
 import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
@@ -38,6 +41,8 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="verify-email" element={<VerifyEmailPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
 
             <Route
               path="my-apartments"

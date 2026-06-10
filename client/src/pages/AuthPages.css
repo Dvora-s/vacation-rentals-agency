@@ -96,6 +96,22 @@
   padding: 0.9rem 1.5rem;
 }
 
+.auth-forgot {
+  text-align: left;
+  margin-top: -0.4rem;
+}
+
+.auth-forgot a {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.auth-forgot a:hover {
+  color: var(--color-navy);
+  text-decoration: underline;
+}
+
 .auth-switch {
   text-align: center;
   margin-top: 1.75rem;

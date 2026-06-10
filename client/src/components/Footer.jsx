@@ -6,7 +6,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo">
-          <img src="/logo.svg" alt="דירות נופש" />
+          <img src="/logo.png" alt="דירות נופש" />
         </Link>
         <p className="footer-copy">© {new Date().getFullYear()} דירות נופש — כל הזכויות שמורות</p>
       </div>

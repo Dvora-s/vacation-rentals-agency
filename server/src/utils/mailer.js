@@ -36,12 +36,12 @@ export function isMailerConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
-export async function sendMail({ to, subject, text, html }) {
+export async function sendMail({ to, subject, text, html, replyTo }) {
   const tx = getTransporter();
   if (!tx) return { skipped: true };
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  const info = await tx.sendMail({ from, to, subject, text, html });
+  const info = await tx.sendMail({ from, to, subject, text, html, ...(replyTo ? { replyTo } : {}) });
   return { skipped: false, messageId: info.messageId };
 }
 
@@ -126,6 +126,36 @@ ${BRAND} – ${TAGLINE}`;
       מזה שנרשמת בו, תועבר לדף ההתחברות – שם יש להזין מחדש את פרטי הגישה שלך.</p>
     </div>
     <p style="margin:18px 0 0;font-size:13px;color:#8a8a8a;">אם לא ביקשת להירשם, אפשר להתעלם מהודעה זו.</p>
+  `);
+
+  return sendMail({ to, subject, text, html });
+}
+
+// ───────────────────────── 1ב. איפוס סיסמה ─────────────────────────
+export async function sendPasswordResetEmail({ to, fullName, resetUrl }) {
+  const name = firstName(fullName);
+  const subject = 'איפוס הסיסמה שלך באתר דירות נופש';
+  const text = `היי${name ? ' ' + name : ''},
+
+קיבלנו בקשה לאיפוס הסיסמה לחשבון שלך.
+
+כדי לבחור סיסמה חדשה ולהתחבר מחדש, לחץ על הקישור הבא:
+${resetUrl}
+
+הקישור תקף ל-24 השעות הקרובות בלבד. אם לא ביקשת לאפס את הסיסמה, אפשר פשוט להתעלם מהמייל הזה והסיסמה הנוכחית שלך תישאר ללא שינוי.
+
+המשך יום נעים,
+צוות ${BRAND}
+מרוויחים כשהבית פנוי.`;
+
+  const html = layout(`
+    <h2 style="margin:0 0 12px;color:${NAVY};">היי${name ? ' ' + escapeHtml(name) : ''},</h2>
+    <p style="margin:0 0 10px;">קיבלנו בקשה לאיפוס הסיסמה לחשבון שלך.</p>
+    <p style="margin:0 0 4px;">כדי לבחור סיסמה חדשה ולהתחבר מחדש, לחץ על הכפתור הבא:</p>
+    ${button(resetUrl, 'איפוס סיסמה')}
+    <p style="margin:8px 0 0;font-size:14px;color:#555;">הקישור תקף ל-24 השעות הקרובות בלבד. אם לא ביקשת
+    לאפס את הסיסמה, אפשר פשוט להתעלם מהמייל הזה והסיסמה הנוכחית שלך תישאר ללא שינוי.</p>
+    <p style="margin:18px 0 0;">המשך יום נעים,<br/>צוות ${BRAND}</p>
   `);
 
   return sendMail({ to, subject, text, html });
@@ -276,53 +306,107 @@ ${BRAND} – ${TAGLINE}`;
   return sendMail({ to, subject, text, html });
 }
 
-// ───────────────────────── 5. תזכורת פקיעת תוקף ─────────────────────────
-export async function sendListingExpiryReminderEmail({ to, fullName, apartment, renewUrl }) {
+// ───────────────────────── 5. תזכורת לפני פקיעת תוקף ─────────────────────────
+// נשלחת פעמיים: 7 ימים לפני הפקיעה, ושוב יום לפני (תזכורת אחרונה) אם לא חודשה.
+export async function sendListingExpiryReminderEmail({
+  to,
+  fullName,
+  apartment,
+  renewUrl,
+  expiryDate,
+  daysLeft = 7,
+}) {
   const name = firstName(fullName);
   const title = apartment?.title || 'המודעה שלך';
-  const subject = 'תוקף המודעה שלך פג? זה הזמן לחדש לקראת תקופת החגים! ⏳';
-  const text = `שלום ${name},
+  const isFinal = Number(daysLeft) <= 1;
+  const whenPhrase = isFinal ? 'מחר' : `בעוד כ-${Number(daysLeft) || 7} ימים`;
+  const dateText = expiryDate ? ` (בתאריך ${expiryDate})` : '';
 
-מעדכנים כי תוקף הפרסום של המודעה שלך פג, והיא הושעתה זמנית מהאתר עד לחידושה.
+  const subject = isFinal
+    ? 'תזכורת אחרונה: המודעה שלך יורדת מחר! ⏳'
+    : 'המודעה שלך עומדת לפוג בקרוב! זה הזמן לחדש';
 
-"${title}"
+  const text = `היי${name ? ' ' + name : ''},
 
-תקופת החגים בפתח והביקוש לדירות נופש נמצא בשיאו. כדי להחזיר את המודעה שלך לאוויר בהקדם ולהמשיך לקבל פניות משוכרים, כל מה שצריך זה:
-1. לוחצים על הכפתור כאן למטה ומתחברים לחשבון.
-2. בעמוד פרטי המודעה, גוללים עד לחלק התחתון של המסך.
-3. לוחצים על הכפתור "חדש מודעה".
+רצינו לעדכן שהמודעה של הדירה שלך באתר "${BRAND}" תרד מהאוויר ${whenPhrase}${dateText}.
 
+העונה החמה והחגים כבר ממש מעבר לפינה, ויש ביקוש גדול מאוד לדירות נופש! חבל לפספס פניות מלקוחות רלוונטיים.
+
+כדי להשאיר את המודעה פעילה ולהמשיך לקבל פניות, היכנס עכשיו לחשבון שלך וחדש את תוקף הפרסום בקליק:
 ${renewUrl}
 
-💡 תזכורת: יש ברשותנו מאגר דירות רחב. לקבלת הקטלוג המלא, ניתן תמיד לפנות אלינו במייל הרשמי: office@dira4shabat.co.il
+נשארנו כאן לכל שאלה,
+צוות ${BRAND}
+מרוויחים כשהבית פנוי.`;
+
+  const html = layout(`
+    <h2 style="margin:0 0 12px;color:${NAVY};">היי${name ? ' ' + escapeHtml(name) : ''},</h2>
+    <p style="margin:0 0 10px;">רצינו לעדכן שהמודעה של הדירה שלך באתר <strong>"${BRAND}"</strong>
+    תרד מהאוויר <strong>${whenPhrase}</strong>${escapeHtml(dateText)}.</p>
+    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:12px 16px;margin:12px 0;">
+      <p style="margin:0;font-weight:700;color:${NAVY};">${escapeHtml(title)}</p>
+    </div>
+    <p style="margin:0 0 10px;">העונה החמה והחגים כבר ממש מעבר לפינה, ויש ביקוש גדול מאוד לדירות נופש!
+    חבל לפספס פניות מלקוחות רלוונטיים.</p>
+    <p style="margin:0 0 4px;">כדי להשאיר את המודעה פעילה ולהמשיך לקבל פניות, היכנס עכשיו לחשבון שלך
+    וחדש את תוקף הפרסום בקליק:</p>
+    ${button(renewUrl, 'לחידוש המודעה שלי')}
+    <p style="margin:18px 0 0;">נשארנו כאן לכל שאלה,<br/>צוות ${BRAND}</p>
+  `);
+
+  return sendMail({ to, subject, text, html });
+}
+
+// ───────────────────────── פנייה ישירה מהמודעה (לבעל הנכס) ─────────────────────────
+export async function sendListingInquiryEmail({
+  to,
+  ownerName,
+  apartment,
+  senderEmail,
+  message,
+  listingUrl,
+}) {
+  const name = firstName(ownerName);
+  const title = apartment?.title || 'הדירה שלך';
+  const subject = `פנייה חדשה למודעה "${title}" – ${BRAND}`;
+
+  const text = `שלום${name ? ' ' + name : ''},
+
+קיבלת פנייה חדשה לגבי המודעה שלך "${title}" באתר ${BRAND}.
+
+כתובת המייל של הפונה (אפשר להשיב ישירות): ${senderEmail}
+
+תוכן ההודעה:
+${message}
+
+${listingUrl ? `צפייה במודעה: ${listingUrl}\n` : ''}
+ניתן להשיב לפנייה ישירות במענה למייל הזה.
 
 בברכה,
 צוות ${BRAND}
 ${TAGLINE}`;
 
   const html = layout(`
-    <h2 style="margin:0 0 12px;color:${NAVY};">שלום ${escapeHtml(name)},</h2>
-    <p style="margin:0 0 10px;">מעדכנים כי תוקף הפרסום של המודעה שלך פג, והיא הושעתה זמנית מהאתר עד לחידושה.</p>
-    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:12px 16px;margin:12px 0;">
-      <p style="margin:0;font-weight:700;color:${NAVY};">${escapeHtml(title)}</p>
+    <h2 style="margin:0 0 12px;color:${NAVY};">קיבלת פנייה חדשה! ✉️</h2>
+    <p style="margin:0 0 10px;">שלום${name ? ' ' + escapeHtml(name) : ''}, התקבלה פנייה חדשה לגבי המודעה שלך
+    <strong>"${escapeHtml(title)}"</strong>.</p>
+
+    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:14px 18px;margin:14px 0;">
+      <p style="margin:0 0 6px;font-weight:700;color:${NAVY};">פרטי הפונה</p>
+      <p style="margin:2px 0;">מייל לתגובה: <a href="mailto:${escapeHtml(senderEmail)}" dir="ltr" style="color:${GOLD};">${escapeHtml(senderEmail)}</a></p>
     </div>
-    <p style="margin:0 0 8px;">תקופת החגים בפתח והביקוש לדירות נופש נמצא בשיאו. כדי להחזיר את המודעה שלך
-    לאוויר בהקדם ולהמשיך לקבל פניות משוכרים, כל מה שצריך זה לבצע שלושה צעדים פשוטים:</p>
-    <ol style="margin:0 0 8px;padding-inline-start:20px;">
-      <li>לוחצים על הכפתור כאן למטה ומתחברים לחשבון.</li>
-      <li>בעמוד פרטי המודעה, גוללים עד לחלק התחתון של המסך.</li>
-      <li>לוחצים על הכפתור "חדש מודעה".</li>
-    </ol>
-    ${button(renewUrl, 'פרסם לתקופה נוספת')}
-    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:12px 16px;margin-top:8px;">
-      <p style="margin:0;font-size:14px;">💡 <strong>תזכורת:</strong> יש ברשותנו מאגר דירות רחב.
-      לקבלת הקטלוג המלא, ניתן תמיד לפנות אלינו במייל הרשמי:
-      <a href="mailto:office@dira4shabat.co.il" style="color:${GOLD};">office@dira4shabat.co.il</a></p>
-    </div>
+
+    <p style="margin:0 0 6px;font-weight:700;color:${NAVY};">תוכן ההודעה:</p>
+    <div style="background:#ffffff;border:1px solid #ece6d8;border-radius:10px;padding:14px 18px;margin:0 0 14px;white-space:pre-wrap;">${escapeHtml(message)}</div>
+
+    ${listingUrl ? button(listingUrl, 'צפייה במודעה') : ''}
+
+    <p style="margin:14px 0 0;font-size:14px;color:#555;">💡 ניתן להשיב לפנייה פשוט על ידי <strong>מענה (Reply)</strong>
+    למייל הזה — התשובה תגיע ישירות לפונה.</p>
     <p style="margin:18px 0 0;">בברכה,<br/>צוות ${BRAND}</p>
   `);
 
-  return sendMail({ to, subject, text, html });
+  return sendMail({ to, subject, text, html, replyTo: senderEmail });
 }
 
 // ───────────────────────── 6א. אישור קבלת פנייה (לפונה) ─────────────────────────
@@ -384,36 +468,90 @@ ${message || ''}`;
   return sendMail({ to, subject, text, html });
 }
 
-// מייל למנהל כאשר מתפרסמת דירה חדשה הממתינה לאישור
-export async function sendNewListingToAdmin({ to, apartment, publisherName }) {
-  const title = apartment.title || 'דירה חדשה';
-  const subject = `בקשת פרסום דירה חדשה: ${title}`;
-  const details = [
-    `כותרת: ${title}`,
-    apartment.location ? `אזור: ${apartment.location}` : null,
-    apartment.address ? `כתובת: ${apartment.address}` : null,
-    apartment.price_per_night ? `מחיר: ₪${apartment.price_per_night}` : null,
-    apartment.owner_name ? `איש קשר: ${apartment.owner_name}` : null,
-    apartment.owner_phone ? `טלפון: ${apartment.owner_phone}` : null,
-    apartment.owner_email ? `אימייל: ${apartment.owner_email}` : null,
-  ]
-    .filter(Boolean)
-    .join('\n');
+// שני כפתורים זה לצד זה במייל (CTA ראשי + משני)
+function buttonPair(primaryHref, primaryLabel, secondaryHref, secondaryLabel) {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;">
+      <tr>
+        <td style="border-radius:10px;background:${GOLD};">
+          <a href="${primaryHref}" target="_blank"
+             style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:700;
+                    color:#ffffff;text-decoration:none;border-radius:10px;">${primaryLabel}</a>
+        </td>
+        <td style="width:12px;"></td>
+        <td style="border-radius:10px;border:2px solid ${NAVY};">
+          <a href="${secondaryHref}" target="_blank"
+             style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:700;
+                    color:${NAVY};text-decoration:none;">${secondaryLabel}</a>
+        </td>
+      </tr>
+    </table>`;
+}
 
-  const text = `היי,\n\n${publisherName || 'משתמש'} רוצה לפרסם דירה חדשה והיא ממתינה לאישורך.\n\n${details}\n\nהיכנס לפאנל הניהול כדי לאשר או לדחות את הדירה.\n\nצוות ${BRAND}`;
+// מייל למנהל כאשר מתפרסמת דירה חדשה הממתינה לאישור
+export async function sendNewListingToAdmin({
+  to,
+  apartment,
+  publisherName,
+  publisherPhone,
+  publisherEmail,
+  approveUrl,
+  adminPanelUrl,
+}) {
+  const title = apartment.title || 'דירה חדשה';
+  const subject = '🔔 התראה: מודעה חדשה לאישור';
+  const fullName = publisherName || apartment.owner_name || 'משתמש';
+  const phone = publisherPhone || apartment.owner_phone || 'לא צוין';
+  const userEmail = publisherEmail || apartment.owner_email || 'לא צוין';
+  const description = apartment.description || title;
+  const images = Array.isArray(apartment.images) ? apartment.images.filter(Boolean).slice(0, 4) : [];
+
+  const text = `היי,
+
+התקבלה פעולה חדשה באתר הממתינה לאישורך. להלן הפרטים שהוזנו:
+
+שם מלא: ${fullName}
+טלפון: ${phone}
+אימייל: ${userEmail}
+פרטי הפנייה / תיאור הנכס: ${description}
+
+${approveUrl ? `לאישור ופרסום בקליק: ${approveUrl}\n` : ''}${adminPanelUrl ? `למעבר לפאנל הניהול: ${adminPanelUrl}\n` : ''}
+${BRAND}
+מרוויחים כשהבית פנוי`;
+
+  const imagesHtml = images.length
+    ? `<p style="margin:14px 0 6px;font-weight:700;color:${NAVY};">📸 תמונות שצורפו:</p>
+       <div style="margin:0 0 6px;">
+         ${images
+           .map(
+             (url) =>
+               `<img src="${escapeHtml(url)}" alt="תמונת נכס"
+                  style="width:120px;height:90px;object-fit:cover;border-radius:8px;
+                         border:1px solid #ece6d8;margin:0 6px 6px 0;" />`,
+           )
+           .join('')}
+       </div>`
+    : '';
+
+  const ctaHtml =
+    approveUrl && adminPanelUrl
+      ? buttonPair(approveUrl, 'לאישור ופרסום בקליק', adminPanelUrl, 'למעבר לפאנל הניהול')
+      : adminPanelUrl
+        ? button(adminPanelUrl, 'למעבר לפאנל הניהול')
+        : '';
+
   const html = layout(`
-    <h2 style="margin:0 0 12px;color:${GOLD};">בקשת פרסום דירה חדשה ⏳</h2>
-    <p style="margin:0 0 10px;"><strong>${escapeHtml(publisherName || 'משתמש')}</strong> רוצה לפרסם דירה חדשה, והיא ממתינה לאישורך.</p>
-    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:14px 18px;margin:16px 0;">
-      <p style="margin:0;"><strong>${escapeHtml(title)}</strong></p>
-      ${apartment.location ? `<p style="margin:4px 0;">אזור: ${escapeHtml(apartment.location)}</p>` : ''}
-      ${apartment.address ? `<p style="margin:4px 0;">כתובת: ${escapeHtml(apartment.address)}</p>` : ''}
-      ${apartment.price_per_night ? `<p style="margin:4px 0;">מחיר: ₪${escapeHtml(apartment.price_per_night)}</p>` : ''}
-      ${apartment.owner_name ? `<p style="margin:4px 0;">איש קשר: ${escapeHtml(apartment.owner_name)}</p>` : ''}
-      ${apartment.owner_phone ? `<p style="margin:4px 0;">טלפון: ${escapeHtml(apartment.owner_phone)}</p>` : ''}
-      ${apartment.owner_email ? `<p style="margin:4px 0;">אימייל: ${escapeHtml(apartment.owner_email)}</p>` : ''}
+    <h2 style="margin:0 0 12px;color:${GOLD};">🔔 התראה: מודעה חדשה לאישור</h2>
+    <p style="margin:0 0 12px;">היי, התקבלה פעולה חדשה באתר הממתינה לאישורך. להלן הפרטים שהוזנו:</p>
+    <div style="background:#faf7ef;border:1px solid #efe7d2;border-radius:10px;padding:14px 18px;margin:0 0 12px;">
+      <p style="margin:2px 0;"><strong>שם מלא:</strong> ${escapeHtml(fullName)}</p>
+      <p style="margin:2px 0;"><strong>טלפון:</strong> <span dir="ltr">${escapeHtml(phone)}</span></p>
+      <p style="margin:2px 0;"><strong>אימייל:</strong> <span dir="ltr">${escapeHtml(userEmail)}</span></p>
+      <p style="margin:8px 0 2px;"><strong>פרטי הפנייה / תיאור הנכס:</strong></p>
+      <p style="margin:0;white-space:pre-wrap;">${escapeHtml(description)}</p>
     </div>
-    <p style="margin:0;">היכנס/י לפאנל הניהול כדי לאשר או לדחות את הדירה.</p>
+    ${imagesHtml}
+    ${ctaHtml}
   `);
 
   return sendMail({ to, subject, text, html });

@@ -27,6 +27,38 @@ export function verifyEmailToken(token) {
   return decoded;
 }
 
+// טוקן ייעודי לאיפוס סיסמה (תוקף קצר). purpose מבדיל אותו מטוקנים אחרים.
+export function signResetToken(payload, expiresIn = '24h') {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return jwt.sign({ ...payload, purpose: 'password-reset' }, JWT_SECRET, { expiresIn });
+}
+
+export function verifyResetToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.purpose !== 'password-reset') {
+    throw new Error('Invalid token purpose');
+  }
+  return decoded;
+}
+
+// טוקן ייעודי לאישור מודעה בקליק מתוך מייל המנהל (purpose נפרד, תוקף ארוך יותר).
+export function signApproveToken(payload, expiresIn = '14d') {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return jwt.sign({ ...payload, purpose: 'listing-approve' }, JWT_SECRET, { expiresIn });
+}
+
+export function verifyApproveToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.purpose !== 'listing-approve') {
+    throw new Error('Invalid token purpose');
+  }
+  return decoded;
+}
+
 function readToken(req) {
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) return null;

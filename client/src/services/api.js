@@ -87,6 +87,14 @@ export async function createApartment(payload) {
   return apiFetch('/apartments', { method: 'POST', body: payload, auth: true });
 }
 
+// פנייה ישירה לבעל הנכס מתוך עמוד המודעה (ללא צורך בהתחברות).
+export async function sendListingInquiry(id, { email, message }) {
+  return apiFetch(`/apartments/${id}/inquiry`, {
+    method: 'POST',
+    body: { email, message },
+  });
+}
+
 export async function updateApartment(id, payload) {
   return apiFetch(`/apartments/${id}`, { method: 'PUT', body: payload, auth: true });
 }
@@ -157,12 +165,25 @@ export async function loginWithGoogle(credential) {
   return data;
 }
 
+// אימות אימייל — מחזיר user+token כך שהמשתמש מחובר אוטומטית לאחר הלחיצה במייל.
 export async function verifyEmail(token) {
-  return apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+  const data = await apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+  if (data?.token) setToken(data.token);
+  return data;
 }
 
 export async function resendVerification(email) {
   return apiFetch('/auth/resend-verification', { method: 'POST', body: { email } });
+}
+
+// שכחתי סיסמה — שליחת מייל עם קישור לאיפוס.
+export async function forgotPassword(email) {
+  return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } });
+}
+
+// איפוס סיסמה בפועל לפי טוקן מהמייל.
+export async function resetPassword(token, password) {
+  return apiFetch('/auth/reset-password', { method: 'POST', body: { token, password } });
 }
 
 export async function getMe() {
