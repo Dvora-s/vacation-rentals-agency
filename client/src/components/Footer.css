@@ -38,6 +38,28 @@
   filter: brightness(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 
+.footer-legal {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.85rem;
+}
+
+.footer-legal-link {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+
+.footer-legal-link:hover {
+  color: var(--color-gold);
+  text-decoration: underline;
+}
+
+.footer-legal-sep {
+  opacity: 0.4;
+}
+
 .footer-copy {
   font-size: 0.88rem;
   letter-spacing: 0.04em;
