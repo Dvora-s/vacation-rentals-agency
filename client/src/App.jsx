@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ContentProvider } from './context/ContentContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -17,7 +18,7 @@ import RegisterPage from './pages/RegisterPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import MyApartmentsPage from './pages/MyApartmentsPage';
+import AccountPage from './pages/AccountPage';
 import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
 import RenewApartmentPage from './pages/RenewApartmentPage';
@@ -29,6 +30,7 @@ import AdminFaqPage from './pages/AdminFaqPage';
 function App() {
   return (
     <AuthProvider>
+      <ContentProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -50,10 +52,18 @@ function App() {
             <Route path="reset-password" element={<ResetPasswordPage />} />
 
             <Route
+              path="account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="my-apartments"
               element={
                 <ProtectedRoute>
-                  <MyApartmentsPage />
+                  <AccountPage />
                 </ProtectedRoute>
               }
             />
@@ -120,6 +130,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ContentProvider>
     </AuthProvider>
   );
 }

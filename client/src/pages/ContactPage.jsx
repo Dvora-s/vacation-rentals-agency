@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitContactMessage } from '../services/api';
+import EditableText from '../components/EditableText';
 import './ContactPage.css';
 
 const MESSAGE_MAX = 1000;
@@ -253,10 +254,12 @@ function ContactPage() {
       <div className="contact-page-inner section-container">
         <header className="contact-hero">
           <SupportIcon />
-          <h1 className="contact-hero-title">צרו קשר</h1>
-          <p className="contact-hero-subtitle">
+          <EditableText as="h1" id="contact.hero.title" className="contact-hero-title">
+            צרו קשר
+          </EditableText>
+          <EditableText as="p" id="contact.hero.subtitle" className="contact-hero-subtitle">
             יש לכם שאלה, בקשה או הצעה? נשמח לשמוע מכם ולחזור אליכם בהקדם.
-          </p>
+          </EditableText>
         </header>
 
         <div className="contact-layout">
@@ -264,7 +267,7 @@ function ContactPage() {
             {prefilled && (
               <p className="contact-prefill-note" role="status">
                 <span className="contact-prefill-dot" aria-hidden="true" />
-                הפרטים נמשכו מהחשבון שלך
+                הפרטים נמשכו מהחשבון שלכם
               </p>
             )}
 
@@ -367,9 +370,14 @@ function ContactPage() {
 
           <aside className="contact-sidebar">
             <section className="contact-trust-card" aria-labelledby="contact-trust-title">
-              <h2 id="contact-trust-title" className="contact-trust-title">
+              <EditableText
+                as="h2"
+                id="contact.trust.title"
+                domId="contact-trust-title"
+                className="contact-trust-title"
+              >
                 אנחנו שומרים על פרטיותכם
-              </h2>
+              </EditableText>
               <ul className="contact-trust-list">
                 {TRUST_ITEMS.map((item) => (
                   <li key={item}>

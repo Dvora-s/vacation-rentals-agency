@@ -52,7 +52,7 @@ function VerifyEmailPage() {
           <span className="auth-verify-icon" aria-hidden="true">✅</span>
           <h1 className="auth-title">החשבון אומת בהצלחה!</h1>
           <p className="auth-subtitle">
-            האימייל שלך אומת והחשבון הופעל. אפשר להתחבר ולהתחיל לפרסם דירות.
+            האימייל שלכם אומת והחשבון הופעל. אפשר להתחבר ולהתחיל לפרסם דירות.
           </p>
           <Link to="/login" className="btn-primary auth-submit">
             למסך ההתחברות

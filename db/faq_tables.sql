@@ -1,7 +1,8 @@
 -- שאלות נפוצות — ניהול מנהל, תצוגה ציבורית
 CREATE TABLE IF NOT EXISTS faq_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  section ENUM('renters', 'hosts') NOT NULL COMMENT 'renters=שוכרים, hosts=מארחים',
+  -- section: 'renters' (שוכרים) | 'hosts' (מארחים) — נאכף באפליקציה
+  section VARCHAR(20) NOT NULL,
   question TEXT NOT NULL,
   answer TEXT NOT NULL,
   sort_order INT NOT NULL DEFAULT 0,

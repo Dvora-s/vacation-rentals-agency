@@ -1,0 +1,216 @@
+/* ── תצוגת בלוק ניתן-לעריכה (מנהל בלבד) ── */
+.editable-text {
+  position: relative;
+  outline: 1px dashed rgba(43, 108, 176, 0.35);
+  outline-offset: 3px;
+  border-radius: 3px;
+  transition: outline-color 0.15s ease, background 0.15s ease;
+}
+
+.editable-text:hover {
+  outline-color: rgba(43, 108, 176, 0.85);
+  background: rgba(43, 108, 176, 0.05);
+}
+
+.editable-text-btn {
+  position: absolute;
+  top: -12px;
+  inset-inline-end: -12px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2b6cb0 0%, #3d8fd4 100%);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(26, 58, 82, 0.35);
+  opacity: 0.55;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 20;
+}
+
+.editable-text:hover .editable-text-btn,
+.editable-text-btn:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* ── חלון העריכה ── */
+.editable-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(8, 20, 32, 0.6);
+  backdrop-filter: blur(4px);
+  font-family: var(--font-sans, 'Heebo', sans-serif);
+}
+
+.editable-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 24px 60px rgba(8, 24, 40, 0.4);
+  text-align: right;
+  animation: editable-pop 0.18s ease;
+}
+
+@keyframes editable-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.editable-editor-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-navy, #1a2b4a);
+}
+
+.editable-editor-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  padding: 0.75rem 0.9rem;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.editable-editor-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #2b6cb0);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
+}
+
+.editable-editor-size {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editable-editor-size-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-navy, #1a2b4a);
+}
+
+.editable-editor-size-value {
+  color: var(--color-primary, #2b6cb0);
+  font-weight: 700;
+}
+
+.editable-editor-size input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-primary, #2b6cb0);
+}
+
+.editable-editor-color {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editable-editor-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.editable-editor-color-input {
+  width: 52px;
+  height: 36px;
+  padding: 0;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.editable-editor-link-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.editable-editor-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.editable-editor-actions button {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+
+.editable-editor-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.editable-editor-save {
+  background: linear-gradient(135deg, #2b6cb0 0%, #3d8fd4 100%);
+  color: #fff;
+}
+
+.editable-editor-save:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.editable-editor-reset {
+  background: #fff;
+  border-color: #e2b8b8 !important;
+  color: #b03a3a;
+}
+
+.editable-editor-reset:hover:not(:disabled) {
+  background: #fbeaea;
+}
+
+.editable-editor-cancel {
+  background: #f1f5f9;
+  color: var(--color-navy, #1a2b4a);
+}
+
+.editable-editor-cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}

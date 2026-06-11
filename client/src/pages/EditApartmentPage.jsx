@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import { getApartmentById, updateApartment } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 function EditApartmentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,7 +26,7 @@ function EditApartmentPage() {
     setSubmitting(true);
     try {
       await updateApartment(id, payload);
-      navigate('/my-apartments');
+      navigate(isAdmin ? `/apartments/${id}` : '/my-apartments');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,7 +50,7 @@ function EditApartmentPage() {
     <div className="list-apt-page section-container">
       <h1 className="page-title">עריכת דירה</h1>
       <p className="page-subtitle">
-        שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם את מנהלת).
+        שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).
       </p>
 
       <ApartmentForm

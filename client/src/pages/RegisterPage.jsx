@@ -78,7 +78,7 @@ function RegisterPage() {
           יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.
         </p>
         <div className="auth-notice">
-          לא קיבלת את המייל? בדקי גם בתיקיית הספאם, או{' '}
+          לא קיבלתם את המייל? בדקו גם בתיקיית הספאם, או{' '}
           <button type="button" className="auth-resend" onClick={handleResend} disabled={resent}>
             {resent ? 'המייל נשלח שוב' : 'שלחי שוב'}
           </button>
@@ -95,7 +95,7 @@ function RegisterPage() {
     <div className="auth-wrap">
       <h1 className="auth-title">הרשמה</h1>
       <p className="auth-subtitle">
-        פתחי חשבון כדי לפרסם דירות. דרישת סיסמה: 8+ תווים, אות גדולה, קטנה, ספרה ותו מיוחד.
+        פתחו חשבון כדי לפרסם דירות. דרישת סיסמה: 8+ תווים, אות גדולה, קטנה, ספרה ותו מיוחד.
       </p>
 
       <form className="auth-form" onSubmit={handleSubmit}>
@@ -170,7 +170,7 @@ function RegisterPage() {
         </div>
 
         <button type="submit" className="btn-primary auth-submit" disabled={submitting}>
-          {submitting ? 'נרשמת...' : 'הרשמה'}
+          {submitting ? 'נרשמים...' : 'הרשמה'}
         </button>
       </form>
 
@@ -180,7 +180,7 @@ function RegisterPage() {
       />
 
       <p className="auth-switch">
-        כבר יש לך חשבון? <Link to="/login">היכנסי כאן</Link>
+        כבר יש לכם חשבון? <Link to="/login">היכנסו כאן</Link>
       </p>
     </div>
   );

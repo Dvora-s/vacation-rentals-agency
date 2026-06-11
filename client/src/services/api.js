@@ -283,11 +283,48 @@ export async function adminDeleteFaqItem(id) {
   return apiFetch(`/admin/faq/items/${id}`, { method: 'DELETE', auth: true });
 }
 
+// ────────── יישובים / אזורים (מאגר ממשלתי) ──────────
+// מחזיר מיפוי { "שם יישוב": "regionId" } מהמאגר הממשלתי (דרך פרוקסי בשרת).
+// תמיד פונה לשרת האמיתי (אין mock) — נכשל בשקט אם השרת אינו זמין, והקליינט נופל
+// חזרה למיפוי הסטטי המקומי.
+export async function getCityRegions() {
+  const data = await apiFetch('/locations/regions');
+  return data?.cityRegions || {};
+}
+
 // ────────── צור קשר ──────────
 export async function submitContactMessage(payload) {
   if (USE_MOCK) {
     await mockDelay(900);
     return { ok: true, message: 'ההודעה נשלחה בהצלחה' };
   }
-  return apiFetch('/contact', { method: 'POST', body: payload });
+  // auth:true מצרף טוקן אם המשתמש מחובר — כך הפנייה תשויך לחשבון ותופיע באזור האישי.
+  return apiFetch('/contact', { method: 'POST', body: payload, auth: true });
+}
+
+// הפניות ("שאלות למערכת") של המשתמש המחובר — לאזור האישי.
+export async function getMyContactMessages() {
+  return apiFetch('/contact/mine', { auth: true });
+}
+
+// ────────── תוכן ניתן-לעריכה (דריסות טקסט/גודל למנהל) ──────────
+// תמיד פונה לשרת האמיתי; נכשל בשקט (מפה ריקה) כדי שהאתר יציג טקסט ברירת מחדל.
+export async function getSiteContent() {
+  try {
+    return (await apiFetch('/content')) || {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveSiteContent(key, { text, fontSize, color }) {
+  return apiFetch(`/content/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    body: { text, fontSize, color },
+    auth: true,
+  });
+}
+
+export async function resetSiteContent(key) {
+  return apiFetch(`/content/${encodeURIComponent(key)}`, { method: 'DELETE', auth: true });
 }

@@ -35,7 +35,7 @@
   border-radius: 4px;
 }
 
-  text-align: center;
+.faq-header {
   margin-bottom: 2.25rem;
 }
 
@@ -44,10 +44,10 @@
 }
 
 .faq-section-title {
-  font-size: 1.35rem;
+  font-size: 1.1rem;
   color: var(--color-navy);
-  margin-bottom: 1rem;
-  padding-bottom: 0.6rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.55rem;
   border-bottom: 2px solid var(--color-border);
 }
 

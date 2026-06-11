@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import {
+  PRICING_CATEGORIES,
+  PRICING_HIGHLIGHTS,
+  PROMOTION_DISCOUNT_TYPES,
+  coerceEnum,
+} from '../constants/enums.js';
 
 const router = Router();
 
@@ -43,7 +49,7 @@ router.post('/plans', async (req, res) => {
     if (!b.name?.trim()) return res.status(400).json({ error: 'שם המסלול הוא שדה חובה' });
     const price = Number(b.price);
     if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'מחיר לא תקין' });
-    const category = b.category === 'hotels' ? 'hotels' : 'hosts';
+    const category = coerceEnum(b.category, PRICING_CATEGORIES, 'hosts');
     const durationMonths = Math.max(1, parseInt(b.duration_months, 10) || 1);
     const features = parseFeaturesInput(b);
     if (features.length === 0) return res.status(400).json({ error: 'נא להוסיף לפחות תכונה אחת' });
@@ -56,7 +62,7 @@ router.post('/plans', async (req, res) => {
       return res.status(400).json({ error: 'מחיר השוואה לא תקין' });
     }
 
-    const highlight = ['popular', 'premium'].includes(b.highlight_type) ? b.highlight_type : 'none';
+    const highlight = coerceEnum(b.highlight_type, PRICING_HIGHLIGHTS, 'none');
 
     await pool.query(
       `INSERT INTO pricing_plans
@@ -148,11 +154,11 @@ router.put('/plans/:id', async (req, res) => {
       vals.push(JSON.stringify(features));
     }
     if (b.highlight_type != null) {
-      set('highlight_type', ['popular', 'premium'].includes(b.highlight_type) ? b.highlight_type : 'none');
+      set('highlight_type', coerceEnum(b.highlight_type, PRICING_HIGHLIGHTS, 'none'));
     }
     if (b.badge_text !== undefined) set('badge_text', b.badge_text?.trim() || null);
     if (b.sort_order != null) set('sort_order', Number(b.sort_order) || 0);
-    if (b.category != null) set('category', b.category === 'hotels' ? 'hotels' : 'hosts');
+    if (b.category != null) set('category', coerceEnum(b.category, PRICING_CATEGORIES, 'hosts'));
     if (b.is_active !== undefined) set('is_active', b.is_active ? 1 : 0);
 
     if (fields.length === 0) return res.status(400).json({ error: 'אין שדות לעדכון' });
@@ -195,7 +201,7 @@ router.post('/promotions', async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.name?.trim()) return res.status(400).json({ error: 'שם המבצע הוא שדה חובה' });
-    const dtype = b.discount_type === 'flat' ? 'flat' : 'percent';
+    const dtype = coerceEnum(b.discount_type, PROMOTION_DISCOUNT_TYPES, 'percent');
     const dval = Number(b.discount_value);
     if (!Number.isFinite(dval) || dval < 0) return res.status(400).json({ error: 'ערך הנחה לא תקין' });
     if (dtype === 'percent' && dval > 100) return res.status(400).json({ error: 'אחוז הנחה לא יעלה על 100' });
@@ -260,11 +266,11 @@ router.put('/promotions/:id', async (req, res) => {
     };
 
     if (b.name != null) set('name', String(b.name).trim());
-    if (b.discount_type != null) set('discount_type', b.discount_type === 'flat' ? 'flat' : 'percent');
+    if (b.discount_type != null) set('discount_type', coerceEnum(b.discount_type, PROMOTION_DISCOUNT_TYPES, 'percent'));
     if (b.discount_value != null) {
       const dval = Number(b.discount_value);
       if (!Number.isFinite(dval) || dval < 0) return res.status(400).json({ error: 'ערך הנחה לא תקין' });
-      const dtype = b.discount_type != null ? (b.discount_type === 'flat' ? 'flat' : 'percent') : cur.discount_type;
+      const dtype = b.discount_type != null ? coerceEnum(b.discount_type, PROMOTION_DISCOUNT_TYPES, 'percent') : cur.discount_type;
       if (dtype === 'percent' && dval > 100) return res.status(400).json({ error: 'אחוז לא יעלה על 100' });
       set('discount_value', dval);
     }

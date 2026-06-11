@@ -124,6 +124,9 @@ function AdminDashboardPage() {
                   >
                     דחייה
                   </button>
+                  <Link to={`/my-apartments/${apt.id}/edit`} className="my-apt-link">
+                    עריכת פרטים
+                  </Link>
                   <Link to={`/apartments/${apt.id}`} className="my-apt-link">
                     צפייה בעמוד הדירה
                   </Link>

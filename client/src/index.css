@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   /* Brand — refined cozy luxury (deep navy + champagne gold on warm paper) */
@@ -8,11 +8,11 @@
   --color-gold-dark: #a67f43;
   --color-gold-light: #ddc28d;
 
-  /* Warm neutral backgrounds */
-  --color-cream: #fbf8f2;
-  --color-sand: #f3ebdd;
-  --color-blue-light: #f6f0e6;
-  --color-blue-header: #efe6d6;
+  /* Near-white site backgrounds (faint cool tint) */
+  --color-cream: #f9fbfd;
+  --color-sand: #eef4f9;
+  --color-blue-light: #f2f7fb;
+  --color-blue-header: #e6eef6;
 
   /* Refined primary accent (deep teal-slate) */
   --color-primary: #1f5e80;
@@ -26,9 +26,13 @@
   --color-border: #eae0d0;
   --color-border-soft: #f1ebe0;
 
-  /* Typography */
+  /* Typography — Heebo across the whole site */
   --font-sans: 'Heebo', 'Segoe UI', Tahoma, sans-serif;
-  --font-display: 'Frank Ruhl Libre', 'Heebo', Georgia, serif;
+  --font-display: 'Heebo', 'Segoe UI', Tahoma, sans-serif;
+
+  /* Sky/azure (תכלת) — exact brand-logo background so the logo blends seamlessly */
+  --color-sky: #e0eef7;
+  --color-sky-deep: #cadeeb;
 
   /* Layered, soft luxury shadows */
   --shadow-soft: 0 1px 2px rgba(20, 48, 74, 0.04);
@@ -114,7 +118,7 @@ img {
   background: var(--color-cream);
 }
 ::-webkit-scrollbar-thumb {
-  background: #d9cdb8;
+  background: #b7deec;
   border: 3px solid var(--color-cream);
   border-radius: 999px;
 }

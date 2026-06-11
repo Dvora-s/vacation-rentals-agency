@@ -17,6 +17,7 @@ import {
   sendListingLiveEmail,
   sendListingInquiryEmail,
 } from '../utils/mailer.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 const router = Router();
 
@@ -412,17 +413,7 @@ async function approveApartmentById(id) {
   // מייל למפרסם שהמודעה פורסמה וגלויה לכולם, עם קישורי צפייה ועריכה (best-effort)
   (async () => {
     try {
-      let ownerEmail = apartment.owner_email || null;
-      let ownerName = apartment.owner_name || null;
-      if (apartment.owner_id) {
-        const [u] = await pool.query('SELECT full_name, email FROM users WHERE id = ?', [
-          apartment.owner_id,
-        ]);
-        if (u[0]) {
-          ownerEmail = ownerEmail || u[0].email;
-          ownerName = ownerName || u[0].full_name;
-        }
-      }
+      const { ownerEmail, ownerName } = await resolveOwnerContact(apartment);
       if (!ownerEmail) return;
       await sendListingLiveEmail({
         to: ownerEmail,
@@ -487,11 +478,12 @@ ${body}</div></body></html>`);
       return renderPage('המודעה לא נמצאה', `<h2>המודעה לא נמצאה</h2>`);
     }
 
+    const safeTitle = escapeHtml(apartment.title);
     return renderPage(
       'המודעה אושרה',
       `<h2 style="color:#237804;">✅ המודעה אושרה ופורסמה!</h2>
-       <p>"${apartment.title}" גלויה כעת לכולם.</p>
-       <a href="${APP_URL}/apartments/${apartment.id}"
+       <p>"${safeTitle}" גלויה כעת לכולם.</p>
+       <a href="${APP_URL}/apartments/${Number(apartment.id)}"
           style="display:inline-block;margin-top:8px;padding:12px 26px;background:#b8860b;color:#fff;
                  border-radius:10px;text-decoration:none;font-weight:700;">צפייה במודעה</a>
        <p style="margin-top:14px;"><a href="${APP_URL}/admin" style="color:#1a2b4a;">לפאנל הניהול</a></p>`,

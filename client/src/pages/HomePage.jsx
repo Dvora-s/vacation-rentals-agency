@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
+import EditableText from '../components/EditableText';
 import CategoriesShowcase from '../components/CategoriesShowcase';
-import QuickCategoryGrid from '../components/QuickCategoryGrid';
 import HowToFind from '../components/HowToFind';
 import WhyListWithUs from '../components/WhyListWithUs';
 import { getFeaturedApartments } from '../services/api';
 import './HomePage.css';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1600&q=80';
+const HERO_IMAGE = '/hero.png';
 
 function HomePage() {
   const [apartments, setApartments] = useState([]);
@@ -28,22 +28,22 @@ function HomePage() {
       >
         <div className="hero-overlay" />
         <div className="hero-content">
-          <h1 className="hero-title">
+          <EditableText as="h1" id="home.hero.title" className="hero-title">
             דירות נופש: הדרך הפשוטה והנעימה לחופשה הבאה שלכם
-          </h1>
-          <p className="hero-subtitle">
+          </EditableText>
+          <EditableText as="p" id="home.hero.subtitle" className="hero-subtitle">
             כל המידע שאתם צריכים במקום אחד. בוחרים נכס, יוצרים קשר ישיר עם המארח, ויוצאים לחופשה.
-          </p>
+          </EditableText>
           <SearchBar />
         </div>
       </section>
 
-      <QuickCategoryGrid />
-
       <CategoriesShowcase />
 
       <section className="featured section-container">
-        <h2 className="section-title">נכסים מומלצים</h2>
+        <EditableText as="h2" id="home.featured.title" className="section-title">
+          נכסים מומלצים
+        </EditableText>
 
         {loading && <p className="loading-text">טוען דירות...</p>}
 

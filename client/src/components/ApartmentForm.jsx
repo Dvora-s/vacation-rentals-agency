@@ -206,7 +206,7 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
               value={form.location}
               onChange={setCity}
               options={CITY_NAMES}
-              placeholder="בחרי עיר מהרשימה"
+              placeholder="בחרו עיר מהרשימה"
               emptyText="לא נמצאה עיר תואמת"
               required
             />
@@ -220,7 +220,7 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
               list="street-options"
               value={form.street}
               onChange={(e) => update('street', e.target.value)}
-              placeholder={form.location ? 'בחרי רחוב מהרשימה או הקלידי רחוב חדש' : 'בחרי קודם עיר'}
+              placeholder={form.location ? 'בחרו רחוב מהרשימה או הקלידו רחוב חדש' : 'בחרו קודם עיר'}
               disabled={!form.location}
               autoComplete="off"
             />

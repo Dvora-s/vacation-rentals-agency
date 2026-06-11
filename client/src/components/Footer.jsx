@@ -6,7 +6,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo">
-          <img src="/logo.png" alt="דירות נופש" />
+          <img src="/brand-logo.png" alt="דירות נופש" />
         </Link>
         <nav className="footer-legal" aria-label="מסמכים משפטיים">
           <Link to="/privacy" className="footer-legal-link">מדיניות פרטיות</Link>

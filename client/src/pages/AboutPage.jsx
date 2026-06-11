@@ -1,7 +1,7 @@
+import EditableText from '../components/EditableText';
 import './AboutPage.css';
 
-const ABOUT_HERO =
-  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&q=80';
+const ABOUT_HERO = '/about-hero.png';
 
 const commitments = [
   {
@@ -30,9 +30,13 @@ function AboutPage() {
       >
         <div className="about-hero-overlay" />
         <div className="about-hero-content">
-          <span className="about-hero-eyebrow">דירות נופש</span>
-          <h1>הכירו את הצוות והחזון שלנו</h1>
-          <p>שותפים מהימנים ביצירת שהיות בלתי נשכחות</p>
+          <EditableText as="span" id="about.hero.eyebrow" className="about-hero-eyebrow">
+            דירות נופש
+          </EditableText>
+          <EditableText as="h1" id="about.hero.title">הכירו את הצוות והחזון שלנו</EditableText>
+          <EditableText as="p" id="about.hero.subtitle">
+            שותפים מהימנים ביצירת שהיות בלתי נשכחות
+          </EditableText>
         </div>
       </section>
 
@@ -41,13 +45,19 @@ function AboutPage() {
           <div className="about-grid">
             <article className="about-story-card">
               <header className="story-header">
-                <span className="story-label">הסיפור שלנו</span>
-                <h2>אודות דירות נופש: המומחיות שלנו, השקט שלכם</h2>
+                <EditableText as="span" id="about.story.label" className="story-label">
+                  הסיפור שלנו
+                </EditableText>
+                <EditableText as="h2" id="about.story.title">
+                  אודות דירות נופש: המומחיות שלנו, השקט שלכם
+                </EditableText>
               </header>
 
               <div className="story-block">
-                <h3>איך הכל התחיל?</h3>
-                <p className="story-lead">נעים מאוד, שמי פנינה שון.</p>
+                <EditableText as="h3" id="about.block1.title">איך הכל התחיל?</EditableText>
+                <EditableText as="p" id="about.block1.lead" className="story-lead">
+                  נעים מאוד, שמי פנינה שון.
+                </EditableText>
                 <p>
                   כמי שעוסקת בייעוץ וליווי רוכשים בנדל&quot;ן, מצאתי את עצמי פעם
                   אחר פעם הכתובת אליה פונים חברים, משפחה ומכרים כשהם זקוקים לעזרה
@@ -66,7 +76,9 @@ function AboutPage() {
               <div className="story-divider" />
 
               <div className="story-block">
-                <h3>מהקטלוג הדיגיטלי ועד לאתר שלפניכם</h3>
+                <EditableText as="h3" id="about.block2.title">
+                  מהקטלוג הדיגיטלי ועד לאתר שלפניכם
+                </EditableText>
                 <p>
                   מה שהתחיל כקטלוג דיגיטלי פשוט שנועד לעשות סדר, צמח והתפתח לאתר
                   שאתם רואים היום. דירות נופש הוקם מתוך מטרה כפולה:
@@ -92,7 +104,7 @@ function AboutPage() {
               <div className="story-divider" />
 
               <div className="story-block">
-                <h3>הערך המוסף שלנו</h3>
+                <EditableText as="h3" id="about.block3.title">הערך המוסף שלנו</EditableText>
                 <p>
                   אנחנו מאמינים שאירוח טוב מתחיל בחיבור נכון. האתר נבנה מתוך
                   מחשבה על הפרטים הקטנים שחשובים לכם כשוכרים, ועל הפשטות והיעילות
@@ -108,7 +120,9 @@ function AboutPage() {
 
             <aside className="about-sidebar">
               <div className="sidebar-panel">
-                <h2 className="sidebar-title">המחויבות שלנו</h2>
+                <EditableText as="h2" id="about.sidebar.title" className="sidebar-title">
+                  המחויבות שלנו
+                </EditableText>
                 <ul className="commitment-list">
                   {commitments.map((item) => (
                     <li key={item.title} className="commitment-item">

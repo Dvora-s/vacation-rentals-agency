@@ -16,8 +16,7 @@ export const CATEGORIES = [
     label: 'בין הזמנים',
     description: 'דירות לימי החופש',
     icon: '🌿',
-    image:
-      'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80',
+    image: '/categories/bein-hazmanim-beach.png',
     keywords: ['בין הזמנים', 'בה"ז', 'חופש', 'נופש'],
   },
   {
@@ -34,8 +33,7 @@ export const CATEGORIES = [
     label: 'חגים',
     description: 'דירות לחגי ישראל',
     icon: '🕎',
-    image:
-      'https://images.unsplash.com/photo-1605248918193-ec96a527ea34?w=800&q=80',
+    image: '/categories/holidays.png',
     keywords: ['חג', 'חגים', 'ראש השנה', 'שבועות', 'חנוכה', 'פורים'],
   },
   {
@@ -64,6 +62,42 @@ export const CATEGORIES = [
     image:
       'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80',
     keywords: ['אמצ"ש', 'אמצע שבוע', 'אמצש', 'חול'],
+  },
+  {
+    id: 'short-term',
+    label: 'טווח קצר',
+    description: 'השכרת דירה לתקופה של בין יומיים עד שישה חודשים',
+    icon: '🔑',
+    image: '/categories/short-term-living.png',
+    keywords: ['טווח קצר', 'קצר', 'יומיים', 'חודשים', 'תקופה'],
+  },
+];
+
+// ארבע הקטגוריות הראשיות לכרטיסי דף הבית (תמונה + כותרת + כותרת משנה).
+export const HOMEPAGE_CATEGORIES = [
+  {
+    id: 'shabbat',
+    title: 'שבת',
+    subtitle: 'דירות לשבת וחג',
+    image: '/categories/shabbat.png',
+  },
+  {
+    id: 'holidays',
+    title: 'חג',
+    subtitle: 'דירות לסוכות ופסח',
+    image: '/categories/holidays.png',
+  },
+  {
+    id: 'bein-hazmanim',
+    title: 'בין הזמנים',
+    subtitle: 'דירות לימי החופש',
+    image: '/categories/bein-hazmanim-beach.png',
+  },
+  {
+    id: 'short-term',
+    title: 'דירות לטווח קצר',
+    subtitle: 'השכרת דירה לתקופה של בין יומיים עד שישה חודשים',
+    image: '/categories/short-term-living.png',
   },
 ];
 

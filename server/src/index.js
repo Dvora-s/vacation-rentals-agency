@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import pool, { testConnection } from './config/db.js';
+import { corsOptions } from './config/cors.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
@@ -10,13 +11,22 @@ import uploadsRouter, { uploadsDir } from './routes/uploads.js';
 import contactRouter from './routes/contact.js';
 import faqPublicRouter from './routes/faqPublic.js';
 import faqAdminRouter from './routes/faqAdmin.js';
+import locationsRouter from './routes/locations.js';
+import contentRouter from './routes/content.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
+import { logger } from './utils/logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 const isProd = process.env.NODE_ENV === 'production';
+
+// מאחורי פרוקסי/לואד-בלאנסר בענן — מאפשר ל-req.ip לשקף את כתובת הלקוח האמיתית
+// (חשוב ל-rate limiting). מופעל רק בפרודקשן.
+if (isProd) {
+  app.set('trust proxy', 1);
+}
 
 /** Dev-friendly CSP on API responses (HMR / direct API calls from localhost:3000). */
 const devConnectSrc = [
@@ -33,7 +43,7 @@ const devConnectSrc = [
   'ws://127.0.0.1:5173',
 ];
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 /** API responses: explicit connect-src for dev (HMR / cross-port fetch). No Helmet dep — manual header. */
 app.use((req, res, next) => {
@@ -101,6 +111,8 @@ app.use('/api/uploads', uploadsRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/faq', faqPublicRouter);
 app.use('/api/admin/faq', faqAdminRouter);
+app.use('/api/locations', locationsRouter);
+app.use('/api/content', contentRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -129,15 +141,15 @@ app.get('/api/db-info', async (_req, res) => {
 });
 
 app.listen(PORT, async () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
   try {
     await ensureAdminUser();
   } catch (err) {
-    console.warn('[Auth] Could not ensure admin user:', err.message);
+    logger.warn('[Auth] Could not ensure admin user:', err.message);
   }
   try {
     startListingExpiryJob();
   } catch (err) {
-    console.warn('[expiry] לא ניתן להפעיל את תזמון תוקף המודעות:', err.message);
+    logger.warn('[expiry] לא ניתן להפעיל את תזמון תוקף המודעות:', err.message);
   }
 });

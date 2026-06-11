@@ -55,7 +55,7 @@ function ResetPasswordPage() {
   return (
     <div className="auth-wrap">
       <h1 className="auth-title">בחירת סיסמה חדשה</h1>
-      <p className="auth-subtitle">בחרי סיסמה חדשה ובטוחה לחשבון שלך.</p>
+      <p className="auth-subtitle">בחרו סיסמה חדשה ובטוחה לחשבון שלכם.</p>
 
       <form className="auth-form" onSubmit={handleSubmit}>
         {error && <div className="auth-error">{error}</div>}

@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // שליחת מיילים דרך SMTP. ההגדרות נטענות ממשתני סביבה (.env):
 //   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
@@ -6,6 +9,37 @@ import nodemailer from 'nodemailer';
 
 let transporter = null;
 let initialized = false;
+
+// ── לוגו מוטמע (inline) לכותרת המיילים ──
+// מוטמע כקובץ מצורף עם Content-ID כדי שיוצג אמין בכל לקוחות המייל (גם ללא חיבור לאתר).
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'navbar-logo.png');
+const LOGO_CID = 'brandlogo';
+
+function detectImageMime(buf) {
+  if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
+  return 'application/octet-stream';
+}
+
+let logoAttachment;
+function getLogoAttachment() {
+  if (logoAttachment !== undefined) return logoAttachment;
+  try {
+    const content = fs.readFileSync(LOGO_PATH);
+    const mime = detectImageMime(content);
+    logoAttachment = {
+      filename: mime === 'image/png' ? 'logo.png' : 'logo.jpg',
+      content,
+      cid: LOGO_CID,
+      contentType: mime,
+      contentDisposition: 'inline',
+    };
+  } catch {
+    logoAttachment = null;
+  }
+  return logoAttachment;
+}
 
 function getTransporter() {
   if (initialized) return transporter;
@@ -41,7 +75,16 @@ export async function sendMail({ to, subject, text, html, replyTo }) {
   if (!tx) return { skipped: true };
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  const info = await tx.sendMail({ from, to, subject, text, html, ...(replyTo ? { replyTo } : {}) });
+  const logo = html ? getLogoAttachment() : null;
+  const info = await tx.sendMail({
+    from,
+    to,
+    subject,
+    text,
+    html,
+    ...(replyTo ? { replyTo } : {}),
+    ...(logo ? { attachments: [logo] } : {}),
+  });
   return { skipped: false, messageId: info.messageId };
 }
 
@@ -49,8 +92,13 @@ export async function sendMail({ to, subject, text, html, replyTo }) {
 
 const BRAND = 'דירות נופש';
 const TAGLINE = 'הדרך הפשוטה לתוספת הכנסה כשהבית פנוי';
+const FOOTER_SLOGAN = 'מרוויחים כשהבית פנוי';
 const GOLD = '#b8860b';
 const NAVY = '#1a2b4a';
+// תכלת — אותו גוון רקע של הלוגו (navbar-logo). משמש כרקע מסביב לכרטיס ההודעה.
+const AZURE_BG = '#e6f1f8';
+// פונט זהה לאתר (Heebo) עם נפילה חיננית ללקוחות מייל שאינם טוענים גופן חיצוני.
+const FONT_STACK = "'Heebo','Segoe UI',Tahoma,Arial,sans-serif";
 
 function firstName(fullName) {
   return fullName ? String(fullName).trim().split(/\s+/)[0] : '';
@@ -83,19 +131,22 @@ function button(href, label) {
 // מעטפת HTML אחידה לכל המיילים
 function layout(innerHtml) {
   return `
-  <div dir="rtl" style="margin:0;padding:0;background:#f4f1ea;">
-    <div style="max-width:600px;margin:0 auto;padding:24px 16px;font-family:Arial,Helvetica,sans-serif;
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap');
+  </style>
+  <div dir="rtl" style="margin:0;padding:0;background:${AZURE_BG};font-family:${FONT_STACK};">
+    <div style="max-width:600px;margin:0 auto;padding:24px 16px;font-family:${FONT_STACK};
                 line-height:1.7;color:#1a1a1a;">
       <div style="text-align:center;padding:8px 0 20px;">
-        <span style="font-size:22px;font-weight:800;color:${NAVY};">🏡 ${BRAND}</span>
+        <img src="cid:${LOGO_CID}" alt="${BRAND}" width="240"
+             style="display:inline-block;width:240px;max-width:74%;height:auto;border:0;outline:none;text-decoration:none;" />
       </div>
-      <div style="background:#ffffff;border:1px solid #ece6d8;border-radius:16px;
-                  padding:28px 26px;box-shadow:0 10px 30px -18px rgba(8,24,40,0.25);">
+      <div style="background:#ffffff;border:1px solid #d4e6f2;border-radius:16px;
+                  padding:28px 26px;box-shadow:0 12px 32px -18px rgba(26,43,74,0.28);">
         ${innerHtml}
       </div>
-      <div style="text-align:center;color:#8a8a8a;font-size:12px;padding:18px 8px 4px;">
-        <p style="margin:4px 0;font-weight:700;color:${GOLD};">${BRAND}</p>
-        <p style="margin:4px 0;">${TAGLINE}</p>
+      <div style="text-align:center;color:${NAVY};font-size:13px;padding:18px 8px 4px;font-family:${FONT_STACK};">
+        <p style="margin:4px 0;font-weight:800;letter-spacing:0.01em;">${FOOTER_SLOGAN}</p>
       </div>
     </div>
   </div>`;

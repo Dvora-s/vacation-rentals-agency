@@ -27,7 +27,7 @@ function ForgotPasswordPage() {
     return (
       <div className="auth-wrap auth-verify-card">
         <span className="auth-verify-icon" aria-hidden="true">📩</span>
-        <h1 className="auth-title">בדקי את תיבת המייל</h1>
+        <h1 className="auth-title">בדקו את תיבת המייל</h1>
         <p className="auth-subtitle">
           אם קיים חשבון עם האימייל הזה, נשלח אליו קישור לאיפוס הסיסמה. הקישור תקף ל-24 שעות.
         </p>
@@ -42,7 +42,7 @@ function ForgotPasswordPage() {
     <div className="auth-wrap">
       <h1 className="auth-title">שכחתי סיסמה</h1>
       <p className="auth-subtitle">
-        הזיני את כתובת האימייל של החשבון, ונשלח אליך קישור לבחירת סיסמה חדשה.
+        הזינו את כתובת האימייל של החשבון, ונשלח אליכם קישור לבחירת סיסמה חדשה.
       </p>
 
       <form className="auth-form" onSubmit={handleSubmit}>

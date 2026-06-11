@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
+import EditableText from './EditableText';
 import './WhyListWithUs.css';
 
 const REASONS = [
   {
     title: 'חשיפה גדולה לקהל יעד',
-    text: 'הדירה שלך נחשפת לאלפי משפחות שמחפשות בדיוק את האזור והקטגוריה שלך.',
+    text: 'הדירה שלכם נחשפת לאלפי משפחות שמחפשות בדיוק את האזור והקטגוריה שלכם.',
   },
   {
     title: 'אפס עמלות תיווך',
@@ -21,15 +22,20 @@ function WhyListWithUs() {
     <section className="why-list section-container">
       <div className="why-list-card">
         <div className="why-list-text">
-          <h2>למה שווה לפרסם אצלנו?</h2>
-          <p className="why-list-lead">
+          <EditableText as="h2" id="home.why.title">למה שווה לפרסם אצלנו?</EditableText>
+          <EditableText as="p" id="home.why.lead" className="why-list-lead">
             למשפחות יש נכס לראון? יש לכם דירה לפרסום ולמכירה לקהל איכותי במיוחד —
             ללא עמלות תיווך.
-          </p>
+          </EditableText>
           <ul className="why-list-bullets">
-            {REASONS.map((r) => (
+            {REASONS.map((r, i) => (
               <li key={r.title}>
-                <strong>{r.title}.</strong> <span>{r.text}</span>
+                <EditableText as="strong" id={`home.why.reason.${i}.title`}>
+                  {`${r.title}.`}
+                </EditableText>{' '}
+                <EditableText as="span" id={`home.why.reason.${i}.text`}>
+                  {r.text}
+                </EditableText>
               </li>
             ))}
           </ul>

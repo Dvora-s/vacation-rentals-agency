@@ -110,25 +110,13 @@
 
 .category-showcase-content p {
   font-size: 0.9rem;
-  opacity: 0.92;
-  font-weight: 300;
-  transform: translateY(6px);
-  opacity: 0;
-  transition: transform 0.4s var(--ease), opacity 0.4s var(--ease);
-}
-
-.category-showcase-card:hover .category-showcase-content p {
-  transform: translateY(0);
-  opacity: 0.92;
+  font-weight: 400;
+  opacity: 0.95;
 }
 
 @media (max-width: 1000px) {
   .categories-showcase-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .category-showcase-content p {
-    transform: none;
-    opacity: 0.92;
   }
 }
 

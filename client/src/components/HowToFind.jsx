@@ -1,3 +1,4 @@
+import EditableText from './EditableText';
 import './HowToFind.css';
 
 const STEPS = [
@@ -21,15 +22,21 @@ const STEPS = [
 function HowToFind() {
   return (
     <section className="how-find section-container">
-      <h2 className="categories-title">איך מוצאים דירה?</h2>
+      <EditableText as="h2" id="home.howfind.title" className="categories-title">
+        איך מוצאים דירה?
+      </EditableText>
       <div className="how-find-grid">
-        {STEPS.map((s) => (
+        {STEPS.map((s, i) => (
           <div key={s.title} className="how-find-step">
             <span className="how-find-icon" aria-hidden="true">
               {s.icon}
             </span>
-            <h3>{s.title}</h3>
-            <p>{s.text}</p>
+            <EditableText as="h3" id={`home.howfind.step.${i}.title`}>
+              {s.title}
+            </EditableText>
+            <EditableText as="p" id={`home.howfind.step.${i}.text`}>
+              {s.text}
+            </EditableText>
           </div>
         ))}
       </div>

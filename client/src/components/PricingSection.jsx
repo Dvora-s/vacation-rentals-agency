@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPricingCatalog } from '../services/api';
+import EditableText from './EditableText';
 import './PricingSection.css';
 
 function CheckIcon() {
@@ -240,39 +241,44 @@ function PricingSection() {
 
   return (
     <section className="pricing-section" aria-labelledby="pricing-heading">
-      <div className="pricing-section-bg" aria-hidden="true" />
+      <div className="pricing-hero">
+        <div className="pricing-hero-bg" aria-hidden="true" />
+        <div className="pricing-hero-inner section-container">
+          <header className="pricing-header">
+            <EditableText as="span" id="pricing.eyebrow" className="pricing-eyebrow">
+              מחירון פרסום
+            </EditableText>
+            <EditableText as="h1" id="pricing.title" domId="pricing-heading" className="pricing-title">
+              אלה תוכניות המחירים שלנו – בחרו את המסלול המתאים לכם
+            </EditableText>
+            <EditableText as="p" id="pricing.subtitle" className="pricing-subtitle">
+              פרסמו את הנכס שלכם וקבלו חשיפה לקהל המחפש מקום אירוח בצורה פשוטה ומהירה.
+            </EditableText>
+            <PricingPostButton variant="hero" className="pricing-header-cta">
+              פרסם נכס עכשיו
+            </PricingPostButton>
+          </header>
+
+          {catalogError && dynamicGroups === null && (
+            <p className="pricing-catalog-note" role="status">
+              מציגים מחירון ברירת מחדל (השרת: {catalogError})
+            </p>
+          )}
+
+          <ul className="pricing-trust" aria-label="יתרונות השירות">
+            {TRUST_ITEMS.map(({ icon, label }) => (
+              <li key={label}>
+                <span className="pricing-trust-icon" aria-hidden="true">
+                  {icon}
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       <div className="pricing-section-inner section-container">
-        <header className="pricing-header">
-          <span className="pricing-eyebrow">מחירון פרסום</span>
-          <h1 id="pricing-heading" className="pricing-title">
-            אלה תוכניות המחירים שלנו – בחרו את המסלול המתאים לכם
-          </h1>
-          <p className="pricing-subtitle">
-            פרסמו את הנכס שלכם וקבלו חשיפה לקהל המחפש מקום אירוח בצורה פשוטה ומהירה.
-          </p>
-          <PricingPostButton variant="hero" className="pricing-header-cta">
-            פרסם נכס עכשיו
-          </PricingPostButton>
-        </header>
-
-        {catalogError && dynamicGroups === null && (
-          <p className="pricing-catalog-note" role="status">
-            מציגים מחירון ברירת מחדל (השרת: {catalogError})
-          </p>
-        )}
-
-        <ul className="pricing-trust" aria-label="יתרונות השירות">
-          {TRUST_ITEMS.map(({ icon, label }) => (
-            <li key={label}>
-              <span className="pricing-trust-icon" aria-hidden="true">
-                {icon}
-              </span>
-              {label}
-            </li>
-          ))}
-        </ul>
-
         {(['hosts', 'hotels']).map((cat) => {
           const meta = CATEGORY_LABELS[cat];
           const plans = cat === 'hosts' ? hostsPlans : hotelsPlans;
@@ -282,8 +288,12 @@ function PricingSection() {
               className={cat === 'hotels' ? 'pricing-category pricing-category--premium' : 'pricing-category'}
             >
               <div className="pricing-category-head">
-                <h2 className="pricing-category-title">{meta.title}</h2>
-                <p className="pricing-category-desc">{meta.subtitle}</p>
+                <EditableText as="h2" id={`pricing.category.${cat}.title`} className="pricing-category-title">
+                  {meta.title}
+                </EditableText>
+                <EditableText as="p" id={`pricing.category.${cat}.desc`} className="pricing-category-desc">
+                  {meta.subtitle}
+                </EditableText>
               </div>
               <div className={`pricing-grid ${meta.gridClass}`}>
                 {plans.map((plan) => (

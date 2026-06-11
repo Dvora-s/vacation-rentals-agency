@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { FAQ_SECTIONS, coerceEnum } from '../constants/enums.js';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get('/items', async (_req, res) => {
 router.post('/items', async (req, res) => {
   try {
     const b = req.body || {};
-    const section = b.section === 'hosts' ? 'hosts' : 'renters';
+    const section = coerceEnum(b.section, FAQ_SECTIONS, 'renters');
     const question = String(b.question || '').trim();
     const answer = String(b.answer || '').trim();
     if (!question) return res.status(400).json({ error: 'שאלה היא שדה חובה' });
@@ -54,7 +55,7 @@ router.put('/items/:id', async (req, res) => {
     if (existing.length === 0) return res.status(404).json({ error: 'לא נמצא' });
 
     // עדכון מלא — נמנעים מ־"אין שדות לעדכון" כשחלק מהשדות חסרים בגוף הבקשה
-    const section = b.section === 'hosts' ? 'hosts' : 'renters';
+    const section = coerceEnum(b.section, FAQ_SECTIONS, 'renters');
     const question = String(b.question ?? '').trim();
     const answer = String(b.answer ?? '').trim();
     const sortOrder = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : 0;

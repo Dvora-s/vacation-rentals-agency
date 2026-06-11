@@ -5,7 +5,15 @@
 
 .apartments-hero {
   position: relative;
-  background: linear-gradient(160deg, var(--color-navy) 0%, var(--color-navy-dark) 100%);
+  background-image: linear-gradient(
+      to bottom,
+      rgba(10, 28, 44, 0.5) 0%,
+      rgba(10, 28, 44, 0.6) 45%,
+      rgba(10, 28, 44, 0.8) 100%
+    ),
+    url('/hero.png');
+  background-size: cover;
+  background-position: center;
   padding: 3.5rem 1.5rem 3.5rem;
   text-align: center;
   overflow: hidden;
@@ -168,4 +176,30 @@
   font-size: 2.6rem;
   margin-bottom: 1rem;
   opacity: 0.85;
+}
+
+.apartments-sentinel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.apartments-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  animation: apartments-spin 0.7s linear infinite;
+}
+
+@keyframes apartments-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

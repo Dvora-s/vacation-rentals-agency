@@ -16,8 +16,16 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from '../utils/mailer.js';
+import { authLimiter, sensitiveLimiter } from '../middleware/rateLimit.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
+
+// מחזיר שגיאת שרת גנרית ללקוח (בלי לחשוף פרטים פנימיים) ומתעד את התקלה בצד השרת.
+function serverError(res, error, context) {
+  logger.error(`[auth] ${context}:`, error);
+  res.status(500).json({ error: 'אירעה שגיאה בשרת. נסו שוב מאוחר יותר.' });
+}
 
 // סיסמה חזקה: לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -47,7 +55,7 @@ async function sendVerification(user) {
   await sendVerificationEmail({ to: user.email, fullName: user.full_name, verifyUrl });
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { full_name, email, phone, password } = req.body || {};
     if (!full_name || !email || !password) {
@@ -91,7 +99,7 @@ router.post('/register', async (req, res) => {
       message: 'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'register');
   }
 });
 
@@ -136,12 +144,12 @@ router.get('/verify-email', async (req, res) => {
       token: authToken,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'verify-email');
   }
 });
 
 // שליחה חוזרת של מייל אימות.
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', sensitiveLimiter, async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!email) return res.status(400).json({ error: 'נדרש אימייל' });
@@ -157,7 +165,7 @@ router.post('/resend-verification', async (req, res) => {
     }
     res.json({ ok: true, message: 'אם קיים חשבון שאינו מאומת, נשלח אליו מייל אימות חדש.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'resend-verification');
   }
 });
 
@@ -168,7 +176,7 @@ function passwordFingerprint(passwordHash) {
 }
 
 // שלב 1: בקשת איפוס סיסמה — שולח מייל עם קישור (תמיד מחזיר הצלחה כדי לא לחשוף קיום משתמש).
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', sensitiveLimiter, async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!email) return res.status(400).json({ error: 'נדרש אימייל' });
@@ -200,12 +208,12 @@ router.post('/forgot-password', async (req, res) => {
       message: 'אם קיים חשבון עם האימייל הזה, נשלח אליו קישור לאיפוס הסיסמה.',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'forgot-password');
   }
 });
 
 // שלב 2: איפוס בפועל — מקבל token + סיסמה חדשה, מעדכן את הסיסמה.
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', sensitiveLimiter, async (req, res) => {
   try {
     const { token, password } = req.body || {};
     if (!token || !password) {
@@ -245,11 +253,11 @@ router.post('/reset-password', async (req, res) => {
 
     res.json({ ok: true, message: 'הסיסמה עודכנה בהצלחה. אפשר להתחבר עם הסיסמה החדשה.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'reset-password');
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
@@ -276,7 +284,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'אימייל או סיסמה שגויים' });
     }
 
-    if (!user.email_verified) {
+    // מנהל פטור מאימות מייל — מתחבר עם שם משתמש/אימייל וסיסמה בלבד.
+    if (!user.email_verified && user.role !== 'admin') {
       return res.status(403).json({
         error: 'החשבון עדיין לא אומת. נשלח אליך מייל אימות — יש ללחוץ על הקישור שבו.',
         needs_verification: true,
@@ -287,12 +296,12 @@ router.post('/login', async (req, res) => {
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ user: publicUser(user), token });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'login');
   }
 });
 
 // התחברות/הרשמה דרך גוגל. מקבל credential (ID token) מצד הלקוח.
-router.post('/google', async (req, res) => {
+router.post('/google', authLimiter, async (req, res) => {
   try {
     if (!googleClient) {
       return res.status(503).json({ error: 'התחברות עם גוגל אינה מוגדרת בשרת.' });
@@ -356,7 +365,7 @@ router.post('/google', async (req, res) => {
     const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
     res.json({ user: publicUser(userRow), token });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'google');
   }
 });
 
@@ -368,7 +377,7 @@ router.get('/me', requireAuth, async (req, res) => {
     }
     res.json(publicUser(rows[0]));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'me');
   }
 });
 
@@ -380,7 +389,7 @@ router.get('/users', requireAuth, requireRole('admin'), async (_req, res) => {
     );
     res.json(rows.map(publicUser));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error, 'list-users');
   }
 });
 

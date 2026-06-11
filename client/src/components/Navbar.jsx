@@ -23,7 +23,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <img src="/logo.png" alt="דירות נופש" />
+        <img src="/navbar-logo.png" alt="דירות נופש" />
       </NavLink>
 
       <nav className="navbar-nav">
@@ -50,10 +50,10 @@ function Navbar() {
           {isAuthenticated && (
             <li>
               <NavLink
-                to="/my-apartments"
+                to="/account"
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               >
-                הדירות שלי
+                אזור אישי
               </NavLink>
             </li>
           )}
@@ -84,7 +84,7 @@ function Navbar() {
         {isAuthenticated ? (
           <div className="navbar-user">
             <span className="navbar-user-name" title={user?.email}>
-              שלום, {user?.full_name?.split(' ')[0] || user?.email}
+              שלום {user?.full_name?.split(' ')[0] || user?.email}
             </span>
             <button type="button" className="navbar-logout" onClick={handleLogout}>
               התנתקות

@@ -1,19 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
-import CategoryFilter from '../components/CategoryFilter';
+import EditableText from '../components/EditableText';
 import RangeSlider from '../components/RangeSlider';
 import { getApartments } from '../services/api';
 import { apartmentMatchesCategory, findCategory } from '../data/categories';
+import { apartmentMatchesRegion, REGIONS } from '../data/locations';
+import { useRegionResolver } from '../hooks/useRegionResolver';
 import './ApartmentsPage.css';
 
 const PRICE_LIMITS = { min: 0, max: 20000 };
 const GUEST_LIMITS = { min: 0, max: 50 };
 const ROOM_LIMITS = { min: 0, max: 20 };
 
+const DESKTOP_PAGE_SIZE = 20;
+const MOBILE_PAGE_SIZE = 10;
+const MOBILE_QUERY = '(max-width: 640px)';
+
+function getInitialPageSize() {
+  if (typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches) {
+    return MOBILE_PAGE_SIZE;
+  }
+  return DESKTOP_PAGE_SIZE;
+}
+
 function ApartmentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const resolver = useRegionResolver();
   const [apartments, setApartments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,8 +35,13 @@ function ApartmentsPage() {
   const [guestRange, setGuestRange] = useState(GUEST_LIMITS);
   const [roomRange, setRoomRange] = useState(ROOM_LIMITS);
 
+  const [pageSize, setPageSize] = useState(getInitialPageSize);
+  const [visibleCount, setVisibleCount] = useState(getInitialPageSize);
+  const sentinelRef = useRef(null);
+
   const categoryFilter = searchParams.get('category') || '';
   const locationFilter = searchParams.get('location') || '';
+  const regionFilter = searchParams.get('region') || '';
 
   useEffect(() => {
     getApartments()
@@ -30,26 +49,54 @@ function ApartmentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY);
+    const sync = () => setPageSize(mql.matches ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE);
+    sync();
+    mql.addEventListener('change', sync);
+    return () => mql.removeEventListener('change', sync);
+  }, []);
+
   const filtered = useMemo(() => {
     return apartments.filter((a) => {
       const okCat = apartmentMatchesCategory(a, categoryFilter);
       const okLoc = locationFilter ? a.location.includes(locationFilter) : true;
+      const okRegion = apartmentMatchesRegion(a.location, regionFilter, resolver);
       const price = Number(a.price_per_night) || 0;
       const guests = Number(a.max_guests) || 0;
       const rooms = Number(a.bedrooms) || 0;
       const okPrice = price >= priceRange.min && price <= priceRange.max;
       const okGuests = guests >= guestRange.min && guests <= guestRange.max;
       const okRooms = rooms >= roomRange.min && rooms <= roomRange.max;
-      return okCat && okLoc && okPrice && okGuests && okRooms;
+      return okCat && okLoc && okRegion && okPrice && okGuests && okRooms;
     });
-  }, [apartments, categoryFilter, locationFilter, priceRange, guestRange, roomRange]);
+  }, [apartments, categoryFilter, locationFilter, regionFilter, priceRange, guestRange, roomRange, resolver]);
 
-  function setCategory(catId) {
-    const next = new URLSearchParams(searchParams);
-    if (catId) next.set('category', catId);
-    else next.delete('category');
-    setSearchParams(next, { replace: true });
-  }
+  const visibleApartments = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
+  const hasMore = visibleCount < filtered.length;
+
+  useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [pageSize, filtered]);
+
+  useEffect(() => {
+    if (!hasMore) return undefined;
+    const node = sentinelRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((current) => current + pageSize);
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, pageSize, visibleCount]);
 
   function resetRanges() {
     setPriceRange(PRICE_LIMITS);
@@ -70,22 +117,26 @@ function ApartmentsPage() {
   return (
     <div className="apartments-page">
       <section className="apartments-hero">
-        <h1>מצא דירה</h1>
+        <EditableText as="h1" id="apartments.hero.title">מצא דירה</EditableText>
         <p>
           {activeCategory
             ? `קטגוריה נבחרת: ${activeCategory.label}`
             : 'מצאו את דירת הנופש המושלמת עבורכם'}
         </p>
-        <SearchBar initialCategory={categoryFilter} initialLocation={locationFilter} />
+        <SearchBar
+          initialCategory={categoryFilter}
+          initialLocation={locationFilter}
+          initialRegion={regionFilter}
+        />
       </section>
 
       <section className="section-container apartments-content">
-        <CategoryFilter value={categoryFilter} onChange={setCategory} />
-
         <div className="apartments-shell">
           <aside className="filters-sidebar">
             <div className="filters-head">
-              <h2 className="filters-title">סינון</h2>
+              <EditableText as="h2" id="apartments.filters.title" className="filters-title">
+                סינון
+              </EditableText>
               {rangesActive && (
                 <button type="button" className="filters-reset" onClick={resetRanges}>
                   איפוס
@@ -125,6 +176,26 @@ function ApartmentsPage() {
           </aside>
 
           <div className="apartments-main">
+            {regionFilter && (
+              <p className="active-location">
+                אזור:{' '}
+                <strong>
+                  {REGIONS.find((r) => r.id === regionFilter)?.label || regionFilter}
+                </strong>
+                <button
+                  type="button"
+                  className="filter-clear"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.delete('region');
+                    setSearchParams(next, { replace: true });
+                  }}
+                >
+                  נקה
+                </button>
+              </p>
+            )}
+
             {locationFilter && (
               <p className="active-location">
                 מציג דירות באזור: <strong>{locationFilter}</strong>
@@ -149,11 +220,19 @@ function ApartmentsPage() {
             )}
 
             {!loading && filtered.length > 0 && (
-              <div className="apartments-grid">
-                {filtered.map((apartment) => (
-                  <ApartmentCard key={apartment.id} apartment={apartment} />
-                ))}
-              </div>
+              <>
+                <div className="apartments-grid">
+                  {visibleApartments.map((apartment) => (
+                    <ApartmentCard key={apartment.id} apartment={apartment} />
+                  ))}
+                </div>
+                {hasMore && (
+                  <div ref={sentinelRef} className="apartments-sentinel">
+                    <span className="apartments-spinner" aria-hidden="true" />
+                    <span>טוען עוד דירות...</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

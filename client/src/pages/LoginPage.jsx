@@ -57,7 +57,7 @@ function LoginPage() {
   return (
     <div className="auth-wrap">
       <h1 className="auth-title">התחברות</h1>
-      <p className="auth-subtitle">היכנסי כדי לנהל את הדירות שלך ולפרסם דירות חדשות</p>
+      <p className="auth-subtitle">היכנסו כדי לנהל את הדירות שלכם ולפרסם דירות חדשות</p>
 
       <form className="auth-form" onSubmit={handleSubmit}>
         {notice && <div className="auth-notice">{notice}</div>}

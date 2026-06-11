@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(50),
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('owner', 'admin') NOT NULL DEFAULT 'owner',
+  -- role: 'owner' | 'admin' (נאכף באפליקציה)
+  role VARCHAR(20) NOT NULL DEFAULT 'owner',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -43,7 +44,8 @@ CREATE TABLE IF NOT EXISTS apartments (
   owner_email VARCHAR(255),
   contact_via_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
-  status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'approved' | 'rejected' | 'expired' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   rejection_reason VARCHAR(500),
   approved_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -72,7 +74,8 @@ CREATE TABLE IF NOT EXISTS listing_payments (
   amount DECIMAL(10, 2) NOT NULL DEFAULT 30.00,
   currency VARCHAR(8) NOT NULL DEFAULT 'ILS',
   months INT NOT NULL DEFAULT 1,
-  status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'paid' | 'failed' | 'refunded' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   provider VARCHAR(50) DEFAULT 'manual',
   provider_reference VARCHAR(255),
   paid_at TIMESTAMP NULL,
@@ -93,7 +96,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   check_in DATE NOT NULL,
   check_out DATE NOT NULL,
   total_price DECIMAL(10, 2) NOT NULL,
-  status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'confirmed' | 'cancelled' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (apartment_id) REFERENCES apartments(id) ON DELETE CASCADE
 );

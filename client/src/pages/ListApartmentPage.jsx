@@ -30,11 +30,11 @@ function ListApartmentPage() {
   const [paymentRef, setPaymentRef] = useState('');
 
   const detailsSubtitle = selectedPlan
-    ? `מלאי את פרטי הדירה. בשלב הבא תועברי לתשלום של ₪${getPlanAmount(
+    ? `מלאו את פרטי הדירה. בשלב הבא תועברו לתשלום של ₪${getPlanAmount(
         selectedPlan.tier,
         selectedPlan.months,
       )} ל${monthsLabel(selectedPlan.months)}, ולאחר מכן המנהל יאשר את הפרסום.`
-    : 'מלאי את פרטי הדירה. בשלב הבא תבחרי מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
+    : 'מלאו את פרטי הדירה. בשלב הבא תבחרו מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
 
   async function handleCreate(payload) {
     setError(null);
@@ -121,14 +121,14 @@ function ListApartmentPage() {
       <div className="list-apt-page section-container">
         <h1 className="page-title">תשלום על פרסום הדירה</h1>
         <p className="page-subtitle">
-          הדירה <strong>"{createdApt?.title}"</strong> נשמרה. בחרי מסלול פרסום כדי להעביר אותה לאישור המנהל.
+          הדירה <strong>"{createdApt?.title}"</strong> נשמרה. בחרו מסלול פרסום כדי להעביר אותה לאישור המנהל.
         </p>
 
         {error && <div className="auth-error">{error}</div>}
 
         {premiumForced && (
           <div className="auth-notice">
-            הנכס שלך הוא <strong>מתחם אירוח</strong>, ולכן חלים עליו מסלולי החבילות של מתחמי אירוח.
+            הנכס שלכם הוא <strong>מתחם אירוח</strong>, ולכן חלים עליו מסלולי החבילות של מתחמי אירוח.
           </div>
         )}
 

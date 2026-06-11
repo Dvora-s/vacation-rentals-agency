@@ -2,6 +2,45 @@
   padding: 2.5rem 1.5rem 5rem;
 }
 
+/* Owner/admin management bar */
+.detail-manage-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--color-blue-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.detail-manage-edit {
+  margin-inline-start: auto;
+}
+
+.detail-manage-bar .status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.detail-manage-bar .status-approved {
+  background: #e6f4ea;
+  color: #237804;
+}
+.detail-manage-bar .status-pending {
+  background: #fff7e6;
+  color: #ad6800;
+}
+.detail-manage-bar .status-rejected,
+.detail-manage-bar .status-expired {
+  background: #fff1f0;
+  color: #a8071a;
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: 1.15fr 1fr 320px;

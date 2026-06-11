@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(50),
   -- password_hash יכול להיות NULL עבור משתמשים שנרשמו דרך גוגל
   password_hash VARCHAR(255) NULL,
-  role ENUM('owner', 'admin') NOT NULL DEFAULT 'owner',
+  -- role: 'owner' | 'admin' (נאכף ברמת האפליקציה — server/src/constants/enums.js)
+  role VARCHAR(20) NOT NULL DEFAULT 'owner',
   -- אימות אימייל: 0 = ממתין לאימות, 1 = מאומת
   email_verified TINYINT(1) NOT NULL DEFAULT 0,
   -- שיטת ההרשמה: local (אימייל+סיסמה) או google
@@ -49,7 +50,8 @@ CREATE TABLE IF NOT EXISTS apartments (
   owner_email VARCHAR(255),
   contact_via_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
-  status ENUM('pending', 'approved', 'rejected', 'expired') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'approved' | 'rejected' | 'expired' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   rejection_reason VARCHAR(500),
   approved_at TIMESTAMP NULL,
   -- תוקף הפרסום (מחושב מהתשלום). לאחר תאריך זה המודעה מושעית.
@@ -61,6 +63,14 @@ CREATE TABLE IF NOT EXISTS apartments (
   INDEX idx_apartments_status (status),
   INDEX idx_apartments_expires (expires_at),
   INDEX idx_apartments_owner (owner_id),
+  -- אינדקסים לסינונים נפוצים: מיקום, מחיר, תפוסה, סוג נכס, זמינות
+  INDEX idx_apartments_location (location),
+  INDEX idx_apartments_price (price_per_night),
+  INDEX idx_apartments_guests (max_guests),
+  INDEX idx_apartments_bedrooms (bedrooms),
+  INDEX idx_apartments_property_type (property_type),
+  -- אינדקס מורכב לשאילתת הרישום הציבורי (status='approved' ממוין)
+  INDEX idx_apartments_status_avail (status, is_available),
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
@@ -84,7 +94,8 @@ CREATE TABLE IF NOT EXISTS listing_payments (
   amount DECIMAL(10, 2) NOT NULL DEFAULT 30.00,
   currency VARCHAR(8) NOT NULL DEFAULT 'ILS',
   months INT NOT NULL DEFAULT 1,
-  status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'paid' | 'failed' | 'refunded' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   provider VARCHAR(50) DEFAULT 'manual',
   provider_reference VARCHAR(255),
   paid_at TIMESTAMP NULL,
@@ -98,11 +109,13 @@ CREATE TABLE IF NOT EXISTS listing_payments (
 -- ───────── פניות "צור קשר" ─────────
 CREATE TABLE IF NOT EXISTS contact_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
   full_name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   phone VARCHAR(50),
   message TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- ───────── הזמנות ─────────
@@ -115,7 +128,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   check_in DATE NOT NULL,
   check_out DATE NOT NULL,
   total_price DECIMAL(10, 2) NOT NULL,
-  status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
+  -- status: 'pending' | 'confirmed' | 'cancelled' (נאכף באפליקציה)
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (apartment_id) REFERENCES apartments(id) ON DELETE CASCADE
 );
@@ -124,7 +138,8 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE TABLE IF NOT EXISTS pricing_plans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(64) NOT NULL UNIQUE,
-  category ENUM('hosts', 'hotels') NOT NULL DEFAULT 'hosts',
+  -- category: 'hosts' | 'hotels' (נאכף באפליקציה)
+  category VARCHAR(20) NOT NULL DEFAULT 'hosts',
   name VARCHAR(255) NOT NULL,
   description TEXT NULL,
   price DECIMAL(10, 2) NOT NULL,
@@ -133,7 +148,8 @@ CREATE TABLE IF NOT EXISTS pricing_plans (
   duration_months INT NOT NULL DEFAULT 1,
   duration_label VARCHAR(100) NULL,
   features_json JSON NOT NULL,
-  highlight_type ENUM('none', 'popular', 'premium') NOT NULL DEFAULT 'none',
+  -- highlight_type: 'none' | 'popular' | 'premium' (נאכף באפליקציה)
+  highlight_type VARCHAR(20) NOT NULL DEFAULT 'none',
   badge_text VARCHAR(100) NULL,
   sort_order INT NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -146,7 +162,8 @@ CREATE TABLE IF NOT EXISTS pricing_plans (
 CREATE TABLE IF NOT EXISTS pricing_promotions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  discount_type ENUM('percent', 'flat') NOT NULL,
+  -- discount_type: 'percent' | 'flat' (נאכף באפליקציה)
+  discount_type VARCHAR(20) NOT NULL,
   discount_value DECIMAL(10, 2) NOT NULL,
   pricing_plan_id INT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -162,7 +179,8 @@ CREATE TABLE IF NOT EXISTS pricing_promotions (
 -- ───────── שאלות נפוצות (ניהול מנהל) ─────────
 CREATE TABLE IF NOT EXISTS faq_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  section ENUM('renters', 'hosts') NOT NULL COMMENT 'renters=שוכרים, hosts=מארחים',
+  -- section: 'renters' (שוכרים) | 'hosts' (מארחים) — נאכף באפליקציה
+  section VARCHAR(20) NOT NULL,
   question TEXT NOT NULL,
   answer TEXT NOT NULL,
   sort_order INT NOT NULL DEFAULT 0,

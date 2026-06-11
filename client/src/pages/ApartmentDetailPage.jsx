@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getApartmentById, sendListingInquiry } from '../services/api';
 import { getApartmentCategories } from '../data/categories';
+import { useAuth } from '../context/AuthContext';
 import './ApartmentDetailPage.css';
+
+const STATUS_LABELS = {
+  pending: 'ממתין לאישור',
+  approved: 'מפורסם',
+  rejected: 'נדחה',
+  expired: 'פג תוקף',
+};
 
 function ApartmentDetailPage() {
   const { id } = useParams();
+  const { user, isAdmin } = useAuth();
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,8 +83,28 @@ function ApartmentDetailPage() {
     apartment.can_inquire ??
     (apartment.status === 'approved' && Boolean(apartment.owner_email));
 
+  // מנהל יכול לערוך כל דירה בכל שלב; בעל הנכס יכול לערוך את הדירות שלו.
+  const canManage =
+    isAdmin || (user && apartment.owner_id && user.id === apartment.owner_id);
+
   return (
     <div className="detail-page section-container">
+      {canManage && (
+        <div className="detail-manage-bar">
+          {apartment.status && (
+            <span className={`status-pill status-${apartment.status}`}>
+              {STATUS_LABELS[apartment.status] || apartment.status}
+            </span>
+          )}
+          <Link
+            to={`/my-apartments/${apartment.id}/edit`}
+            className="btn-outline-gold detail-manage-edit"
+          >
+            ✎ עריכת דירה
+          </Link>
+        </div>
+      )}
+
       <div className="detail-layout">
         <div className="detail-gallery">
           <div className="gallery-main">
@@ -123,12 +152,9 @@ function ApartmentDetailPage() {
             <h3>יצירת קשר עם בעל הנכס</h3>
             <p className="contact-price">החל מ-₪{apartment.price_per_night} / לילה</p>
 
-            {(apartment.owner_name || phone) && (
+            {phone && (
               <div className="contact-info">
-                {apartment.owner_name && (
-                  <p className="contact-name">{apartment.owner_name}</p>
-                )}
-                {phone && <p className="contact-phone" dir="ltr">{phone}</p>}
+                <p className="contact-phone" dir="ltr">{phone}</p>
               </div>
             )}
 
@@ -179,14 +205,14 @@ function ApartmentDetailPage() {
                 {inquirySent ? (
                   <div className="inquiry-success">
                     <span aria-hidden="true">✅</span>
-                    <p>ההודעה נשלחה לבעל הנכס! הוא יוכל להשיב לך ישירות למייל שהזנת.</p>
+                    <p>ההודעה נשלחה לבעל הנכס! הוא יוכל להשיב לכם ישירות למייל שהזנתם.</p>
                   </div>
                 ) : (
                   <form className="inquiry-form" onSubmit={handleInquirySubmit}>
                     <h4>שליחת הודעה לבעל הנכס</h4>
                     {inquiryError && <div className="auth-error">{inquiryError}</div>}
 
-                    <label htmlFor="inquiry-email">האימייל שלך</label>
+                    <label htmlFor="inquiry-email">האימייל שלכם</label>
                     <input
                       id="inquiry-email"
                       type="email"

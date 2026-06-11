@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getFaq } from '../services/api';
 import { FAQ_FALLBACK } from '../data/faqFallback.js';
+import EditableText from '../components/EditableText';
 import './FaqPage.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
@@ -75,10 +76,12 @@ function FaqPage() {
       <header className="faq-header">
         <div className="faq-header-row">
           <div>
-            <h1 className="page-title">שאלות נפוצות</h1>
-            <p className="page-subtitle">
+            <EditableText as="h1" id="faq.title" className="page-title">
+              שאלות נפוצות
+            </EditableText>
+            <EditableText as="p" id="faq.subtitle" className="page-subtitle">
               ריכזנו עבורכם את התשובות לשאלות הנפוצות ביותר. לחצו על השאלה כדי לפתוח את התשובה.
-            </p>
+            </EditableText>
             {USE_MOCK && isAdmin && (
               <p className="faq-warn" role="status">
                 <strong>מצב דמו (VITE_USE_MOCK):</strong> כאן מוצג תוכן סטטי מהקוד — לא מהמסד. עמוד הניהול טוען רק מ־DB; כדי לסנכרן, הגדירו{' '}

@@ -5,7 +5,8 @@
 CREATE TABLE IF NOT EXISTS pricing_plans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(64) NOT NULL UNIQUE,
-  category ENUM('hosts', 'hotels') NOT NULL DEFAULT 'hosts',
+  -- category: 'hosts' | 'hotels' (נאכף באפליקציה)
+  category VARCHAR(20) NOT NULL DEFAULT 'hosts',
   name VARCHAR(255) NOT NULL,
   description TEXT NULL,
   price DECIMAL(10, 2) NOT NULL,
@@ -14,7 +15,8 @@ CREATE TABLE IF NOT EXISTS pricing_plans (
   duration_months INT NOT NULL DEFAULT 1,
   duration_label VARCHAR(100) NULL COMMENT 'טקסט חופשי במקום "ל-X חודשים"',
   features_json JSON NOT NULL COMMENT 'מערך מחרוזות: ["תכונה 1", ...]',
-  highlight_type ENUM('none', 'popular', 'premium') NOT NULL DEFAULT 'none',
+  -- highlight_type: 'none' | 'popular' | 'premium' (נאכף באפליקציה)
+  highlight_type VARCHAR(20) NOT NULL DEFAULT 'none',
   badge_text VARCHAR(100) NULL,
   sort_order INT NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -27,7 +29,8 @@ CREATE TABLE IF NOT EXISTS pricing_plans (
 CREATE TABLE IF NOT EXISTS pricing_promotions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  discount_type ENUM('percent', 'flat') NOT NULL,
+  -- discount_type: 'percent' | 'flat' (נאכף באפליקציה)
+  discount_type VARCHAR(20) NOT NULL,
   discount_value DECIMAL(10, 2) NOT NULL,
   pricing_plan_id INT NULL COMMENT 'NULL = מבצע גלובלי על כל המסלולים הפעילים',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,

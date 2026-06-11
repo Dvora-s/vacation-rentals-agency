@@ -47,7 +47,7 @@ function RenewApartmentPage() {
         <div className="success-card">
           <div className="success-icon">✓</div>
           <h1>המודעה חודשה!</h1>
-          <p>תוקף הפרסום הוארך והמודעה חזרה לאוויר. תודה שחידשת את הפרסום.</p>
+          <p>תוקף הפרסום הוארך והמודעה חזרה לאוויר. תודה שחידשתם את הפרסום.</p>
           <div className="success-actions">
             <button type="button" className="btn-primary" onClick={() => navigate('/my-apartments')}>
               לדירות שלי

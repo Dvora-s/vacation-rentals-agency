@@ -1,0 +1,113 @@
+/* ── פינת מיתוג צפה (שמאל-תחתון) ── */
+.branding-corner {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  z-index: 160;
+}
+
+/* לוגו קטן ולחיץ */
+.branding-badge {
+  display: block;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 42, 61, 0.14);
+  cursor: pointer;
+  line-height: 0;
+  backdrop-filter: blur(4px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.branding-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(15, 42, 61, 0.22);
+}
+
+.branding-badge:active {
+  transform: translateY(0);
+}
+
+.branding-badge img {
+  display: block;
+  width: 92px;
+  height: auto;
+  border-radius: 6px;
+}
+
+/* ── מלבן הסרטון שנפתח לצד הלוגו ── */
+.branding-video-pop {
+  position: absolute;
+  bottom: 0;
+  right: calc(100% + 12px);
+  left: auto;
+  width: 320px;
+  padding: 6px;
+  background: #0b1622;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(8, 20, 32, 0.45);
+  animation: branding-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.branding-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  border-radius: 11px;
+  background: #000;
+}
+
+.branding-video-close {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #14304a;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+  transition: transform 0.15s ease;
+}
+
+.branding-video-close:hover {
+  transform: scale(1.1);
+}
+
+@keyframes branding-pop {
+  from {
+    opacity: 0;
+    transform: translateX(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (max-width: 600px) {
+  .branding-corner {
+    bottom: 78px;
+    right: 16px;
+  }
+
+  .branding-badge img {
+    width: 72px;
+  }
+
+  /* במסכים צרים — פותחים את הסרטון מעל הלוגו כדי שלא יחרוג מהמסך */
+  .branding-video-pop {
+    bottom: calc(100% + 12px);
+    right: 0;
+    left: auto;
+    width: min(86vw, 320px);
+  }
+}

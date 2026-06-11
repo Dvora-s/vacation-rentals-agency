@@ -127,7 +127,7 @@ function AdminFaqPage() {
 
       {USE_MOCK && (
         <div className="faq-warn admin-faq-mock-banner" role="status">
-          <strong>VITE_USE_MOCK פעיל:</strong> עמוד &quot;שאלות נפוצות&quot; לציבור מציג תוכן דמו מהקוד, לא מהמסד. כאן מוצגות רק שאלות שנשמרו ב־DB. אם הרשימה ריקה — הריצי{' '}
+          <strong>VITE_USE_MOCK פעיל:</strong> עמוד &quot;שאלות נפוצות&quot; לציבור מציג תוכן דמו מהקוד, לא מהמסד. כאן מוצגות רק שאלות שנשמרו ב־DB. אם הרשימה ריקה — הריצו{' '}
           <code>npm run setup-faq</code> בתיקיית השרת. כדי שהאתר הציבורי יציג את אותו תוכן מהמסד, הגדירי <code>VITE_USE_MOCK=false</code> ב־<code>client/.env</code> והפעילי מחדש את Vite.
         </div>
       )}
@@ -191,7 +191,7 @@ function AdminFaqPage() {
         <div className="admin-faq-list">
           {items.length === 0 && (
             <p className="empty-state">
-              אין שאלות במסד הנתונים. הריצי <code>npm run setup-faq</code> מתוך תיקיית <code>server</code>, או הוסיפי שאלה חדשה בטופס למעלה.
+              אין שאלות במסד הנתונים. הריצו <code>npm run setup-faq</code> מתוך תיקיית <code>server</code>, או הוסיפו שאלה חדשה בטופס למעלה.
               {USE_MOCK && <> שימי לב: בזמן מצב Mock הציבור רואה תוכן דמו — לא את מה שמופיע כאן.</>}
             </p>
           )}
