@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { HOMEPAGE_CATEGORIES } from '../data/categories';
 import EditableText from './EditableText';
+import EditableImage from './EditableImage';
 import './CategoriesShowcase.css';
 
 function CategoriesShowcase() {
@@ -18,11 +19,14 @@ function CategoriesShowcase() {
 
       <div className="categories-showcase-grid">
         {HOMEPAGE_CATEGORIES.map((cat) => (
-          <Link
+          <EditableImage
             key={cat.id}
+            id={`home.categories.${cat.id}.image`}
+            src={cat.image}
+            mode="background"
+            as={Link}
             to={`/apartments?category=${cat.id}`}
             className="category-showcase-card"
-            style={{ backgroundImage: `url(${cat.image})` }}
           >
             <div className="category-showcase-overlay" />
             <div className="category-showcase-content">
@@ -33,7 +37,7 @@ function CategoriesShowcase() {
                 {cat.subtitle}
               </EditableText>
             </div>
-          </Link>
+          </EditableImage>
         ))}
       </div>
     </section>

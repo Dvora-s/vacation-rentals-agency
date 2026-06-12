@@ -1,14 +1,32 @@
 import { Link } from 'react-router-dom';
 import { getApartmentCategories } from '../data/categories';
+import { updateApartment } from '../services/api';
+import EditableImage from './EditableImage';
 import './ApartmentCard.css';
 
-function ApartmentCard({ apartment }) {
+function ApartmentCard({ apartment, onApartmentUpdate }) {
   const categories = getApartmentCategories(apartment);
+
+  async function saveCoverImage(url) {
+    const images = apartment.images?.length
+      ? [...apartment.images]
+      : [apartment.image].filter(Boolean);
+    if (images.length === 0) images.push(url);
+    else images[0] = url;
+    const updated = await updateApartment(apartment.id, { images, image_url: url });
+    onApartmentUpdate?.(updated);
+  }
+
   return (
     <article className={`apartment-card ${!apartment.is_available ? 'unavailable' : ''}`}>
-      <div className="card-image-wrap">
-        <img src={apartment.image} alt={apartment.title} className="card-image" />
-      </div>
+      <EditableImage
+        id={`apt.${apartment.id}.cover`}
+        src={apartment.image}
+        alt={apartment.title}
+        className="card-image-wrap"
+        imgClassName="card-image"
+        onSave={saveCoverImage}
+      />
 
       <div className="card-body">
         <div className="card-header-row">

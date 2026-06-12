@@ -8,7 +8,7 @@ import ApartmentsPage from './pages/ApartmentsPage';
 import ApartmentDetailPage from './pages/ApartmentDetailPage';
 import AboutPage from './pages/AboutPage';
 import NotFoundPage from './pages/NotFoundPage';
-import { PricingPage, BlogPage } from './pages/PlaceholderPages';
+import { PricingPage } from './pages/PlaceholderPages';
 import FaqPage from './pages/FaqPage';
 import LegalPage from './pages/LegalPage';
 import { PRIVACY_POLICY, TERMS_OF_USE } from './data/legal';
@@ -41,7 +41,6 @@ function App() {
             <Route path="pricing" element={<PricingPage />} />
             <Route path="faq" element={<FaqPage />} />
             <Route path="contact" element={<ContactPage />} />
-            <Route path="blog" element={<BlogPage />} />
             <Route path="privacy" element={<LegalPage doc={PRIVACY_POLICY} />} />
             <Route path="terms" element={<LegalPage doc={TERMS_OF_USE} />} />
 

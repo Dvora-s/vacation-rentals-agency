@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitContactMessage } from '../services/api';
 import EditableText from '../components/EditableText';
+import EditableImage from '../components/EditableImage';
 import './ContactPage.css';
 
 const MESSAGE_MAX = 1000;
@@ -249,7 +250,15 @@ function ContactPage() {
 
   return (
     <div className="contact-page">
-      <div className="contact-page-bg" aria-hidden="true" />
+      <EditableImage
+        id="site.living-room-bg"
+        src="/living-room-bg.png"
+        mode="background"
+        className="contact-page-bg"
+        overlayGradient="linear-gradient(180deg, rgba(247, 244, 237, 0.82) 0%, rgba(247, 244, 237, 0.88) 100%)"
+        style={{ backgroundAttachment: 'fixed' }}
+        aria-hidden="true"
+      />
 
       <div className="contact-page-inner section-container">
         <header className="contact-hero">

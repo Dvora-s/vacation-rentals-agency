@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import EditableImage from './EditableImage';
 import './Navbar.css';
 
 const navLinks = [
-  { to: '/', label: 'בלוג דירות נופש', highlight: true, end: true },
+  { to: '/', label: 'בית', end: true },
   { to: '/apartments', label: 'מצא דירה' },
   { to: '/about', label: 'אודות' },
   { to: '/pricing', label: 'מחירון פרסום' },
@@ -23,7 +24,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <img src="/navbar-logo.png" alt="דירות נופש" />
+        <EditableImage id="site.navbar-logo" src="/navbar-logo.png" alt="דירות נופש" />
       </NavLink>
 
       <nav className="navbar-nav">
@@ -96,7 +97,7 @@ function Navbar() {
           </NavLink>
         )}
 
-        <NavLink to="/list-apartment" className="navbar-cta btn-outline-gold">
+        <NavLink to="/list-apartment" className="navbar-cta nav-link nav-link-highlight">
           פרסם נכס
         </NavLink>
       </div>

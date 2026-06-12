@@ -3,52 +3,20 @@
   min-height: 100vh;
 }
 
-.apartments-hero {
-  position: relative;
-  background-image: linear-gradient(
-      to bottom,
-      rgba(10, 28, 44, 0.5) 0%,
-      rgba(10, 28, 44, 0.6) 45%,
-      rgba(10, 28, 44, 0.8) 100%
-    ),
-    url('/hero.png');
-  background-size: cover;
-  background-position: center;
-  padding: 3.5rem 1.5rem 3.5rem;
-  text-align: center;
-  overflow: hidden;
-}
-
-.apartments-hero::before {
+/* אפקט זהב עדין מעל שכבת ה-overlay המשותפת */
+.apartments-hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      circle at 20% 0%,
-      rgba(193, 154, 91, 0.18),
-      transparent 45%
-    ),
-    radial-gradient(circle at 85% 100%, rgba(31, 94, 128, 0.4), transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(193, 154, 91, 0.18), transparent 45%),
+    radial-gradient(circle at 85% 100%, rgba(31, 94, 128, 0.35), transparent 50%);
 }
 
-.apartments-hero > * {
-  position: relative;
-  z-index: 1;
-}
-
-.apartments-hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(1.9rem, 4vw, 2.6rem);
-  color: var(--color-white);
-  margin-bottom: 0.6rem;
-  letter-spacing: -0.02em;
-}
-
-.apartments-hero p {
-  color: rgba(255, 255, 255, 0.82);
-  margin-bottom: 1.75rem;
-  font-size: 1.05rem;
-  font-weight: 300;
+.apartments-hero-inner .search-bar {
+  margin-top: 0.25rem;
 }
 
 .apartments-content {

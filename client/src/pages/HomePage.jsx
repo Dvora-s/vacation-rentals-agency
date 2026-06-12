@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
 import EditableText from '../components/EditableText';
+import EditableImage from '../components/EditableImage';
 import CategoriesShowcase from '../components/CategoriesShowcase';
 import HowToFind from '../components/HowToFind';
-import WhyListWithUs from '../components/WhyListWithUs';
 import { getFeaturedApartments } from '../services/api';
+import '../components/PageHero.css';
 import './HomePage.css';
 
 const HERO_IMAGE = '/hero.png';
@@ -20,23 +21,33 @@ function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  function handleApartmentImageUpdate(updated) {
+    if (!updated?.id) return;
+    setApartments((prev) =>
+      prev.map((apt) => (apt.id === updated.id ? { ...apt, ...updated } : apt)),
+    );
+  }
+
   return (
     <div className="home-page">
-      <section
-        className="hero"
-        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+      <EditableImage
+        id="home.hero"
+        src={HERO_IMAGE}
+        mode="background"
+        as="section"
+        className="page-hero hero"
       >
-        <div className="hero-overlay" />
-        <div className="hero-content">
-          <EditableText as="h1" id="home.hero.title" className="hero-title">
+        <div className="page-hero-overlay" />
+        <div className="page-hero-inner hero-content">
+          <EditableText as="h1" id="home.hero.title" className="page-hero-title hero-title">
             דירות נופש: הדרך הפשוטה והנעימה לחופשה הבאה שלכם
           </EditableText>
-          <EditableText as="p" id="home.hero.subtitle" className="hero-subtitle">
+          <EditableText as="p" id="home.hero.subtitle" className="page-hero-subtitle hero-subtitle">
             כל המידע שאתם צריכים במקום אחד. בוחרים נכס, יוצרים קשר ישיר עם המארח, ויוצאים לחופשה.
           </EditableText>
           <SearchBar />
         </div>
-      </section>
+      </EditableImage>
 
       <CategoriesShowcase />
 
@@ -50,15 +61,17 @@ function HomePage() {
         {!loading && (
           <div className="apartments-grid">
             {apartments.map((apartment) => (
-              <ApartmentCard key={apartment.id} apartment={apartment} />
+              <ApartmentCard
+                key={apartment.id}
+                apartment={apartment}
+                onApartmentUpdate={handleApartmentImageUpdate}
+              />
             ))}
           </div>
         )}
       </section>
 
       <HowToFind />
-
-      <WhyListWithUs />
     </div>
   );
 }

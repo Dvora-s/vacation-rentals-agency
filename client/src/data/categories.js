@@ -68,7 +68,7 @@ export const CATEGORIES = [
     label: 'טווח קצר',
     description: 'השכרת דירה לתקופה של בין יומיים עד שישה חודשים',
     icon: '🔑',
-    image: '/categories/short-term-living.png',
+    image: '/categories/short-term-seaview.png',
     keywords: ['טווח קצר', 'קצר', 'יומיים', 'חודשים', 'תקופה'],
   },
 ];
@@ -97,7 +97,7 @@ export const HOMEPAGE_CATEGORIES = [
     id: 'short-term',
     title: 'דירות לטווח קצר',
     subtitle: 'השכרת דירה לתקופה של בין יומיים עד שישה חודשים',
-    image: '/categories/short-term-living.png',
+    image: '/categories/short-term-seaview.png',
   },
 ];
 

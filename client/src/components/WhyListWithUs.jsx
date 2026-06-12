@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import EditableText from './EditableText';
+import EditableImage from './EditableImage';
 import './WhyListWithUs.css';
 
 const REASONS = [
@@ -48,12 +49,11 @@ function WhyListWithUs() {
             </Link>
           </div>
         </div>
-        <div
+        <EditableImage
+          id="home.why.image"
+          src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=900&q=80"
+          mode="background"
           className="why-list-image"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=900&q=80')",
-          }}
           aria-hidden="true"
         />
       </div>

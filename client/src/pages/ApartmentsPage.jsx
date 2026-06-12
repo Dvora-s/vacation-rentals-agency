@@ -3,11 +3,17 @@ import { useSearchParams } from 'react-router-dom';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
 import EditableText from '../components/EditableText';
+import EditableImage from '../components/EditableImage';
 import RangeSlider from '../components/RangeSlider';
 import { getApartments } from '../services/api';
-import { apartmentMatchesCategory, findCategory } from '../data/categories';
+import {
+  apartmentMatchesCategory,
+  findCategory,
+  HOMEPAGE_CATEGORIES,
+} from '../data/categories';
 import { apartmentMatchesRegion, REGIONS } from '../data/locations';
 import { useRegionResolver } from '../hooks/useRegionResolver';
+import '../components/PageHero.css';
 import './ApartmentsPage.css';
 
 const PRICE_LIMITS = { min: 0, max: 20000 };
@@ -113,22 +119,50 @@ function ApartmentsPage() {
     roomRange.max !== ROOM_LIMITS.max;
 
   const activeCategory = findCategory(categoryFilter);
+  const homeCategory = HOMEPAGE_CATEGORIES.find((c) => c.id === categoryFilter);
+  const defaultHero = homeCategory?.image || activeCategory?.image || '/hero.png';
+  const heroImageKey = categoryFilter
+    ? `apartments.hero.${categoryFilter}`
+    : 'apartments.hero.default';
+  const heroTitle = homeCategory?.title || activeCategory?.label || 'מצא דירה';
+
+  function handleApartmentImageUpdate(updated) {
+    if (!updated?.id) return;
+    setApartments((prev) =>
+      prev.map((apt) => (apt.id === updated.id ? { ...apt, ...updated } : apt)),
+    );
+  }
 
   return (
     <div className="apartments-page">
-      <section className="apartments-hero">
-        <EditableText as="h1" id="apartments.hero.title">מצא דירה</EditableText>
-        <p>
-          {activeCategory
-            ? `קטגוריה נבחרת: ${activeCategory.label}`
-            : 'מצאו את דירת הנופש המושלמת עבורכם'}
-        </p>
-        <SearchBar
-          initialCategory={categoryFilter}
-          initialLocation={locationFilter}
-          initialRegion={regionFilter}
-        />
-      </section>
+      <EditableImage
+        id={heroImageKey}
+        src={defaultHero}
+        mode="background"
+        as="section"
+        className="page-hero apartments-hero"
+      >
+        <div className="page-hero-overlay" />
+        <div className="page-hero-inner apartments-hero-inner">
+          <EditableText
+            as="h1"
+            id={categoryFilter ? `apartments.hero.title.${categoryFilter}` : 'apartments.hero.title'}
+            className="page-hero-title"
+          >
+            {heroTitle}
+          </EditableText>
+          <p className="page-hero-subtitle">
+            {activeCategory
+              ? `מצאו את דירת הנופש המושלמת לקטגוריית ${activeCategory.label}`
+              : 'מצאו את דירת הנופש המושלמת עבורכם'}
+          </p>
+          <SearchBar
+            initialCategory={categoryFilter}
+            initialLocation={locationFilter}
+            initialRegion={regionFilter}
+          />
+        </div>
+      </EditableImage>
 
       <section className="section-container apartments-content">
         <div className="apartments-shell">
@@ -223,7 +257,11 @@ function ApartmentsPage() {
               <>
                 <div className="apartments-grid">
                   {visibleApartments.map((apartment) => (
-                    <ApartmentCard key={apartment.id} apartment={apartment} />
+                    <ApartmentCard
+                      key={apartment.id}
+                      apartment={apartment}
+                      onApartmentUpdate={handleApartmentImageUpdate}
+                    />
                   ))}
                 </div>
                 {hasMore && (

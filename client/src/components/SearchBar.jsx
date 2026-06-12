@@ -63,7 +63,7 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
             onChange={(e) => handleRegionChange(e.target.value)}
             aria-label="אזור"
           >
-            <option value="">כל האזורים</option>
+            <option value="">בחר אזור</option>
             {REGIONS.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}

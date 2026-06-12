@@ -10,10 +10,9 @@
 .contact-page-bg {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(247, 244, 237, 0.82) 0%, rgba(247, 244, 237, 0.88) 100%),
-    url('/living-room-bg.png') center / cover no-repeat fixed;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .contact-page-inner {

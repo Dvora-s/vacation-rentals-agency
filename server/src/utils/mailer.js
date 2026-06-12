@@ -120,6 +120,7 @@ function button(href, label) {
         <td style="border-radius:10px;background:${GOLD};">
           <a href="${href}" target="_blank"
              style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;
+                    font-family:${FONT_STACK};
                     color:#ffffff;text-decoration:none;border-radius:10px;">
             ${label}
           </a>
@@ -133,6 +134,10 @@ function layout(innerHtml) {
   return `
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap');
+    /* פונט אחיד לכל אלמנט במייל — זהה לפונט האתר (Heebo) */
+    body, div, p, span, a, h1, h2, h3, h4, table, td, th, strong, blockquote {
+      font-family: ${FONT_STACK} !important;
+    }
   </style>
   <div dir="rtl" style="margin:0;padding:0;background:${AZURE_BG};font-family:${FONT_STACK};">
     <div style="max-width:600px;margin:0 auto;padding:24px 16px;font-family:${FONT_STACK};
@@ -289,7 +294,7 @@ ${BRAND} – ${TAGLINE}`;
     ומטופלת כעת על ידי הצוות שלנו.</p>
 
     <h3 style="margin:18px 0 8px;color:${NAVY};">פירוט ההזמנה (מס' ${escapeHtml(number)}) – ${escapeHtml(date)}</h3>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;font-family:${FONT_STACK};">
       <tr style="background:#faf7ef;">
         <th style="padding:8px 10px;text-align:right;">מוצר</th>
         <th style="padding:8px 10px;text-align:center;">כמות</th>
@@ -346,6 +351,7 @@ ${BRAND} – ${TAGLINE}`;
         <td style="border-radius:10px;border:2px solid ${GOLD};">
           <a href="${editUrl}" target="_blank"
              style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:700;
+                    font-family:${FONT_STACK};
                     color:${GOLD};text-decoration:none;">
             עריכת פרטי הדירה
           </a>
@@ -527,12 +533,14 @@ function buttonPair(primaryHref, primaryLabel, secondaryHref, secondaryLabel) {
         <td style="border-radius:10px;background:${GOLD};">
           <a href="${primaryHref}" target="_blank"
              style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:700;
+                    font-family:${FONT_STACK};
                     color:#ffffff;text-decoration:none;border-radius:10px;">${primaryLabel}</a>
         </td>
         <td style="width:12px;"></td>
         <td style="border-radius:10px;border:2px solid ${NAVY};">
           <a href="${secondaryHref}" target="_blank"
              style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:700;
+                    font-family:${FONT_STACK};
                     color:${NAVY};text-decoration:none;">${secondaryLabel}</a>
         </td>
       </tr>

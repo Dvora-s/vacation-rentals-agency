@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPricingCatalog } from '../services/api';
 import EditableText from './EditableText';
+import EditableImage from './EditableImage';
 import './PricingSection.css';
 
 function CheckIcon() {
@@ -242,7 +243,14 @@ function PricingSection() {
   return (
     <section className="pricing-section" aria-labelledby="pricing-heading">
       <div className="pricing-hero">
-        <div className="pricing-hero-bg" aria-hidden="true" />
+        <EditableImage
+          id="pricing.hero.bg"
+          src="/living-room-bg.png"
+          mode="background"
+          className="pricing-hero-bg"
+          overlayGradient="linear-gradient(180deg, rgba(247, 244, 237, 0.55) 0%, rgba(247, 244, 237, 0.72) 100%)"
+          aria-hidden="true"
+        />
         <div className="pricing-hero-inner section-container">
           <header className="pricing-header">
             <EditableText as="span" id="pricing.eyebrow" className="pricing-eyebrow">

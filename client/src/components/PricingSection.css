@@ -16,10 +16,9 @@
 .pricing-hero-bg {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(247, 244, 237, 0.55) 0%, rgba(247, 244, 237, 0.72) 100%),
-    url('/living-room-bg.png') center / cover no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .pricing-hero-inner {

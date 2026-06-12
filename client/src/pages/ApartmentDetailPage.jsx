@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getApartmentById, sendListingInquiry } from '../services/api';
+import { getApartmentById, sendListingInquiry, updateApartment } from '../services/api';
+import EditableImage from '../components/EditableImage';
 import { getApartmentCategories } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
 import './ApartmentDetailPage.css';
@@ -76,6 +77,16 @@ function ApartmentDetailPage() {
   }
 
   const images = apartment.images?.length ? apartment.images : [apartment.image];
+
+  async function saveGalleryImage(index, url) {
+    const nextImages = [...images];
+    nextImages[index] = url;
+    const updated = await updateApartment(apartment.id, {
+      images: nextImages,
+      image_url: nextImages[0],
+    });
+    setApartment(updated);
+  }
   const phone = apartment.owner_phone;
   const whatsappNumber = phone ? phone.replace(/[^0-9]/g, '').replace(/^0/, '972') : null;
   // שליחת הודעה במייל — רק למודעות מאושרות שיש להן מייל לבעלים.
@@ -108,17 +119,28 @@ function ApartmentDetailPage() {
       <div className="detail-layout">
         <div className="detail-gallery">
           <div className="gallery-main">
-            <img src={images[activeImage]} alt={apartment.title} />
+            <EditableImage
+              id={`apt.${apartment.id}.gallery.${activeImage}`}
+              src={images[activeImage]}
+              alt={apartment.title}
+              className="gallery-main-editable"
+              onSave={(url) => saveGalleryImage(activeImage, url)}
+            />
           </div>
           <div className="gallery-thumbs">
             {images.map((img, index) => (
               <button
-                key={img}
+                key={`${img}-${index}`}
                 type="button"
                 className={index === activeImage ? 'thumb active' : 'thumb'}
                 onClick={() => setActiveImage(index)}
               >
-                <img src={img} alt="" />
+                <EditableImage
+                  id={`apt.${apartment.id}.gallery.${index}`}
+                  src={img}
+                  alt=""
+                  onSave={(url) => saveGalleryImage(index, url)}
+                />
               </button>
             ))}
           </div>

@@ -1,9 +1,12 @@
 .footer {
   position: relative;
+  width: 100%;
+  margin: auto 0 0;
   background: linear-gradient(180deg, var(--color-navy) 0%, var(--color-navy-dark) 100%);
   color: rgba(255, 255, 255, 0.85);
-  padding: 3rem 2rem 2.5rem;
-  margin-top: auto;
+  padding: 2rem 2rem 1.65rem;
+  border-radius: 0;
+  overflow: hidden;
 }
 
 .footer::before {
@@ -22,7 +25,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.1rem;
+  gap: 0.7rem;
 }
 
 .footer-logo {
@@ -34,7 +37,7 @@
 }
 
 .footer-logo img {
-  height: 72px;
+  height: 52px;
   filter: brightness(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 

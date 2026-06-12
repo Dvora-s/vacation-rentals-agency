@@ -10,7 +10,8 @@
     "setup-db": "node scripts/setup-db.mjs",
     "setup-pricing": "node scripts/run-pricing-sql.mjs",
     "setup-faq": "node scripts/run-faq-sql.mjs",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "copy-to-railway": "node scripts/copy-to-railway.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
