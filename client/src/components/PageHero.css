@@ -1,14 +1,14 @@
 /* ── באנר עליון אחיד לכל העמודים ── */
 .page-hero {
   position: relative;
-  height: 360px;
+  height: 470px;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1.5rem;
+  padding: 2.5rem 1.5rem;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -40,10 +40,11 @@
   margin: 0 auto;
 }
 
-/* עמוד "מצא דירה" מכיל את סרגל החיפוש — מעט יותר גובה וגמיש */
-.page-hero.apartments-hero {
+/* עמוד "מצא דירה" ועמוד הבית מכילים את סרגל החיפוש — אותו גובה אך גמיש כדי לא לחתוך */
+.page-hero.apartments-hero,
+.page-hero.hero {
   height: auto;
-  min-height: 440px;
+  min-height: 470px;
   padding: 2.5rem 1.5rem;
 }
 
@@ -86,11 +87,12 @@
 @media (max-width: 768px) {
   .page-hero {
     height: auto;
-    min-height: 300px;
+    min-height: 380px;
     padding: 2.25rem 1.25rem;
   }
 
-  .page-hero.apartments-hero {
-    min-height: 400px;
+  .page-hero.apartments-hero,
+  .page-hero.hero {
+    min-height: 440px;
   }
 }
