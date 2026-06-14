@@ -1,5 +1,5 @@
 // מיגרציה אידמפוטנטית למסד נתונים קיים — מוסיפה עמודות/טבלאות חדשות
-// עבור: אימות אימייל, התחברות גוגל, תוקף מודעה, וטבלת פניות.
+// עבור: אימות אימייל, התחברות גוגל, תוקף מודעה, טבלת פניות, וטבלת תשלומי PayMe (`payments`).
 // הרצה:  node scripts/migrate.mjs
 // בטוח להריץ כמה פעמים — מדלג על שינויים שכבר בוצעו.
 
@@ -154,6 +154,24 @@ async function run() {
     await addIndex(conn, 'apartments', 'idx_apartments_bedrooms', 'bedrooms');
     await addIndex(conn, 'apartments', 'idx_apartments_property_type', 'property_type');
     await addIndex(conn, 'apartments', 'idx_apartments_status_avail', 'status, is_available');
+
+    console.log('\n[payments / payme]');
+    await conn.query(
+      `CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        payme_transaction_id VARCHAR(191) NULL,
+        amount DECIMAL(12, 2) NOT NULL,
+        currency VARCHAR(8) NOT NULL DEFAULT 'ILS',
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_payments_payme_txn (payme_transaction_id),
+        INDEX idx_payments_user_created (user_id, created_at),
+        CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`,
+    );
+    console.log('  ✓ טבלת payments קיימת (PayMe)');
 
     console.log('\nDone ✅');
   } finally {

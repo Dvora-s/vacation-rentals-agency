@@ -1,10 +1,19 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { paymeCreateLimiter } from '../middleware/rateLimit.js';
+import { validatePayMeCreateBody } from '../middleware/validatePayMeCreate.js';
+import { createPayMePayment, getPayMePaymentStatus } from '../controllers/paymentController.js';
 import { sendPaymentReceiptEmail } from '../utils/mailer.js';
 import { getPlanAmount, isPremiumApartment } from '../config/pricing.js';
 
 const router = Router();
+
+/**
+ * PayMe — יצירת תשלום (מחזיר checkoutUrl). דורש JWT.
+ * Rate limit: ראו paymeCreateLimiter (בפרודקשן מומלץ Redis / מגבלה בפרוקסי).
+ */
+router.post('/create', requireAuth, paymeCreateLimiter, validatePayMeCreateBody, createPayMePayment);
 
 const LISTING_FEE_PER_MONTH = 30; // ש"ח — תעריף בסיס (דירה רגילה לחודש)
 
@@ -171,5 +180,21 @@ router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
 router.get('/fee', (_req, res) => {
   res.json({ amount_per_month: LISTING_FEE_PER_MONTH, currency: 'ILS' });
 });
+
+/** Skip non-numeric `:id` so `/mine` etc. are not captured as `/:id/status` (Express 5 path-to-regexp). */
+function skipUnlessNumericPaymentId(req, res, next) {
+  const id = String(req.params.id || '');
+  if (!/^\d+$/.test(id) || Number(id) <= 0) {
+    return next('route');
+  }
+  next();
+}
+
+/**
+ * PayMe — סטטוס תשלום פנימי (מזהה שורה ב־`payments`). דורש JWT; מנהל יכול לצפות בכל התשלומים.
+ * `?sync=1` — מנסה לסנכרן מול PayMe לפני החזרה (best-effort).
+ * חייב להופיע אחרי נתיבים ליטרליים כמו `/mine` ו־`/fee`.
+ */
+router.get('/:id/status', requireAuth, skipUnlessNumericPaymentId, getPayMePaymentStatus);
 
 export default router;

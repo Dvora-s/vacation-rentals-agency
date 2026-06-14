@@ -26,6 +26,9 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPricingPage from './pages/AdminPricingPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminFaqPage from './pages/AdminFaqPage';
+import PaymentPage from './pages/PaymentPage';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailed from './pages/PaymentFailed';
 
 function App() {
   return (
@@ -41,6 +44,30 @@ function App() {
             <Route path="pricing" element={<PricingPage />} />
             <Route path="faq" element={<FaqPage />} />
             <Route path="contact" element={<ContactPage />} />
+            <Route
+              path="pay"
+              element={
+                <ProtectedRoute>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="pay/success"
+              element={
+                <ProtectedRoute>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="pay/failed"
+              element={
+                <ProtectedRoute>
+                  <PaymentFailed />
+                </ProtectedRoute>
+              }
+            />
             <Route path="privacy" element={<LegalPage doc={PRIVACY_POLICY} />} />
             <Route path="terms" element={<LegalPage doc={TERMS_OF_USE} />} />
 

@@ -17,7 +17,7 @@ const emptyItem = {
 
 const SECTION_LABEL = { renters: 'שוכרים', hosts: 'מארחים' };
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 function AdminFaqPage() {
   const [items, setItems] = useState([]);
@@ -127,8 +127,8 @@ function AdminFaqPage() {
 
       {USE_MOCK && (
         <div className="faq-warn admin-faq-mock-banner" role="status">
-          <strong>VITE_USE_MOCK פעיל:</strong> עמוד &quot;שאלות נפוצות&quot; לציבור מציג תוכן דמו מהקוד, לא מהמסד. כאן מוצגות רק שאלות שנשמרו ב־DB. אם הרשימה ריקה — הריצו{' '}
-          <code>npm run setup-faq</code> בתיקיית השרת. כדי שהאתר הציבורי יציג את אותו תוכן מהמסד, הגדירי <code>VITE_USE_MOCK=false</code> ב־<code>client/.env</code> והפעילי מחדש את Vite.
+          <strong>מצב דמו (VITE_USE_MOCK=true):</strong> עמוד &quot;שאלות נפוצות&quot; לציבור מציג תוכן דמו מהקוד, לא מהמסד. כאן מוצגות רק שאלות שנשמרו ב־DB. אם הרשימה ריקה — הריצו{' '}
+          <code>npm run setup-faq</code> בתיקיית השרת. כדי שהאתר הציבורי יציג את אותו תוכן מהמסד, ודאו ש־<code>VITE_USE_MOCK=true</code> <em>לא</em> מוגדר ב־<code>client/.env</code> והפעילי מחדש את Vite.
         </div>
       )}
 

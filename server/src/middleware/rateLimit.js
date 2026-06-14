@@ -57,4 +57,11 @@ export const sensitiveLimiter = createRateLimiter({
   message: 'יותר מדי בקשות. נסו שוב בעוד שעה.',
 });
 
+// הגבלה ליצירת תשלומי PayMe (מומלץ: Redis / שיתוף מצב בין אינסטנסים בפרודקשן).
+export const paymeCreateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_PAYME_CREATE_MAX) || 60,
+  message: 'יותר מדי בקשות ליצירת תשלום. נסו שוב בעוד מספר דקות.',
+});
+
 export { createRateLimiter };

@@ -1,0 +1,113 @@
+.payme-page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.payme-card {
+  background: #fff;
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.payme-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+}
+
+.payme-muted {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0 0 1.25rem;
+}
+
+.payme-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.payme-field label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.payme-field input,
+.payme-field select {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+}
+
+.payme-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.payme-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.65rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.payme-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.payme-btn-primary {
+  background: #0f766e;
+  color: #fff;
+}
+
+.payme-btn-ghost {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.payme-alert {
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  margin: 1rem 0 0;
+  font-size: 0.95rem;
+}
+
+.payme-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.payme-alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.payme-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #f1f5f9;
+}
+
+.payme-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.9rem;
+  word-break: break-all;
+}

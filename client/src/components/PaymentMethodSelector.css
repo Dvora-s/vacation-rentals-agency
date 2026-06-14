@@ -1,0 +1,147 @@
+.payment-method-selector {
+  margin-top: 0.5rem;
+}
+
+.payment-method-selector__missing-paypal {
+  font-size: 0.88rem;
+  color: #6a4a00;
+  background: #fff8e6;
+  border: 1px solid #e6c200;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.payment-method-selector__title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+  color: #222;
+}
+
+.pay-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 540px) {
+  .pay-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pay-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  padding: 1.1rem 0.9rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fafafa;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.pay-tile:hover {
+  border-color: #bdbdbd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.pay-tile.is-selected {
+  border-color: #0070ba;
+  background: #f2f8fc;
+  box-shadow: 0 0 0 1px rgba(0, 112, 186, 0.15);
+}
+
+.pay-tile--paypal.is-selected {
+  border-color: #ffc439;
+  background: #fffbf0;
+  box-shadow: 0 0 0 2px rgba(255, 196, 57, 0.35);
+}
+
+.pay-tile--payme.is-selected {
+  border-color: #0f766e;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.25);
+}
+
+.pay-tile__card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.pay-tile__paypal-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.pay-tile__paypal-mark img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.pay-tile__label {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.pay-tile__sub {
+  font-size: 0.82rem;
+  color: #555;
+  line-height: 1.35;
+  max-width: 14rem;
+}
+
+.payment-method-selector__paypal {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
+}
+
+.payment-method-selector__paypal-intro {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+}
+
+.payment-method-selector__paypal-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  color: #555;
+  line-height: 1.45;
+}
+
+.payment-method-selector__payme {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+
+.payment-method-selector__payme-intro {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+}
+
+.payment-method-selector__payme-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  color: #555;
+  line-height: 1.45;
+}
+
+.payment-method-selector__payme-btn {
+  width: 100%;
+  max-width: 420px;
+}

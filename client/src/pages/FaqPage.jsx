@@ -6,7 +6,7 @@ import { FAQ_FALLBACK } from '../data/faqFallback.js';
 import EditableText from '../components/EditableText';
 import './FaqPage.css';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 function FaqItem({ id, question, answer }) {
   const [open, setOpen] = useState(false);
@@ -84,8 +84,8 @@ function FaqPage() {
             </EditableText>
             {USE_MOCK && isAdmin && (
               <p className="faq-warn" role="status">
-                <strong>מצב דמו (VITE_USE_MOCK):</strong> כאן מוצג תוכן סטטי מהקוד — לא מהמסד. עמוד הניהול טוען רק מ־DB; כדי לסנכרן, הגדירו{' '}
-                <code>VITE_USE_MOCK=false</code> ב־<code>client/.env</code>, הפעילו מחדש את Vite, והריצו בשרת{' '}
+                <strong>מצב דמו (VITE_USE_MOCK=true):</strong> כאן מוצג תוכן סטטי מהקוד — לא מהמסד. עמוד הניהול טוען רק מ־DB; כדי לסנכרן, הסירו את מצב הדמו (אל תגדירו{' '}
+                <code>VITE_USE_MOCK=true</code> ב־<code>client/.env</code>), הפעילו מחדש את Vite, והריצו בשרת{' '}
                 <code>npm run setup-faq</code>.
               </p>
             )}

@@ -1,5 +1,5 @@
 // נתוני דמה — תואמים את ה-seed ב-db/seed.sql.
-// כאשר VITE_USE_MOCK=false האתר מושך מהשרת במקום מכאן.
+// כאשר VITE_USE_MOCK אינו true (ברירת מחדל) האתר מושך מהשרת במקום מכאן.
 // כל התמונות יושבות תחת public/apartments/<catalog>/
 export const mockApartments = [
   {

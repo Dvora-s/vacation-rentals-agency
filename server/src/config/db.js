@@ -39,6 +39,32 @@ function applyDatabaseUrlIfNeeded() {
 
 applyDatabaseUrlIfNeeded();
 
+/**
+ * `*.railway.internal` / `*.internal` עובדים רק מתוך רשת Railway.
+ * אם ב־.env יש גם `DATABASE_URL` עם כתובת ציבורית (למשל `*.proxy.rlwy.net`) — נשתמש בה כדי שהשרת המקומי יתחבר למסד.
+ */
+function preferPublicMysqlHostFromDatabaseUrl() {
+  const host = String(process.env.DB_HOST || '').trim();
+  if (!host.includes('.internal')) return;
+  const urlRaw = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
+  if (!urlRaw) return;
+  try {
+    const u = new URL(urlRaw);
+    if (u.protocol !== 'mysql:' && u.protocol !== 'mysql2:') return;
+    const urlHost = u.hostname;
+    if (!urlHost || urlHost.includes('.internal')) return;
+    process.env.DB_HOST = urlHost;
+    if (u.port) process.env.DB_PORT = u.port;
+    console.warn(
+      `[db] DB_HOST היה רשת פנימית (${host}); משתמשים ב־${urlHost}:${u.port || '3306'} מתוך DATABASE_URL (חיבור ממחשב מקומי / מחוץ ל־Railway).`,
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+preferPublicMysqlHostFromDatabaseUrl();
+
 if (!process.env.DB_USER || String(process.env.DB_USER).trim() === '') {
   console.warn(
     '[db] DB_USER is empty. Set DB_USER (and DB_PASSWORD) in server/.env, or set DATABASE_URL.',

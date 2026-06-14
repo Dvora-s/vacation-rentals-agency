@@ -54,20 +54,30 @@ export const APARTMENT_EDITABLE_FIELDS = [
 // טוען תמונות עבור רשימת דירות (מונע N+1 — שליפה אחת לכל הדירות יחד).
 export async function attachImagesToApartments(pool, rows) {
   if (!rows || rows.length === 0) return [];
-  const ids = rows.map((r) => r.id);
+  const ids = [
+    ...new Set(
+      rows
+        .map((r) => Number(r.id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (ids.length === 0) return rows.map((row) => mapApartmentRow(row, []));
+
+  const placeholders = ids.map(() => '?').join(',');
   const [imageRows] = await pool.query(
     `SELECT apartment_id, image_url, sort_order
      FROM apartment_images
-     WHERE apartment_id IN (?)
+     WHERE apartment_id IN (${placeholders})
      ORDER BY apartment_id ASC, sort_order ASC, id ASC`,
-    [ids],
+    ids,
   );
   const byApt = new Map();
   for (const ir of imageRows) {
-    if (!byApt.has(ir.apartment_id)) byApt.set(ir.apartment_id, []);
-    byApt.get(ir.apartment_id).push(ir.image_url);
+    const aid = Number(ir.apartment_id);
+    if (!byApt.has(aid)) byApt.set(aid, []);
+    byApt.get(aid).push(ir.image_url);
   }
-  return rows.map((row) => mapApartmentRow(row, byApt.get(row.id) || []));
+  return rows.map((row) => mapApartmentRow(row, byApt.get(Number(row.id)) || []));
 }
 
 export async function attachImagesToApartment(pool, row) {

@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
-import { createApartment, payForListing } from '../services/api';
+import PaymentMethodSelector from '../components/PaymentMethodSelector';
+import { createApartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
 import {
   STANDARD_PLANS,
   PREMIUM_PLANS,
@@ -16,6 +18,7 @@ function ListApartmentPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // מסלול שנבחר במחירון (אם הגיעו דרך "בחירת מסלול").
   const selectedPlan = location.state?.plan || null;
@@ -27,7 +30,25 @@ function ListApartmentPage() {
   const [tier, setTier] = useState(selectedPlan?.tier || 'standard');
   const [planId, setPlanId] = useState(null);
   const [premiumForced, setPremiumForced] = useState(false);
-  const [paymentRef, setPaymentRef] = useState('');
+
+  useEffect(() => {
+    if (searchParams.get('payme_cancel') === '1') {
+      setError('תשלום PayMe בוטל או לא הושלם.');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  usePayMeListingReturn({
+    validatePending: useCallback((p) => p.flow === 'list_apartment' && Number(p.apartmentId) > 0, []),
+    onPaid: useCallback((pending) => {
+      setCreatedApt((prev) => ({
+        id: pending.apartmentId,
+        title: pending.apartmentTitle || prev?.title || 'המודעה',
+      }));
+      setStep('done');
+    }, []),
+    onError: useCallback((msg) => setError(msg), []),
+  });
 
   const detailsSubtitle = selectedPlan
     ? `מלאו את פרטי הדירה. בשלב הבא תועברו לתשלום של ₪${getPlanAmount(
@@ -73,24 +94,6 @@ function ListApartmentPage() {
 
   const planList = tier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
   const chosenPlan = planList.find((p) => p.id === planId) || planList[0];
-
-  async function handlePay() {
-    setError(null);
-    setSubmitting(true);
-    try {
-      await payForListing({
-        apartment_id: createdApt.id,
-        months: chosenPlan.months,
-        tier,
-        provider_reference: paymentRef || null,
-      });
-      setStep('done');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   if (step === 'done') {
     return (
@@ -169,30 +172,21 @@ function ListApartmentPage() {
             <strong>₪{total}</strong>
           </div>
 
-          <div className="payment-row payment-ref">
-            <label htmlFor="ref">אסמכתא / מספר עסקה (אופציונלי)</label>
-            <input
-              id="ref"
-              className="auth-input"
-              value={paymentRef}
-              onChange={(e) => setPaymentRef(e.target.value)}
-              placeholder="יוזן אוטומטית כשמתחברים לסליקה"
-              dir="ltr"
-            />
-          </div>
-
           <p className="payment-note">
-            ⓘ זוהי תצורת פיתוח — אין כאן סליקה אמיתית. בלחיצה התשלום יסומן כשולם וניתן יהיה לחבר ספק סליקה אמיתי בהמשך.
+            ⓘ התשלום מתבצע דרך <strong>PayPal</strong> או <strong>PayMe</strong> בלבד; אסמכתא נרשמת אוטומטית מהספק.
           </p>
 
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handlePay}
-            disabled={submitting}
-          >
-            {submitting ? 'מבצע תשלום...' : `אישור תשלום של ₪${total}`}
-          </button>
+          <PaymentMethodSelector
+            totalIls={total}
+            currencyCode="ILS"
+            apartmentId={createdApt.id}
+            months={chosenPlan.months}
+            tier={tier}
+            paymeReturnPath="/list-apartment"
+            paymeFlow="list_apartment"
+            paymePendingExtra={{ apartmentTitle: createdApt.title }}
+            onSuccess={() => setStep('done')}
+          />
         </div>
       </div>
     );

@@ -61,7 +61,10 @@ function AdminDashboardPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">ניהול אישורי דירות</h1>
-          <p className="page-subtitle">דירות שממתינות לאישור פרסום</p>
+          <p className="page-subtitle">
+            דירות שממתינות לאישור פרסום. רשימת &quot;מצא דירה&quot; מציגה רק דירות מאושרות — כאן
+            מופיעות המודעות לפני פרסום.
+          </p>
         </div>
 
         <Link to="/admin/pricing" className="btn-outline-gold">
@@ -89,7 +92,13 @@ function AdminDashboardPage() {
           {list.map((apt) => (
             <article key={apt.id} className="my-apt-card status-pending">
               <div className="my-apt-thumb">
-                {apt.image && <img src={apt.image} alt={apt.title} />}
+                {apt.image ? (
+                  <img src={apt.image} alt={apt.title} />
+                ) : (
+                  <span className="my-apt-thumb-placeholder" title="אין תמונת שער">
+                    ללא תמונה
+                  </span>
+                )}
               </div>
               <div className="my-apt-body">
                 <div className="my-apt-header">

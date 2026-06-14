@@ -1,17 +1,3 @@
-// העתקת כל הנתונים ממסד המקור (Aiven) למסד היעד (Railway).
-// מעתיק מבנה טבלאות (SHOW CREATE TABLE) + כל השורות, כולל מפתחות זרים.
-//
-// הרצה (מתוך תיקיית server):
-//   node scripts/copy-to-railway.mjs
-//
-// מקור (Aiven): נקרא מתוך משתני DB_* שב-.env (אותו חיבור של השרת).
-// יעד (Railway): נקרא ממשתנה הסביבה TARGET_DATABASE_URL.
-//   קח את הכתובת מ-Railway → שירות ה-MySQL → לשונית Variables → MYSQL_PUBLIC_URL
-//   (או "Connect" → Public Network). דוגמה:
-//   mysql://root:PASSWORD@gondola.proxy.rlwy.net:12345/railway
-//
-// אפשר להעביר אותה חד-פעמית בשורת הפקודה:
-//   $env:TARGET_DATABASE_URL="mysql://root:...@...rlwy.net:12345/railway"; node scripts/copy-to-railway.mjs
 
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';

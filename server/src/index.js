@@ -13,9 +13,13 @@ import faqPublicRouter from './routes/faqPublic.js';
 import faqAdminRouter from './routes/faqAdmin.js';
 import locationsRouter from './routes/locations.js';
 import contentRouter from './routes/content.js';
+import paypalOrdersRouter from './routes/paypalOrders.js';
+import { getPayPalEnvStatus } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
 import { logger } from './utils/logger.js';
+import { handlePayMeWebhookRequest } from './controllers/paymentController.js';
+import { getPayMeEnvStatus } from './config/payme.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,6 +70,14 @@ app.use((req, res, next) => {
   );
   next();
 });
+
+/**
+ * PayMe webhooks must receive the raw body for signature verification.
+ * TODO: If PayMe sends a non-JSON body (e.g. form-urlencoded), switch to `express.raw({ type: () => true })`
+ * or a dedicated `express.text()` / `express.urlencoded()` chain per PayMe docs.
+ */
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handlePayMeWebhookRequest);
+
 app.use(express.json({ limit: '2mb' }));
 
 // Chrome DevTools probes this URL on localhost (Automatic workspace folders).
@@ -95,7 +107,7 @@ app.get('/', (req, res) => {
   res.json({
     service: 'vacation-rentals-api',
     client: CLIENT_DEV_URL,
-    endpoints: ['/api/health', '/api/auth', '/api/apartments', '/api/pricing'],
+    endpoints: ['/api/health', '/api/auth', '/api/apartments', '/api/pricing', '/api/orders'],
   });
 });
 
@@ -113,14 +125,19 @@ app.use('/api/faq', faqPublicRouter);
 app.use('/api/admin/faq', faqAdminRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/orders', paypalOrdersRouter);
 
 app.get('/api/health', async (_req, res) => {
   try {
     const dbStatus = await testConnection();
+    const paypal = getPayPalEnvStatus();
+    const payme = getPayMeEnvStatus();
     res.json({
       status: 'ok',
       message: 'Server is running',
       database: dbStatus.ok === 1 ? 'connected' : 'unknown',
+      paypal,
+      payme,
     });
   } catch (error) {
     res.status(503).json({
@@ -142,6 +159,18 @@ app.get('/api/db-info', async (_req, res) => {
 
 app.listen(PORT, async () => {
   logger.info(`Server running on port ${PORT}`);
+  const pp = getPayPalEnvStatus();
+  if (!pp.configured) {
+    logger.warn(
+      `[PayPal] חסרים משתני סביבה: hasClientId=${pp.hasClientId} hasClientSecret=${pp.hasClientSecret}. בדקו server/.env (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET) והפעלה מחדש. GET /api/health מחזיר את אותו סטטוס.`,
+    );
+  }
+  const pm = getPayMeEnvStatus();
+  if (!pm.configured) {
+    logger.warn(
+      `[PayMe] חסרים משתני סביבה או תצורה חלקית: configured=${pm.configured} baseUrl=${pm.hasBaseUrl} merchantId=${pm.hasMerchantId} apiKey=${pm.hasApiKey} secret=${pm.hasSecret} webhookSecret=${pm.hasWebhookSecret}. ראו docs/PAYME_INTEGRATION.md ו־GET /api/health.`,
+    );
+  }
   try {
     await ensureAdminUser();
   } catch (err) {

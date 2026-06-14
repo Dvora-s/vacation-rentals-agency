@@ -1,6 +1,7 @@
 import { FAQ_FALLBACK } from '../data/faqFallback.js';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+// מצב mock רק כשמגדירים במפורש VITE_USE_MOCK=true (ברירת מחדל: נתונים מהשרת).
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const TOKEN_KEY = 'nofesh.token';
 
@@ -206,10 +207,16 @@ export async function getListingFee() {
   return apiFetch('/payments/fee');
 }
 
-export async function payForListing({ apartment_id, months = 1, tier = 'standard', provider_reference }) {
+export async function payForListing({
+  apartment_id,
+  months = 1,
+  tier = 'standard',
+  provider = 'manual',
+  provider_reference,
+}) {
   return apiFetch('/payments', {
     method: 'POST',
-    body: { apartment_id, months, tier, provider_reference },
+    body: { apartment_id, months, tier, provider, provider_reference },
     auth: true,
   });
 }
@@ -327,4 +334,13 @@ export async function saveSiteContent(key, { text, fontSize, color }) {
 
 export async function resetSiteContent(key) {
   return apiFetch(`/content/${encodeURIComponent(key)}`, { method: 'DELETE', auth: true });
+}
+
+// ────────── PayPal (Orders API — create + capture via backend) ──────────
+export async function createPayPalOrder(body) {
+  return apiFetch('/orders', { method: 'POST', body });
+}
+
+export async function capturePayPalOrder(orderID) {
+  return apiFetch(`/orders/${encodeURIComponent(orderID)}/capture`, { method: 'POST' });
 }

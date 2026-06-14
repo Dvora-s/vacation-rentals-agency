@@ -83,9 +83,18 @@ router.get('/', optionalAuth, async (_req, res) => {
 // ─────────────────────────────────────────────
 router.get('/mine', requireAuth, async (req, res) => {
   try {
+    const email = String(req.user.email || '').trim().toLowerCase();
     const [rows] = await pool.query(
-      'SELECT * FROM apartments WHERE owner_id = ? ORDER BY id DESC',
-      [req.user.id],
+      `SELECT * FROM apartments
+       WHERE owner_id = ?
+          OR (
+            owner_id IS NULL
+            AND owner_email IS NOT NULL
+            AND TRIM(owner_email) <> ''
+            AND LOWER(TRIM(owner_email)) = ?
+          )
+       ORDER BY id DESC`,
+      [req.user.id, email || null],
     );
     res.json(await attachImagesToApartments(pool, rows));
   } catch (error) {
