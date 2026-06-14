@@ -4,7 +4,7 @@ import Footer from './Footer';
 import FloatingPublishButton from './FloatingPublishButton';
 import BrandingBadge from './BrandingBadge';
 import DiroBot from './DiroBot';
-import './Layout.css';
+import './styles/Layout.css';
 
 function Layout() {
   return (

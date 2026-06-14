@@ -1,6 +1,6 @@
 import EditableText from '../components/EditableText';
 import EditableImage from '../components/EditableImage';
-import '../components/PageHero.css';
+import '../components/styles/PageHero.css';
 import './AboutPage.css';
 
 const ABOUT_HERO = '/about-hero.png';

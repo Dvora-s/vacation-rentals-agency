@@ -13,7 +13,7 @@ import {
 } from '../data/categories';
 import { apartmentMatchesRegion, REGIONS } from '../data/locations';
 import { useRegionResolver } from '../hooks/useRegionResolver';
-import '../components/PageHero.css';
+import '../components/styles/PageHero.css';
 import './ApartmentsPage.css';
 
 const PRICE_LIMITS = { min: 0, max: 20000 };

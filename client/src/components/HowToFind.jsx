@@ -1,5 +1,5 @@
 import EditableText from './EditableText';
-import './HowToFind.css';
+import './styles/HowToFind.css';
 
 const STEPS = [
   {

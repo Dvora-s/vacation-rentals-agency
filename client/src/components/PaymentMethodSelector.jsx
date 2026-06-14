@@ -3,7 +3,7 @@ import PayPalCheckout from '../integrations/paypal/PayPalCheckout.jsx';
 import { payForListing } from '../services/api.js';
 import { createPayment } from '../services/paymentService.js';
 import { PAYME_LISTING_STORAGE_KEY } from '../hooks/usePayMeListingReturn.js';
-import './PaymentMethodSelector.css';
+import './styles/PaymentMethodSelector.css';
 
 /** לוגו PayPal רשמי (מארח PayPal) — לפי הנחיות המותג לכפתורי תשלום */
 const PAYPAL_LOGO_URL =

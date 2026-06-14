@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SEARCH_CATEGORIES } from '../data/categories';
-import './QuickCategoryGrid.css';
+import './styles/QuickCategoryGrid.css';
 
 function QuickCategoryGrid() {
   return (

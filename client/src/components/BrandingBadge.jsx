@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import './BrandingBadge.css';
+import './styles/BrandingBadge.css';
 
 const LOGO_SRC = '/dl-tech-studio.png';
 const VIDEO_SRC = '/branding-video-final.mp4';

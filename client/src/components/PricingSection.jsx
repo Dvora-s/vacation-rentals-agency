@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getPricingCatalog } from '../services/api';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
-import './PricingSection.css';
+import './styles/PricingSection.css';
 
 function CheckIcon() {
   return (

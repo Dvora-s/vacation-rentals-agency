@@ -4,7 +4,7 @@ import { SEARCH_CATEGORIES } from '../data/categories';
 import { CITY_NAMES, REGIONS } from '../data/locations';
 import { useRegionResolver } from '../hooks/useRegionResolver';
 import Combobox from './Combobox';
-import './SearchBar.css';
+import './styles/SearchBar.css';
 
 function SearchBar({ initialCategory = '', initialLocation = '', initialRegion = '' }) {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import './RangeSlider.css';
+import './styles/RangeSlider.css';
 
 // סליידר טווח עם שתי ידיות (מינימום/מקסימום).
 // value: { min, max } · onChange מקבל { min, max }.

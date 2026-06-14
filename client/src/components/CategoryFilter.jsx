@@ -1,5 +1,5 @@
 import { SEARCH_CATEGORIES } from '../data/categories';
-import './CategoryFilter.css';
+import './styles/CategoryFilter.css';
 
 function CategoryFilter({ value, onChange }) {
   return (

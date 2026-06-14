@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import './FloatingPublishButton.css';
+import './styles/FloatingPublishButton.css';
 
 // כפתור צף בפינה השמאלית-תחתונה. מוסתר אוטומטית בדף הפרסום עצמו
 // וכאשר משתמש נמצא במסכי האדמין כדי שלא יסתיר תוכן.

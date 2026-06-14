@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import pool from '../config/db.js';
+import { adminExistsByEmail, insertAdminUser } from '../models/userModel.js';
 
 export async function ensureAdminUser() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -10,17 +10,12 @@ export async function ensureAdminUser() {
     return;
   }
 
-  const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-  if (existing.length > 0) {
+  if (await adminExistsByEmail(email)) {
     return;
   }
 
   const password_hash = await bcrypt.hash(password, 12);
-  await pool.query(
-    `INSERT INTO users (full_name, email, phone, password_hash, role)
-     VALUES (?, ?, NULL, ?, 'admin')`,
-    ['מנהל המערכת', email, password_hash],
-  );
+  await insertAdminUser({ full_name: 'מנהל המערכת', email, password_hash });
 
   console.log(`[Auth] Admin user created: ${email}`);
 }

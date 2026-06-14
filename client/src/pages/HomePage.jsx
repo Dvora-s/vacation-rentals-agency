@@ -6,7 +6,7 @@ import EditableImage from '../components/EditableImage';
 import CategoriesShowcase from '../components/CategoriesShowcase';
 import HowToFind from '../components/HowToFind';
 import { getFeaturedApartments } from '../services/api';
-import '../components/PageHero.css';
+import '../components/styles/PageHero.css';
 import './HomePage.css';
 
 const HERO_IMAGE = '/hero.png';

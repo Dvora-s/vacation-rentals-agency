@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { getApartmentCategories } from '../data/categories';
 import { updateApartment } from '../services/api';
 import EditableImage from './EditableImage';
-import './ApartmentCard.css';
+import './styles/ApartmentCard.css';
 
 function ApartmentCard({ apartment, onApartmentUpdate }) {
   const categories = getApartmentCategories(apartment);

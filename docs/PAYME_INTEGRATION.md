@@ -8,7 +8,7 @@ This project integrates PayMe as a **server-side** payment provider. **Never** p
 server/src/
   config/payme.js                 # env helpers + safe health status
   controllers/paymentController.js
-  middleware/validatePayMeCreate.js
+  middlewares/validatePayMeCreate.js
   routes/payments.js              # extended with PayMe routes + existing listing payments
   services/paymeService.js        # all outbound PayMe HTTP + webhook verification helpers
 
@@ -96,7 +96,7 @@ Also required for correct default return URLs:
 ## Security notes
 
 - **Webhook signature**: implemented as a **TODO-shaped** HMAC example in `paymeService.handleWebhook()`. Replace header names, digest format, and payload parsing with PayMe’s official specification.
-- **Rate limiting**: `paymeCreateLimiter` is an in-memory limiter (OK for single instance). For multiple instances, use Redis / edge rate limits — see comments in `server/src/middleware/rateLimit.js`.
+- **Rate limiting**: `paymeCreateLimiter` is an in-memory limiter (OK for single instance). For multiple instances, use Redis / edge rate limits — see comments in `server/src/middlewares/rateLimit.js`.
 - **Secrets**: only on the server process environment. The React client uses JWT to call your API only.
 
 ## Frontend flow

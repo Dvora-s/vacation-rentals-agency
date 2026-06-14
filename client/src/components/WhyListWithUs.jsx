@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
-import './WhyListWithUs.css';
+import './styles/WhyListWithUs.css';
 
 const REASONS = [
   {

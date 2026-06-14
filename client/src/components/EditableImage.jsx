@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useContent } from '../context/ContentContext';
 import { uploadImages } from '../services/api';
 import { useEditableImage } from '../hooks/useEditableImage';
-import './EditableImage.css';
+import './styles/EditableImage.css';
 
 /**
  * תמונה ניתנת לעריכה ע"י מנהל.

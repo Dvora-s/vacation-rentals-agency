@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { HOMEPAGE_CATEGORIES } from '../data/categories';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
-import './CategoriesShowcase.css';
+import './styles/CategoriesShowcase.css';
 
 function CategoriesShowcase() {
   return (

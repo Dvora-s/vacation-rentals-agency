@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useContent } from '../context/ContentContext';
-import './EditableText.css';
+import './styles/EditableText.css';
 
 const MIN_SIZE = 10;
 const MAX_SIZE = 80;

@@ -12,7 +12,7 @@ import {
   followUpPrompt,
 } from '../data/dirobot';
 import { knowledgeAnswer } from '../data/dirobotKnowledge';
-import './DiroBot.css';
+import './styles/DiroBot.css';
 
 const WELCOME =
   'היי, נעים מאוד — אני דירובוט 🏠✨ אני כאן כדי לעזור לכם למצוא דירת נופש, וגם לענות על כל שאלה על האתר: איך מפרסמים, כמה זה עולה, יצירת קשר ועוד. במה אפשר לעזור?';

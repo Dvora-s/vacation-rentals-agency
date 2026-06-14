@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import EditableImage from './EditableImage';
-import './Navbar.css';
+import './styles/Navbar.css';
 
 const navLinks = [
   { to: '/', label: 'בית', end: true },

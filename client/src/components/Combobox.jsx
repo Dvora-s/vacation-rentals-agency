@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import './Combobox.css';
+import './styles/Combobox.css';
 
 // תיבת בחירה עם חיפוש: בוחרים ערך מתוך רשימה (options), עם אפשרות סינון בהקלדה.
 // value/onChange — הערך הנבחר (מחרוזת). options — מערך מחרוזות.

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import EditableImage from './EditableImage';
-import './Footer.css';
+import './styles/Footer.css';
 
 function Footer() {
   return (

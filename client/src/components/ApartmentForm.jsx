@@ -4,7 +4,7 @@ import { CITY_NAMES, getStreetsForCity } from '../data/locations';
 import { COMPLEX_PROPERTY_TYPE, MAX_GUESTS_NON_COMPLEX } from '../data/pricing';
 import Combobox from './Combobox';
 import { uploadImages } from '../services/api';
-import './ApartmentForm.css';
+import './styles/ApartmentForm.css';
 
 const EMPTY = {
   title: '',
