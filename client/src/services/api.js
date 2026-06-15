@@ -2,7 +2,9 @@ import { FAQ_FALLBACK } from '../data/faqFallback.js';
 
 // מצב mock רק כשמגדירים במפורש VITE_USE_MOCK=true (ברירת מחדל: נתונים מהשרת).
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = String(
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api',
+).replace(/\/+$/, '');
 const TOKEN_KEY = 'nofesh.token';
 
 const mockDelay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));

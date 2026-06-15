@@ -4,7 +4,9 @@
  */
 import { getToken } from './api.js';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = String(
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api',
+).replace(/\/+$/, '');
 
 async function paymentFetch(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' };
