@@ -2,9 +2,13 @@ import { FAQ_FALLBACK } from '../data/faqFallback.js';
 
 // מצב mock רק כשמגדירים במפורש VITE_USE_MOCK=true (ברירת מחדל: נתונים מהשרת).
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-const API_BASE = String(
-  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api',
-).replace(/\/+$/, '');
+// --- קוד ישן ---
+// const API_BASE = String(
+//   import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api',
+// ).replace(/\/+$/, '');
+
+// --- קוד חדש ומעודכן ---
+const API_BASE = 'https://vications-apartments-node-repo-production.up.railway.app/api';
 const TOKEN_KEY = 'nofesh.token';
 
 const mockDelay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
