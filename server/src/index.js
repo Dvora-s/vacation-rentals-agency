@@ -26,6 +26,18 @@ import { asyncHandler } from './utils/asyncHandler.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const express = require('express');
+const cors = require('cors');
+
+
+const corsOptions = {
+  origin: 'https://vications-apartments-node-repo.vercel.app',
+  optionsSuccessStatus: 200 
+};
+
+app.use(cors(corsOptions));
+
+// ... שאר הראוטים והקוד שלך
 
 const isProd = process.env.NODE_ENV === 'production';
 
