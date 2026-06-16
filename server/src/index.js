@@ -26,8 +26,7 @@ import { asyncHandler } from './utils/asyncHandler.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const express = require('express');
-const cors = require('cors');
+
 
 
 const corsOptions = {
