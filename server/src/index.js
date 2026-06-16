@@ -145,6 +145,7 @@ app.get('/api/health', async (_req, res) => {
     const payme = getPayMeEnvStatus();
     res.json({
       status: 'ok',
+      corsTest: 'hello from changes!!!', // <-- הציבי את השורה הזו כאן לבדיקה!
       message: 'Server is running',
       database: dbStatus.ok === 1 ? 'connected' : 'unknown',
       paypal,
