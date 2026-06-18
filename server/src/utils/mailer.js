@@ -49,6 +49,19 @@ function getLogoAttachment() {
   return logoAttachment;
 }
 
+function resolveSmtpHost(hostname) {
+  try {
+    const { address } = dns.lookupSync(hostname, { family: 4 });
+    if (address && address !== hostname) {
+      console.info(`[mailer] SMTP ${hostname} → IPv4 ${address}`);
+    }
+    return { connectHost: address || hostname, tlsServername: hostname };
+  } catch (err) {
+    console.warn(`[mailer] IPv4 lookup failed for ${hostname}, using hostname:`, err.message);
+    return { connectHost: hostname, tlsServername: hostname };
+  }
+}
+
 function getTransporter() {
   if (initialized) return transporter;
   initialized = true;
@@ -62,11 +75,16 @@ function getTransporter() {
     return null;
   }
 
+  // Port 587 + STARTTLS is more reliable on cloud hosts (Railway/Render/Heroku) than 465.
   const port = Number(process.env.SMTP_PORT) || 587;
   const secure = port === 465;
   const insecureTls = String(process.env.SMTP_TLS_INSECURE).toLowerCase() === 'true';
+  const { connectHost, tlsServername } = resolveSmtpHost(host);
+
+  console.info(`[mailer] SMTP transport: ${tlsServername}:${port} secure=${secure} ipv4=${connectHost}`);
+
   transporter = nodemailer.createTransport({
-    host,
+    host: connectHost,
     port,
     secure,
     requireTLS: !secure,
@@ -76,7 +94,10 @@ function getTransporter() {
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 15_000,
-    ...(insecureTls ? { tls: { rejectUnauthorized: false } } : {}),
+    tls: {
+      servername: tlsServername,
+      ...(insecureTls ? { rejectUnauthorized: false } : {}),
+    },
   });
   return transporter;
 }
