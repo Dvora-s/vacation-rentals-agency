@@ -1,7 +1,15 @@
 import nodemailer from 'nodemailer';
+import dns from 'node:dns';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Railway וספקי ענן רבים חוסמים/לא תומכים ב-IPv6 יוצא — Gmail נפתר לרוב ל-IPv6 ונכשל (ENETUNREACH).
+dns.setDefaultResultOrder('ipv4first');
+
+function smtpLookup(hostname, options, callback) {
+  dns.lookup(hostname, { ...options, family: 4, all: false }, callback);
+}
 
 // שליחת מיילים דרך SMTP. ההגדרות נטענות ממשתני סביבה (.env):
 //   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
@@ -61,6 +69,8 @@ function getTransporter() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    family: 4,
+    lookup: smtpLookup,
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 15_000,
