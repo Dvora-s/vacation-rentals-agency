@@ -50,6 +50,7 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
     err.status = res.status;
     if (data?.needs_verification) err.needsVerification = true;
     if (data?.already_registered) err.alreadyRegistered = true;
+    if (data?.email) err.email = data.email;
     throw err;
   }
   return data;

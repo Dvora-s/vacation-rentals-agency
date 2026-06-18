@@ -190,6 +190,50 @@
   text-decoration: underline;
 }
 
+.auth-notice-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-notice-verify p {
+  margin: 0;
+}
+
+.auth-resend-btn {
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+
+.auth-resend-btn:hover:not(:disabled) {
+  background: var(--color-navy);
+}
+
+.auth-resend-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-resend-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.85rem;
+}
+
+.auth-resend-success {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 .auth-resend:disabled {
   color: var(--color-text-muted);
   cursor: default;
