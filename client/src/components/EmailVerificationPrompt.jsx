@@ -37,9 +37,15 @@ export default function EmailVerificationPrompt({
         </button>
       )}
 
-      {mailSent === false && (
+      {mailSent === false && !verifyUrl && (
         <p className="auth-resend-hint">
           שליחת המייל מהשרת לא זמינה כרגע — השתמשי בקישור האימות למעלה.
+        </p>
+      )}
+
+      {mailSent === false && verifyUrl && (
+        <p className="auth-resend-hint">
+          שליחת מייל לא הוגדרה בשרת — לחצי על קישור האימות למעלה כדי לאמת את החשבון.
         </p>
       )}
 

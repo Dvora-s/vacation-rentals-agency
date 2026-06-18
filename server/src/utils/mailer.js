@@ -61,6 +61,9 @@ function getTransporter() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     ...(insecureTls ? { tls: { rejectUnauthorized: false } } : {}),
   });
   return transporter;

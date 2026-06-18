@@ -47,38 +47,53 @@ function publicUser(row) {
   };
 }
 
-async function deliverVerification(user) {
+function queueVerificationEmail(user, verifyUrl) {
+  void sendVerificationEmail({
+    to: user.email,
+    fullName: user.full_name,
+    verifyUrl,
+  })
+    .then((result) => {
+      if (result?.skipped) {
+        console.warn('[mailer] verification email skipped for', user.email);
+        return;
+      }
+      console.info('[mailer] verification email sent to', user.email);
+    })
+    .catch((err) => {
+      console.error('[mailer] verification email failed for', user.email, ':', err.message);
+    });
+}
+
+/** Builds verify link immediately; sends email in background (non-blocking). */
+function createVerificationDelivery(user) {
   let verifyUrl = null;
-  let mail_sent = false;
-  let mail_skipped = false;
-  let mail_error = null;
 
   try {
     const token = signEmailToken({ id: user.id, email: user.email });
     verifyUrl = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
   } catch (err) {
-    mail_error = err.message;
     console.error('[auth] cannot create verification token:', err.message);
-    return { verifyUrl: null, mail_sent: false, mail_skipped: true, mail_error: err.message };
+    return {
+      verifyUrl: null,
+      mail_sent: false,
+      mail_skipped: true,
+      mail_queued: false,
+      mail_error: err.message,
+    };
   }
 
-  try {
-    const result = await sendVerificationEmail({
-      to: user.email,
-      fullName: user.full_name,
-      verifyUrl,
-    });
-    if (result?.skipped) {
-      mail_skipped = true;
-    } else {
-      mail_sent = true;
-    }
-  } catch (err) {
-    mail_error = err.message;
-    console.error('[mailer] שליחת מייל אימות נכשלה:', err.message);
+  const mail_queued = isMailerConfigured();
+  if (mail_queued) {
+    queueVerificationEmail(user, verifyUrl);
   }
 
-  return { verifyUrl, mail_sent, mail_skipped, mail_error };
+  return {
+    verifyUrl,
+    mail_sent: false,
+    mail_skipped: !mail_queued,
+    mail_queued,
+  };
 }
 
 function verificationPayload(user, delivery, successMessage) {
@@ -87,11 +102,12 @@ function verificationPayload(user, delivery, successMessage) {
     email: user.email,
     mail_sent: delivery.mail_sent,
     mail_skipped: delivery.mail_skipped,
+    mail_queued: delivery.mail_queued,
     mailer_configured: isMailerConfigured(),
-    message: delivery.mail_sent
-      ? successMessage
+    message: delivery.mail_queued
+      ? `${successMessage} אפשר גם ללחוץ על קישור האימות למטה.`
       : delivery.verifyUrl
-        ? 'לא הצלחנו לשלוח מייל כרגע. השתמשי בקישור האימות למטה.'
+        ? 'שליחת מייל לא זמינה כרגע. השתמשי בקישור האימות למטה.'
         : 'החשבון נוצר, אך אימות אימייל אינו זמין כרגע. פנו לתמיכה.',
   };
   if (delivery.verifyUrl) {
@@ -124,7 +140,7 @@ export async function register(req, res) {
   const existingUser = await findUserByEmail(normalizedEmail);
   if (existingUser) {
     if (!existingUser.email_verified) {
-      const delivery = await deliverVerification(publicUser(existingUser));
+      const delivery = createVerificationDelivery(publicUser(existingUser));
       return res.json(
         verificationPayload(
           publicUser(existingUser),
@@ -154,7 +170,7 @@ export async function register(req, res) {
       return res.status(500).json({ error: 'יצירת המשתמש נכשלה. נסו שוב.' });
     }
 
-    const delivery = await deliverVerification(user);
+    const delivery = createVerificationDelivery(user);
     return res.status(201).json(
       verificationPayload(
         user,
@@ -217,16 +233,19 @@ export async function resendVerification(req, res) {
 
   const row = await findUserByEmail(email);
   if (row && !row.email_verified) {
-    const delivery = await deliverVerification(publicUser(row));
+    const delivery = createVerificationDelivery(publicUser(row));
     return res.json({
       ok: true,
       mail_sent: delivery.mail_sent,
       mail_skipped: delivery.mail_skipped,
+      mail_queued: delivery.mail_queued,
       mailer_configured: isMailerConfigured(),
-      verify_url: !delivery.mail_sent ? delivery.verifyUrl : undefined,
-      message: delivery.mail_sent
-        ? 'מייל אימות נשלח. בדקו את תיבת הדואר (וגם ספאם).'
-        : 'לא הצלחנו לשלוח מייל. השתמשי בקישור האימות למטה.',
+      verify_url: delivery.verifyUrl || undefined,
+      message: delivery.mail_queued
+        ? 'מייל אימות נשלח ברקע. בדקו את תיבת הדואר (וגם ספאם), או השתמשי בקישור למטה.'
+        : delivery.verifyUrl
+          ? 'שליחת מייל לא זמינה. השתמשי בקישור האימות למטה.'
+          : 'לא ניתן ליצור קישור אימות.',
     });
   }
   res.json({
@@ -324,7 +343,7 @@ export async function login(req, res) {
   }
 
   if (!user.email_verified && user.role !== 'admin') {
-    const delivery = await deliverVerification(publicUser(user));
+    const delivery = createVerificationDelivery(publicUser(user));
     return res.status(403).json({
       error: 'החשבון עדיין לא אומת. יש לאמת את האימייל לפני ההתחברות.',
       needs_verification: true,

@@ -36,10 +36,13 @@ function clearStoredVerification() {
 
 function verificationFromResult(result, fallbackEmail) {
   if (!result?.pending_verification && !result?.email && !result?.verify_url) return null;
+  const mailQueued = result.mail_queued === true;
   return {
     email: result.email || fallbackEmail,
     message: result.message,
-    mailSent: result.mail_sent,
+    mailSent: mailQueued ? true : result.mail_sent,
+    mailQueued,
+    mailerConfigured: result.mailer_configured,
     verifyUrl: result.verify_url,
   };
 }
@@ -135,9 +138,11 @@ function RegisterPage() {
     try {
       const result = await resendVerification(verification.email);
       setResent(true);
+      const mailQueued = result?.mail_queued === true;
       const next = {
         ...verification,
-        mailSent: result?.mail_sent,
+        mailSent: mailQueued ? true : result?.mail_sent,
+        mailQueued,
         verifyUrl: result?.verify_url || verification.verifyUrl,
         message: result?.message || verification.message,
       };
