@@ -1,5 +1,11 @@
 {
-  "dependencies": {
-    "cors": "^2.8.6"
+  "name": "vacation-rentals-agency",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix server start",
+    "postinstall": "npm --prefix server install"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -27,6 +27,10 @@ import { asyncHandler } from './utils/asyncHandler.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CORS must run before any other middleware or route handlers (incl. OPTIONS preflight).
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+
 const isProd = process.env.NODE_ENV === 'production';
 
 // מאחורי פרוקסי/לואד-בלאנסר בענן — מאפשר ל-req.ip לשקף את כתובת הלקוח האמיתית
@@ -49,8 +53,6 @@ const devConnectSrc = [
   'ws://localhost:5173',
   'ws://127.0.0.1:5173',
 ];
-
-app.use(cors(corsOptions));
 
 /** API responses: explicit connect-src for dev (HMR / cross-port fetch). No Helmet dep — manual header. */
 app.use((req, res, next) => {
