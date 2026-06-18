@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/db.js';
+import { corsOptions } from './config/cors.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
@@ -49,12 +50,7 @@ const devConnectSrc = [
   'ws://127.0.0.1:5173',
 ];
 
-app.use(
-  cors({
-    origin: 'https://vications-apartments-node-repo.vercel.app',
-    credentials: true,
-  }),
-);
+app.use(cors(corsOptions));
 
 /** API responses: explicit connect-src for dev (HMR / cross-port fetch). No Helmet dep — manual header. */
 app.use((req, res, next) => {
