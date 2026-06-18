@@ -3,6 +3,7 @@ import dns from 'node:dns';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getEmailFromAddress, isResendReady, sendEmailViaResend } from './resendMailer.js';
 
 // Railway וספקי ענן רבים חוסמים/לא תומכים ב-IPv6 יוצא — Gmail נפתר לרוב ל-IPv6 ונכשל (ENETUNREACH).
 dns.setDefaultResultOrder('ipv4first');
@@ -109,13 +110,15 @@ const APP_URL = (
 ).replace(/\/$/, '');
 
 export function getMailerMode() {
-  if (process.env.RESEND_API_KEY) return 'resend';
+  if (isResendReady()) return 'resend';
+  if (process.env.RESEND_API_KEY) return 'resend-unconfigured';
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return 'smtp';
   return 'none';
 }
 
 export function isMailerConfigured() {
-  return getMailerMode() !== 'none';
+  const mode = getMailerMode();
+  return mode === 'resend' || mode === 'smtp';
 }
 
 function htmlForDelivery(html) {
@@ -124,59 +127,47 @@ function htmlForDelivery(html) {
 }
 
 async function sendViaResend({ to, subject, text, html, replyTo }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { skipped: true };
-
-  const from =
-    process.env.RESEND_FROM ||
-    process.env.SMTP_FROM ||
-    'onboarding@resend.dev';
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html: html ? htmlForDelivery(html) : undefined,
-      text: text || undefined,
-      ...(replyTo ? { reply_to: replyTo } : {}),
-    }),
+  const result = await sendEmailViaResend({
+    to,
+    subject,
+    text,
+    html: html ? htmlForDelivery(html) : undefined,
+    replyTo,
   });
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`Resend ${res.status}: ${errBody || res.statusText}`);
+  if (result.ok) {
+    return { skipped: false, messageId: result.messageId, provider: 'resend' };
   }
 
-  const data = await res.json();
-  return { skipped: false, messageId: data.id, provider: 'resend' };
+  return { skipped: true, error: result.error };
 }
 
 export async function sendMail({ to, subject, text, html, replyTo }) {
-  if (process.env.RESEND_API_KEY) {
+  if (process.env.RESEND_API_KEY?.trim()) {
     return sendViaResend({ to, subject, text, html, replyTo });
   }
 
   const tx = getTransporter();
   if (!tx) return { skipped: true };
 
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const from = getEmailFromAddress() || process.env.SMTP_USER;
   const logo = html ? getLogoAttachment() : null;
-  const info = await tx.sendMail({
-    from,
-    to,
-    subject,
-    text,
-    html,
-    ...(replyTo ? { replyTo } : {}),
-    ...(logo ? { attachments: [logo] } : {}),
-  });
-  return { skipped: false, messageId: info.messageId };
+
+  try {
+    const info = await tx.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+      ...(replyTo ? { replyTo } : {}),
+      ...(logo ? { attachments: [logo] } : {}),
+    });
+    return { skipped: false, messageId: info.messageId };
+  } catch (err) {
+    console.error('[mailer] SMTP send failed:', err.message);
+    return { skipped: true, error: err.message };
+  }
 }
 
 // ───────────────────────── עזרי תבנית (Layout) ─────────────────────────

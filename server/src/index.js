@@ -16,6 +16,7 @@ import contentRouter from './routes/content.js';
 import paypalOrdersRouter from './routes/paypalOrders.js';
 import { getPayPalEnvStatus } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
+import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
 import { logger } from './utils/logger.js';
 import { handlePayMeWebhookRequest } from './controllers/paymentController.js';
@@ -24,6 +25,7 @@ import { selectDatabaseInfo } from './models/dbMetaModel.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { isMailerConfigured, getMailerMode } from './utils/mailer.js';
+import { getEmailFromAddress } from './utils/resendMailer.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -198,7 +200,11 @@ app.get('/api/health', async (_req, res) => {
       status: 'ok',
       message: 'Server is running',
       database: dbStatus.ok === 1 ? 'connected' : 'unknown',
-      mailer: { configured: isMailerConfigured(), mode: getMailerMode() },
+      mailer: {
+        configured: isMailerConfigured(),
+        mode: getMailerMode(),
+        from_set: Boolean(getEmailFromAddress()),
+      },
       paypal,
       payme,
     });
@@ -240,6 +246,11 @@ app.listen(PORT, HOST, () => {
     logger.warn(
       `[PayMe] חסרים משתני סביבה או תצורה חלקית: configured=${pm.configured} baseUrl=${pm.hasBaseUrl} merchantId=${pm.hasMerchantId} apiKey=${pm.hasApiKey} secret=${pm.hasSecret} webhookSecret=${pm.hasWebhookSecret}. ראו docs/PAYME_INTEGRATION.md ו־GET /api/health.`,
     );
+  }
+  try {
+    await ensureFaqSeed();
+  } catch (err) {
+    logger.warn('[faq] Could not ensure FAQ seed:', err.message);
   }
   try {
     await ensureAdminUser();
