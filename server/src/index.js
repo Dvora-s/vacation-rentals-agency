@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/db.js';
-import { corsOptions } from './config/cors.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
@@ -27,10 +26,6 @@ import { asyncHandler } from './utils/asyncHandler.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors(corsOptions));
-
-// ... שאר הראוטים והקוד שלך
-
 const isProd = process.env.NODE_ENV === 'production';
 
 // מאחורי פרוקסי/לואד-בלאנסר בענן — מאפשר ל-req.ip לשקף את כתובת הלקוח האמיתית
@@ -54,7 +49,12 @@ const devConnectSrc = [
   'ws://127.0.0.1:5173',
 ];
 
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: 'https://vications-apartments-node-repo.vercel.app',
+    credentials: true,
+  }),
+);
 
 /** API responses: explicit connect-src for dev (HMR / cross-port fetch). No Helmet dep — manual header. */
 app.use((req, res, next) => {
