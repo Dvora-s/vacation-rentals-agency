@@ -53,6 +53,36 @@ app.get('/api/health/live', (_req, res) => {
   res.json({ status: 'ok', service: 'vacation-rentals-api' });
 });
 
+/** Legacy clients called /apartments instead of /api/apartments — rewrite before routing. */
+const API_ROOT_PREFIXES = [
+  '/apartments',
+  '/auth',
+  '/payments',
+  '/pricing',
+  '/admin',
+  '/uploads',
+  '/contact',
+  '/faq',
+  '/locations',
+  '/content',
+  '/orders',
+];
+
+app.use((req, res, next) => {
+  const pathOnly = req.path;
+  if (pathOnly.startsWith('/api')) {
+    next();
+    return;
+  }
+  const needsApiPrefix = API_ROOT_PREFIXES.some(
+    (prefix) => pathOnly === prefix || pathOnly.startsWith(`${prefix}/`),
+  );
+  if (needsApiPrefix) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 const isProd = process.env.NODE_ENV === 'production';
 
 // מאחורי פרוקסי/לואד-בלאנסר בענן — מאפשר ל-req.ip לשקף את כתובת הלקוח האמיתית
