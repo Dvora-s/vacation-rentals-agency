@@ -3,10 +3,9 @@
  * Never put PayMe secrets here — only JWT-authenticated calls to your backend.
  */
 import { getToken } from './api.js';
+import { getApiBase } from '../config/apiBase.js';
 
-const API_BASE = String(
-  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api',
-).replace(/\/+$/, '');
+const API_BASE = getApiBase();
 
 async function paymentFetch(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' };

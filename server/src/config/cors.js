@@ -11,11 +11,15 @@ const DEV_ORIGINS = [
 ];
 
 const DEFAULT_PROD_ORIGINS = [
+  'https://vacation-rentals-agency1.vercel.app',
   'https://vications-apartments-node-repo.vercel.app',
 ];
 
-/** Frontend (Vercel) + all preview deployments for this project. */
-const VERCEL_PROJECT_SLUG = 'vications-apartments-node-repo';
+/** Vercel project name prefixes — production + preview URLs. */
+const VERCEL_PROJECT_SLUGS = [
+  'vacation-rentals-agency',
+  'vications-apartments-node-repo',
+];
 
 function configuredOrigins() {
   const raw = process.env.CORS_ORIGINS || process.env.CLIENT_ORIGIN || '';
@@ -30,11 +34,8 @@ const allowList = isProd
   : [...DEV_ORIGINS, ...DEFAULT_PROD_ORIGINS, ...configuredOrigins()];
 
 function isVercelProjectHost(hostname) {
-  return (
-    typeof hostname === 'string'
-    && hostname.endsWith('.vercel.app')
-    && hostname.includes(VERCEL_PROJECT_SLUG)
-  );
+  if (typeof hostname !== 'string' || !hostname.endsWith('.vercel.app')) return false;
+  return VERCEL_PROJECT_SLUGS.some((slug) => hostname.includes(slug));
 }
 
 export function isAllowedOrigin(origin) {

@@ -1,13 +1,9 @@
 import { FAQ_FALLBACK } from '../data/faqFallback.js';
+import { getApiBase } from '../config/apiBase.js';
 
 // מצב mock רק כשמגדירים במפורש VITE_USE_MOCK=true (ברירת מחדל: נתונים מהשרת).
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-// Production API on Railway; override with VITE_API_URL in Vercel/local .env
-const API_BASE = String(
-  import.meta.env.VITE_API_URL
-    || import.meta.env.VITE_API_BASE
-    || 'https://vications-apartments-node-repo-production.up.railway.app/api',
-).replace(/\/+$/, '');
+const API_BASE = getApiBase();
 const TOKEN_KEY = 'nofesh.token';
 
 const mockDelay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
