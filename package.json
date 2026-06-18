@@ -2,8 +2,8 @@
   "name": "vacation-rentals-agency",
   "private": true,
   "scripts": {
-    "start": "npm --prefix server start",
-    "postinstall": "npm --prefix server install"
+    "build": "npm ci --prefix server",
+    "start": "npm start --prefix server"
   },
   "engines": {
     "node": ">=20"

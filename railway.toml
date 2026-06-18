@@ -1,0 +1,8 @@
+[build]
+buildCommand = "npm ci --prefix server"
+watchPatterns = ["server/**"]
+
+[deploy]
+startCommand = "npm start --prefix server"
+healthcheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"
