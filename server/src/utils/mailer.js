@@ -63,11 +63,13 @@ function getTransporter() {
   }
 
   const port = Number(process.env.SMTP_PORT) || 587;
+  const secure = port === 465;
   const insecureTls = String(process.env.SMTP_TLS_INSECURE).toLowerCase() === 'true';
   transporter = nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure,
+    requireTLS: !secure,
     auth: { user, pass },
     family: 4,
     lookup: smtpLookup,
@@ -79,11 +81,66 @@ function getTransporter() {
   return transporter;
 }
 
+const APP_URL = (
+  process.env.APP_URL ||
+  process.env.CLIENT_ORIGIN ||
+  'https://vacation-rentals-agency1.vercel.app'
+).replace(/\/$/, '');
+
+export function getMailerMode() {
+  if (process.env.RESEND_API_KEY) return 'resend';
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return 'smtp';
+  return 'none';
+}
+
 export function isMailerConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return getMailerMode() !== 'none';
+}
+
+function htmlForDelivery(html) {
+  if (!html || getMailerMode() !== 'resend') return html;
+  return html.replaceAll(`cid:${LOGO_CID}`, `${APP_URL}/navbar-logo.png`);
+}
+
+async function sendViaResend({ to, subject, text, html, replyTo }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { skipped: true };
+
+  const from =
+    process.env.RESEND_FROM ||
+    process.env.SMTP_FROM ||
+    'onboarding@resend.dev';
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html: html ? htmlForDelivery(html) : undefined,
+      text: text || undefined,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`Resend ${res.status}: ${errBody || res.statusText}`);
+  }
+
+  const data = await res.json();
+  return { skipped: false, messageId: data.id, provider: 'resend' };
 }
 
 export async function sendMail({ to, subject, text, html, replyTo }) {
+  if (process.env.RESEND_API_KEY) {
+    return sendViaResend({ to, subject, text, html, replyTo });
+  }
+
   const tx = getTransporter();
   if (!tx) return { skipped: true };
 

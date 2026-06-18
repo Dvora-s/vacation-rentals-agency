@@ -23,7 +23,7 @@ import { getPayMeEnvStatus } from './config/payme.js';
 import { selectDatabaseInfo } from './models/dbMetaModel.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
-import { isMailerConfigured } from './utils/mailer.js';
+import { isMailerConfigured, getMailerMode } from './utils/mailer.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -198,7 +198,7 @@ app.get('/api/health', async (_req, res) => {
       status: 'ok',
       message: 'Server is running',
       database: dbStatus.ok === 1 ? 'connected' : 'unknown',
-      mailer: { configured: isMailerConfigured() },
+      mailer: { configured: isMailerConfigured(), mode: getMailerMode() },
       paypal,
       payme,
     });

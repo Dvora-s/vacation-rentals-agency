@@ -12,6 +12,20 @@ import {
 
 const AuthContext = createContext(null);
 
+/** מונע קריאת /auth/me עם טוקן שפג או פגום — מקור נפוץ ל-401 בקונסול. */
+function isStoredTokenUsable(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && payload.exp * 1000 <= Date.now()) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +34,8 @@ export function AuthProvider({ children }) {
     let cancelled = false;
     async function bootstrap() {
       const token = getToken();
-      if (!token) {
+      if (!token || !isStoredTokenUsable(token)) {
+        if (token) clearToken();
         setLoading(false);
         return;
       }
