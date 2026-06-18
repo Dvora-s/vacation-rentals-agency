@@ -36,7 +36,7 @@ function LoginPage() {
     } catch (err) {
       setError(err.message);
       // השרת מסמן צורך באימות עם הטקסט; מזהים זאת לפי המילה "אומת"
-      if (/אומת|אימות/.test(err.message || '')) {
+      if (err.needsVerification || /אומת|אימות/.test(err.message || '')) {
         setNeedsVerification(true);
       }
     } finally {

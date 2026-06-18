@@ -50,7 +50,11 @@ function RegisterPage() {
       // הרשמה רגילה — ממתינים לאימות אימייל
       setSentTo(result?.email || form.email.trim());
     } catch (err) {
-      setError(err.message);
+      if (err.alreadyRegistered) {
+        setError('חשבון עם האימייל הזה כבר קיים. אפשר להתחבר מהקישור למטה.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setSubmitting(false);
     }

@@ -46,7 +46,11 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = data?.error || `שגיאה ${res.status}`;
-    throw new Error(message);
+    const err = new Error(message);
+    err.status = res.status;
+    if (data?.needs_verification) err.needsVerification = true;
+    if (data?.already_registered) err.alreadyRegistered = true;
+    throw err;
   }
   return data;
 }

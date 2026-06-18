@@ -3,7 +3,6 @@ import { OAuth2Client } from 'google-auth-library';
 import {
   findUserByEmail,
   findUserById,
-  findUserIdByEmail,
   insertGoogleUser,
   insertLocalUser,
   listUsersForAdmin,
@@ -25,7 +24,11 @@ import {
 } from '../utils/mailer.js';
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
-const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+const APP_URL = (
+  process.env.APP_URL ||
+  process.env.CLIENT_ORIGIN ||
+  'https://vacation-rentals-agency1.vercel.app'
+).replace(/\/$/, '');
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
@@ -67,9 +70,25 @@ export async function register(req, res) {
 
   const normalizedEmail = String(email).trim().toLowerCase();
 
-  const existing = await findUserIdByEmail(normalizedEmail);
-  if (existing) {
-    return res.status(409).json({ error: 'משתמש עם האימייל הזה כבר קיים' });
+  const existingUser = await findUserByEmail(normalizedEmail);
+  if (existingUser) {
+    if (!existingUser.email_verified) {
+      try {
+        await sendVerification(publicUser(existingUser));
+      } catch (err) {
+        console.error('[mailer] שליחת מייל אימות חוזרת נכשלה:', err.message);
+      }
+      return res.json({
+        pending_verification: true,
+        email: existingUser.email,
+        message:
+          'החשבון כבר קיים אך טרם אומת. נשלח שוב מייל אימות — יש ללחוץ על הקישור שבו.',
+      });
+    }
+    return res.status(409).json({
+      error: 'משתמש עם האימייל הזה כבר קיים. נסו להתחבר.',
+      already_registered: true,
+    });
   }
 
   const password_hash = await bcrypt.hash(password, 12);
