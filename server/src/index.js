@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/db.js';
-import { corsOptions } from './config/cors.js';
+import { corsOptions, isAllowedOrigin } from './config/cors.js';
 import apartmentsRouter from './routes/apartments.js';
 import authRouter from './routes/auth.js';
 import paymentsRouter from './routes/payments.js';
@@ -25,11 +25,33 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-// CORS must run before any other middleware or route handlers (incl. OPTIONS preflight).
+// Manual CORS first — guarantees preflight succeeds for allowed Vercel/Railway frontends.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+
+// Railway health probe — no database; must respond quickly so deploy is not marked dead.
+app.get('/api/health/live', (_req, res) => {
+  res.json({ status: 'ok', service: 'vacation-rentals-api' });
+});
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -143,7 +165,6 @@ app.get('/api/health', async (_req, res) => {
     const payme = getPayMeEnvStatus();
     res.json({
       status: 'ok',
-      corsTest: 'hello from changes!!!', // <-- הציבי את השורה הזו כאן לבדיקה!
       message: 'Server is running',
       database: dbStatus.ok === 1 ? 'connected' : 'unknown',
       paypal,
@@ -173,8 +194,9 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, async () => {
-  logger.info(`Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  logger.info(`Server running on http://${HOST}:${PORT}`);
+  void (async () => {
   const pp = getPayPalEnvStatus();
   if (!pp.configured) {
     logger.warn(
@@ -197,4 +219,5 @@ app.listen(PORT, async () => {
   } catch (err) {
     logger.warn('[expiry] לא ניתן להפעיל את תזמון תוקף המודעות:', err.message);
   }
+  })();
 });

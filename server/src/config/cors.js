@@ -14,6 +14,7 @@ const DEFAULT_PROD_ORIGINS = [
   'https://vications-apartments-node-repo.vercel.app',
 ];
 
+/** Frontend (Vercel) + all preview deployments for this project. */
 const VERCEL_PROJECT_SLUG = 'vications-apartments-node-repo';
 
 function configuredOrigins() {
