@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { resendVerification } from '../services/api';
@@ -7,6 +7,52 @@ import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const PENDING_VERIFICATION_KEY = 'nofesh.pendingVerification';
+
+function readStoredVerification() {
+  try {
+    const raw = sessionStorage.getItem(PENDING_VERIFICATION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeVerification(data) {
+  try {
+    sessionStorage.setItem(PENDING_VERIFICATION_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearStoredVerification() {
+  try {
+    sessionStorage.removeItem(PENDING_VERIFICATION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function verificationFromResult(result, fallbackEmail) {
+  if (!result?.pending_verification && !result?.email && !result?.verify_url) return null;
+  return {
+    email: result.email || fallbackEmail,
+    message: result.message,
+    mailSent: result.mail_sent,
+    verifyUrl: result.verify_url,
+  };
+}
+
+function verificationFromError(err, fallbackEmail) {
+  if (!err?.pendingVerification && !err?.verifyUrl && !err?.needsVerification) return null;
+  return {
+    email: err.email || fallbackEmail,
+    message: err.serverMessage || err.message,
+    mailSent: err.mailSent,
+    verifyUrl: err.verifyUrl,
+  };
+}
 
 function RegisterPage() {
   const { register } = useAuth();
@@ -20,10 +66,21 @@ function RegisterPage() {
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [verification, setVerification] = useState(null);
+  const [verification, setVerification] = useState(() => readStoredVerification());
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [resendError, setResendError] = useState(null);
+
+  useEffect(() => {
+    const stored = readStoredVerification();
+    if (stored) setVerification(stored);
+  }, []);
+
+  function showVerification(next) {
+    setVerification(next);
+    storeVerification(next);
+    setError(null);
+  }
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -43,24 +100,28 @@ function RegisterPage() {
     }
 
     setSubmitting(true);
+    const email = form.email.trim();
     try {
       const result = await register({
         full_name: form.full_name.trim(),
-        email: form.email.trim(),
+        email,
         phone: form.phone.trim() || null,
         password: form.password,
       });
-      setVerification({
-        email: result?.email || form.email.trim(),
-        message: result?.message,
-        mailSent: result?.mail_sent,
-        verifyUrl: result?.verify_url,
-      });
+      const next = verificationFromResult(result, email);
+      if (next) {
+        showVerification(next);
+      } else {
+        setError('ההרשמה הצליחה אך לא התקבלו פרטי אימות. נסו להתחבר.');
+      }
     } catch (err) {
-      if (err.alreadyRegistered) {
+      const pending = verificationFromError(err, email);
+      if (pending) {
+        showVerification(pending);
+      } else if (err.alreadyRegistered) {
         setError('חשבון עם האימייל הזה כבר קיים. אפשר להתחבר מהקישור למטה.');
       } else {
-        setError(err.message);
+        setError(err.message || 'ההרשמה נכשלה. נסו שוב.');
       }
     } finally {
       setSubmitting(false);
@@ -74,12 +135,13 @@ function RegisterPage() {
     try {
       const result = await resendVerification(verification.email);
       setResent(true);
-      setVerification((prev) => ({
-        ...prev,
+      const next = {
+        ...verification,
         mailSent: result?.mail_sent,
-        verifyUrl: result?.verify_url || prev?.verifyUrl,
-        message: result?.message || prev?.message,
-      }));
+        verifyUrl: result?.verify_url || verification.verifyUrl,
+        message: result?.message || verification.message,
+      };
+      showVerification(next);
     } catch (err) {
       setResent(false);
       setResendError(err.message || 'שליחת המייל נכשלה. נסו שוב.');
@@ -103,6 +165,11 @@ function RegisterPage() {
           resent={resent}
           resendError={resendError}
         />
+        <p className="auth-switch">
+          <button type="button" className="auth-resend" onClick={() => { clearStoredVerification(); setVerification(null); }}>
+            חזרה לטופס הרשמה
+          </button>
+        </p>
       </div>
     );
   }

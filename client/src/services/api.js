@@ -49,10 +49,12 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
     const err = new Error(message);
     err.status = res.status;
     if (data?.needs_verification) err.needsVerification = true;
+    if (data?.pending_verification) err.pendingVerification = true;
     if (data?.already_registered) err.alreadyRegistered = true;
     if (data?.email) err.email = data.email;
     if (data?.verify_url) err.verifyUrl = data.verify_url;
     if (typeof data?.mail_sent === 'boolean') err.mailSent = data.mail_sent;
+    if (data?.message) err.serverMessage = data.message;
     throw err;
   }
   return data;

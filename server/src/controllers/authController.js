@@ -48,11 +48,19 @@ function publicUser(row) {
 }
 
 async function deliverVerification(user) {
-  const token = signEmailToken({ id: user.id, email: user.email });
-  const verifyUrl = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  let verifyUrl = null;
   let mail_sent = false;
   let mail_skipped = false;
   let mail_error = null;
+
+  try {
+    const token = signEmailToken({ id: user.id, email: user.email });
+    verifyUrl = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  } catch (err) {
+    mail_error = err.message;
+    console.error('[auth] cannot create verification token:', err.message);
+    return { verifyUrl: null, mail_sent: false, mail_skipped: true, mail_error: err.message };
+  }
 
   try {
     const result = await sendVerificationEmail({
@@ -82,10 +90,15 @@ function verificationPayload(user, delivery, successMessage) {
     mailer_configured: isMailerConfigured(),
     message: delivery.mail_sent
       ? successMessage
-      : 'לא הצלחנו לשלוח מייל כרגע. השתמשי בקישור האימות למטה.',
+      : delivery.verifyUrl
+        ? 'לא הצלחנו לשלוח מייל כרגע. השתמשי בקישור האימות למטה.'
+        : 'החשבון נוצר, אך אימות אימייל אינו זמין כרגע. פנו לתמיכה.',
   };
-  if (!delivery.mail_sent && delivery.verifyUrl) {
+  if (delivery.verifyUrl) {
     payload.verify_url = delivery.verifyUrl;
+  }
+  if (delivery.mail_error && process.env.NODE_ENV !== 'production') {
+    payload.mail_error = delivery.mail_error;
   }
   return payload;
 }
@@ -127,23 +140,38 @@ export async function register(req, res) {
   }
 
   const password_hash = await bcrypt.hash(password, 12);
-  const insertId = await insertLocalUser({
-    full_name,
-    email: normalizedEmail,
-    phone,
-    password_hash,
-  });
 
-  const user = publicUser(await findUserById(insertId));
-  const delivery = await deliverVerification(user);
+  try {
+    const insertId = await insertLocalUser({
+      full_name,
+      email: normalizedEmail,
+      phone,
+      password_hash,
+    });
 
-  res.status(201).json(
-    verificationPayload(
-      user,
-      delivery,
-      'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
-    ),
-  );
+    const user = publicUser(await findUserById(insertId));
+    if (!user) {
+      return res.status(500).json({ error: 'יצירת המשתמש נכשלה. נסו שוב.' });
+    }
+
+    const delivery = await deliverVerification(user);
+    return res.status(201).json(
+      verificationPayload(
+        user,
+        delivery,
+        'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
+      ),
+    );
+  } catch (err) {
+    console.error('[auth] register failed:', err);
+    if (err?.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        error: 'משתמש עם האימייל הזה כבר קיים. נסו להתחבר.',
+        already_registered: true,
+      });
+    }
+    return res.status(500).json({ error: 'שגיאת שרת בהרשמה. נסו שוב.' });
+  }
 }
 
 export async function verifyEmail(req, res) {

@@ -24,6 +24,11 @@ function VerifyEmailPage() {
 
     completeEmailVerification(token)
       .then((result) => {
+        try {
+          sessionStorage.removeItem('nofesh.pendingVerification');
+        } catch {
+          /* ignore */
+        }
         // אם התקבל טוקן — המשתמש כבר מחובר; מעבירים ישירות לדף הבית.
         if (result?.token) {
           navigate('/', { replace: true });
