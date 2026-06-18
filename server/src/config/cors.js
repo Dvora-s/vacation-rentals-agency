@@ -13,6 +13,11 @@ const DEV_ORIGINS = [
 const DEFAULT_PROD_ORIGINS = [
   'https://vacation-rentals-agency1.vercel.app',
   'https://vications-apartments-node-repo.vercel.app',
+  // דומיין production רשמי
+  'https://dirotnofesh.co.il',
+  'https://www.dirotnofesh.co.il',
+  'http://dirotnofesh.co.il',
+  'http://www.dirotnofesh.co.il',
 ];
 
 /** Vercel project name prefixes — production + preview URLs. */
