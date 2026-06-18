@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { resendVerification } from '../services/api';
+import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
@@ -18,6 +19,8 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [verifyUrl, setVerifyUrl] = useState('');
+  const [mailSent, setMailSent] = useState(null);
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState(null);
@@ -31,6 +34,8 @@ function LoginPage() {
     setError(null);
     setResendError(null);
     setNeedsVerification(false);
+    setVerifyUrl('');
+    setMailSent(null);
     setResent(false);
     setSubmitting(true);
     try {
@@ -41,6 +46,8 @@ function LoginPage() {
       if (err.needsVerification || /אומת|אימות/.test(err.message || '')) {
         setNeedsVerification(true);
         setVerificationEmail(err.email || form.email.trim());
+        setVerifyUrl(err.verifyUrl || '');
+        setMailSent(err.mailSent ?? null);
       }
     } finally {
       setSubmitting(false);
@@ -57,8 +64,10 @@ function LoginPage() {
     setResendError(null);
     setResending(true);
     try {
-      await resendVerification(email);
+      const result = await resendVerification(email);
       setResent(true);
+      setMailSent(result?.mail_sent ?? false);
+      if (result?.verify_url) setVerifyUrl(result.verify_url);
     } catch (err) {
       setResent(false);
       setResendError(err.message || 'שליחת המייל נכשלה. נסו שוב.');
@@ -73,21 +82,16 @@ function LoginPage() {
       <p className="auth-subtitle">היכנסו כדי לנהל את הדירות שלכם ולפרסם דירות חדשות</p>
 
       {needsVerification && (
-        <div className="auth-notice auth-notice-verify">
-          <p>עדיין לא אימתת את האימייל?</p>
-          <button
-            type="button"
-            className="auth-resend-btn"
-            onClick={handleResend}
-            disabled={resending || resent}
-          >
-            {resending ? 'שולח...' : resent ? 'מייל אימות נשלח שוב' : 'שלחי מייל אימות שוב'}
-          </button>
-          {resendError && <p className="auth-resend-error">{resendError}</p>}
-          {resent && !resendError && (
-            <p className="auth-resend-success">בדקו את תיבת הדואר (וגם ספאם) עבור {verificationEmail || form.email.trim()}</p>
-          )}
-        </div>
+        <EmailVerificationPrompt
+          email={verificationEmail || form.email.trim()}
+          message="החשבון קיים אך טרם אומת."
+          mailSent={mailSent}
+          verifyUrl={verifyUrl}
+          onResend={handleResend}
+          resending={resending}
+          resent={resent}
+          resendError={resendError}
+        />
       )}
 
       <form className="auth-form" onSubmit={handleSubmit}>

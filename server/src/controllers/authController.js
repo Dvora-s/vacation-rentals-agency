@@ -21,6 +21,7 @@ import {
   sendWelcomeEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
+  isMailerConfigured,
 } from '../utils/mailer.js';
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -46,10 +47,47 @@ function publicUser(row) {
   };
 }
 
-async function sendVerification(user) {
+async function deliverVerification(user) {
   const token = signEmailToken({ id: user.id, email: user.email });
   const verifyUrl = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
-  await sendVerificationEmail({ to: user.email, fullName: user.full_name, verifyUrl });
+  let mail_sent = false;
+  let mail_skipped = false;
+  let mail_error = null;
+
+  try {
+    const result = await sendVerificationEmail({
+      to: user.email,
+      fullName: user.full_name,
+      verifyUrl,
+    });
+    if (result?.skipped) {
+      mail_skipped = true;
+    } else {
+      mail_sent = true;
+    }
+  } catch (err) {
+    mail_error = err.message;
+    console.error('[mailer] שליחת מייל אימות נכשלה:', err.message);
+  }
+
+  return { verifyUrl, mail_sent, mail_skipped, mail_error };
+}
+
+function verificationPayload(user, delivery, successMessage) {
+  const payload = {
+    pending_verification: true,
+    email: user.email,
+    mail_sent: delivery.mail_sent,
+    mail_skipped: delivery.mail_skipped,
+    mailer_configured: isMailerConfigured(),
+    message: delivery.mail_sent
+      ? successMessage
+      : 'לא הצלחנו לשלוח מייל כרגע. השתמשי בקישור האימות למטה.',
+  };
+  if (!delivery.mail_sent && delivery.verifyUrl) {
+    payload.verify_url = delivery.verifyUrl;
+  }
+  return payload;
 }
 
 function passwordFingerprint(passwordHash) {
@@ -73,17 +111,14 @@ export async function register(req, res) {
   const existingUser = await findUserByEmail(normalizedEmail);
   if (existingUser) {
     if (!existingUser.email_verified) {
-      try {
-        await sendVerification(publicUser(existingUser));
-      } catch (err) {
-        console.error('[mailer] שליחת מייל אימות חוזרת נכשלה:', err.message);
-      }
-      return res.json({
-        pending_verification: true,
-        email: existingUser.email,
-        message:
+      const delivery = await deliverVerification(publicUser(existingUser));
+      return res.json(
+        verificationPayload(
+          publicUser(existingUser),
+          delivery,
           'החשבון כבר קיים אך טרם אומת. נשלח שוב מייל אימות — יש ללחוץ על הקישור שבו.',
-      });
+        ),
+      );
     }
     return res.status(409).json({
       error: 'משתמש עם האימייל הזה כבר קיים. נסו להתחבר.',
@@ -100,18 +135,15 @@ export async function register(req, res) {
   });
 
   const user = publicUser(await findUserById(insertId));
+  const delivery = await deliverVerification(user);
 
-  try {
-    await sendVerification(user);
-  } catch (err) {
-    console.error('[mailer] שליחת מייל אימות נכשלה:', err.message);
-  }
-
-  res.status(201).json({
-    pending_verification: true,
-    email: user.email,
-    message: 'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
-  });
+  res.status(201).json(
+    verificationPayload(
+      user,
+      delivery,
+      'נשלח אליך מייל לאימות החשבון. יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.',
+    ),
+  );
 }
 
 export async function verifyEmail(req, res) {
@@ -157,13 +189,23 @@ export async function resendVerification(req, res) {
 
   const row = await findUserByEmail(email);
   if (row && !row.email_verified) {
-    try {
-      await sendVerification(publicUser(row));
-    } catch (err) {
-      console.error('[mailer] שליחה חוזרת של מייל אימות נכשלה:', err.message);
-    }
+    const delivery = await deliverVerification(publicUser(row));
+    return res.json({
+      ok: true,
+      mail_sent: delivery.mail_sent,
+      mail_skipped: delivery.mail_skipped,
+      mailer_configured: isMailerConfigured(),
+      verify_url: !delivery.mail_sent ? delivery.verifyUrl : undefined,
+      message: delivery.mail_sent
+        ? 'מייל אימות נשלח. בדקו את תיבת הדואר (וגם ספאם).'
+        : 'לא הצלחנו לשלוח מייל. השתמשי בקישור האימות למטה.',
+    });
   }
-  res.json({ ok: true, message: 'אם קיים חשבון שאינו מאומת, נשלח אליו מייל אימות חדש.' });
+  res.json({
+    ok: true,
+    mail_sent: false,
+    message: 'אם קיים חשבון שאינו מאומת, נשלח אליו מייל אימות חדש.',
+  });
 }
 
 export async function forgotPassword(req, res) {
@@ -254,10 +296,13 @@ export async function login(req, res) {
   }
 
   if (!user.email_verified && user.role !== 'admin') {
+    const delivery = await deliverVerification(publicUser(user));
     return res.status(403).json({
-      error: 'החשבון עדיין לא אומת. נשלח אליך מייל אימות — יש ללחוץ על הקישור שבו.',
+      error: 'החשבון עדיין לא אומת. יש לאמת את האימייל לפני ההתחברות.',
       needs_verification: true,
       email: user.email,
+      mail_sent: delivery.mail_sent,
+      verify_url: delivery.verifyUrl,
     });
   }
 

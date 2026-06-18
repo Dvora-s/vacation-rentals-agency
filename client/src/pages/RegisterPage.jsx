@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { resendVerification } from '../services/api';
+import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
@@ -19,8 +20,10 @@ function RegisterPage() {
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [sentTo, setSentTo] = useState(null);
+  const [verification, setVerification] = useState(null);
+  const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState(null);
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -47,8 +50,12 @@ function RegisterPage() {
         phone: form.phone.trim() || null,
         password: form.password,
       });
-      // הרשמה רגילה — ממתינים לאימות אימייל
-      setSentTo(result?.email || form.email.trim());
+      setVerification({
+        email: result?.email || form.email.trim(),
+        message: result?.message,
+        mailSent: result?.mail_sent,
+        verifyUrl: result?.verify_url,
+      });
     } catch (err) {
       if (err.alreadyRegistered) {
         setError('חשבון עם האימייל הזה כבר קיים. אפשר להתחבר מהקישור למטה.');
@@ -61,36 +68,41 @@ function RegisterPage() {
   }
 
   async function handleResend() {
-    if (!sentTo) return;
+    if (!verification?.email) return;
+    setResendError(null);
+    setResending(true);
     try {
-      await resendVerification(sentTo);
+      const result = await resendVerification(verification.email);
       setResent(true);
-    } catch {
-      setResent(true);
+      setVerification((prev) => ({
+        ...prev,
+        mailSent: result?.mail_sent,
+        verifyUrl: result?.verify_url || prev?.verifyUrl,
+        message: result?.message || prev?.message,
+      }));
+    } catch (err) {
+      setResent(false);
+      setResendError(err.message || 'שליחת המייל נכשלה. נסו שוב.');
+    } finally {
+      setResending(false);
     }
   }
 
-  // מסך אישור לאחר הרשמה — בקשה לאמת אימייל
-  if (sentTo) {
+  if (verification) {
     return (
       <div className="auth-wrap auth-verify-card">
         <span className="auth-verify-icon" aria-hidden="true">📩</span>
         <h1 className="auth-title">כמעט סיימנו!</h1>
-        <p className="auth-subtitle">
-          שלחנו מייל אימות אל <strong dir="ltr">{sentTo}</strong>.
-          <br />
-          יש ללחוץ על הקישור שבמייל כדי להפעיל את החשבון.
-        </p>
-        <div className="auth-notice">
-          לא קיבלתם את המייל? בדקו גם בתיקיית הספאם, או{' '}
-          <button type="button" className="auth-resend" onClick={handleResend} disabled={resent}>
-            {resent ? 'המייל נשלח שוב' : 'שלחי שוב'}
-          </button>
-          .
-        </div>
-        <p className="auth-switch">
-          אימתת את החשבון? <Link to="/login">להתחברות</Link>
-        </p>
+        <EmailVerificationPrompt
+          email={verification.email}
+          message={verification.message || 'יש לאמת את האימייל כדי להפעיל את החשבון.'}
+          mailSent={verification.mailSent}
+          verifyUrl={verification.verifyUrl}
+          onResend={handleResend}
+          resending={resending}
+          resent={resent}
+          resendError={resendError}
+        />
       </div>
     );
   }

@@ -234,6 +234,40 @@
   font-size: 0.85rem;
 }
 
+.auth-verify-email {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.auth-verify-link-btn {
+  display: inline-block;
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-white);
+  background: var(--color-gold, #b8860b);
+  border-radius: var(--radius);
+  padding: 0.7rem 1.2rem;
+  text-decoration: none;
+  transition: opacity 0.2s var(--ease);
+}
+
+.auth-verify-link-btn:hover {
+  opacity: 0.9;
+}
+
+.auth-resend-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8a5a00;
+}
+
+.auth-switch-inline {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
 .auth-resend:disabled {
   color: var(--color-text-muted);
   cursor: default;
