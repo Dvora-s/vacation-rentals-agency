@@ -27,6 +27,49 @@ function isSandboxFrom(from) {
   return /@resend\.dev$/i.test(String(from).trim());
 }
 
+function fromEnvSource() {
+  if (process.env.EMAIL_FROM?.trim()) return 'EMAIL_FROM';
+  if (process.env.RESEND_FROM?.trim()) return 'RESEND_FROM';
+  if (process.env.SMTP_FROM?.trim()) return 'SMTP_FROM';
+  return 'none';
+}
+
+/** ל-/api/health — בלי לחשוף כתובת מלאה */
+export function getMailerDiagnostics() {
+  const from = getEmailFromAddress();
+  const domainMatch = from.match(/@([\w.-]+)/i);
+  return {
+    from_set: Boolean(from),
+    from_source: fromEnvSource(),
+    from_domain: domainMatch?.[1] || null,
+    sandbox_from: from ? isSandboxFrom(from) : false,
+    resend_key_set: Boolean(process.env.RESEND_API_KEY?.trim()),
+  };
+}
+
+export function logMailerStartup() {
+  const d = getMailerDiagnostics();
+  if (!d.resend_key_set) {
+    console.warn('[mailer] RESEND_API_KEY not set');
+    return;
+  }
+  if (!d.from_set) {
+    console.error(
+      '[mailer] No From address — set EMAIL_FROM (e.g. noreply@dirotnofesh.co.il) on Railway and redeploy',
+    );
+    return;
+  }
+  if (d.sandbox_from) {
+    console.error(
+      '[mailer] From uses @resend.dev sandbox — external recipients will get 403. Use EMAIL_FROM on your verified domain.',
+    );
+    return;
+  }
+  console.info(
+    `[mailer] Resend ready: from_source=${d.from_source} domain=${d.from_domain}`,
+  );
+}
+
 /**
  * שליחת מייל גנרית דרך Resend.
  * לא זורקת שגיאה — מחזירה { ok, skipped, error? } כדי שלא תפיל Register/Login.
@@ -47,9 +90,14 @@ export async function sendEmailViaResend({ to, subject, html, text, replyTo }) {
   }
 
   if (isSandboxFrom(from)) {
-    console.warn(
-      '[mailer] EMAIL_FROM uses @resend.dev sandbox — Resend only allows your own inbox. Use your verified domain instead.',
+    console.error(
+      '[mailer] Blocked: From uses @resend.dev sandbox — set EMAIL_FROM to your verified domain (e.g. noreply@dirotnofesh.co.il)',
     );
+    return {
+      ok: false,
+      skipped: true,
+      error: 'From address is Resend sandbox (@resend.dev) — use verified domain in EMAIL_FROM',
+    };
   }
 
   const recipients = Array.isArray(to) ? to : [to];

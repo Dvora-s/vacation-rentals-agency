@@ -25,7 +25,7 @@ import { selectDatabaseInfo } from './models/dbMetaModel.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { isMailerConfigured, getMailerMode } from './utils/mailer.js';
-import { getEmailFromAddress } from './utils/resendMailer.js';
+import { getMailerDiagnostics, logMailerStartup } from './utils/resendMailer.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -203,7 +203,7 @@ app.get('/api/health', async (_req, res) => {
       mailer: {
         configured: isMailerConfigured(),
         mode: getMailerMode(),
-        from_set: Boolean(getEmailFromAddress()),
+        ...getMailerDiagnostics(),
       },
       paypal,
       payme,
@@ -247,6 +247,7 @@ app.listen(PORT, HOST, () => {
       `[PayMe] חסרים משתני סביבה או תצורה חלקית: configured=${pm.configured} baseUrl=${pm.hasBaseUrl} merchantId=${pm.hasMerchantId} apiKey=${pm.hasApiKey} secret=${pm.hasSecret} webhookSecret=${pm.hasWebhookSecret}. ראו docs/PAYME_INTEGRATION.md ו־GET /api/health.`,
     );
   }
+  logMailerStartup();
   try {
     await ensureFaqSeed();
   } catch (err) {
