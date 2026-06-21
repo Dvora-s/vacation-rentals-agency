@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { PRICING_SEED_ROWS } from '../src/data/pricingSeed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.join(__dirname, '..');
@@ -71,7 +72,39 @@ async function run() {
     }
 
     const [rows] = await conn.query('SELECT COUNT(*) AS n FROM pricing_plans');
-    console.log(`\npricing_plans rows: ${rows[0].n}`);
+    if (Number(rows[0].n) === 0) {
+      console.log('Seeding default pricing plans ...');
+      for (const row of PRICING_SEED_ROWS) {
+        await conn.query(
+          `INSERT INTO pricing_plans
+           (slug, category, name, description, price, compare_at_price, currency, duration_months, duration_label,
+            features_json, highlight_type, badge_text, sort_order, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)`,
+          [
+            row.slug,
+            row.category,
+            row.name,
+            row.description,
+            row.price,
+            row.compare_at_price,
+            row.currency,
+            row.duration_months,
+            row.duration_label,
+            JSON.stringify(row.features),
+            row.highlight_type,
+            row.badge_text,
+            row.sort_order,
+            row.is_active ? 1 : 0,
+          ],
+        );
+      }
+      console.log(`  ✓ inserted ${PRICING_SEED_ROWS.length} plans`);
+    } else {
+      console.log(`  (skip seed: pricing_plans already has ${rows[0].n} rows)`);
+    }
+
+    const [countRows] = await conn.query('SELECT COUNT(*) AS n FROM pricing_plans');
+    console.log(`\npricing_plans rows: ${countRows[0].n}`);
     console.log('Done ✅');
   } finally {
     await conn.end();

@@ -17,6 +17,7 @@ import paypalOrdersRouter from './routes/paypalOrders.js';
 import { getPayPalEnvStatus } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
+import { ensurePricingSeed } from './bootstrap/ensurePricing.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
 import { logger } from './utils/logger.js';
 import { handlePayMeWebhookRequest } from './controllers/paymentController.js';
@@ -248,6 +249,11 @@ app.listen(PORT, HOST, () => {
     );
   }
   logMailerStartup();
+  try {
+    await ensurePricingSeed();
+  } catch (err) {
+    logger.warn('[pricing] Could not ensure pricing seed:', err.message);
+  }
   try {
     await ensureFaqSeed();
   } catch (err) {

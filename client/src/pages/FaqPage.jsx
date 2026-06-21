@@ -53,9 +53,10 @@ function FaqPage() {
       try {
         const data = await getFaq();
         const list = Array.isArray(data?.sections) ? data.sections : [];
+        const hasItems = list.some((section) => (section.items || []).length > 0);
         if (active) {
-          setSections(list);
-          setLoadError(null);
+          setSections(hasItems ? list : FAQ_FALLBACK.sections);
+          setLoadError(hasItems ? null : 'אין תוכן במסד — מוצג גיבוי');
         }
       } catch (err) {
         if (active) {

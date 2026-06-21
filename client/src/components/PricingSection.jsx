@@ -207,7 +207,14 @@ function mapApiPlanToCard(plan) {
     variant,
     months: plan.durationMonths,
     durationLabel: plan.durationLabel || undefined,
+    tier: plan.category === 'hotels' ? 'premium' : 'standard',
   };
+}
+
+function plansForCategory(groups, category, fallback) {
+  const apiPlans = groups?.find((g) => g.category === category)?.plans;
+  if (!apiPlans?.length) return fallback;
+  return apiPlans.map(mapApiPlanToCard);
 }
 
 function PricingSection() {
@@ -235,10 +242,8 @@ function PricingSection() {
     };
   }, []);
 
-  const hostsPlans =
-    dynamicGroups?.find((g) => g.category === 'hosts')?.plans?.map(mapApiPlanToCard) || FALLBACK_HOSTS;
-  const hotelsPlans =
-    dynamicGroups?.find((g) => g.category === 'hotels')?.plans?.map(mapApiPlanToCard) || FALLBACK_HOTELS;
+  const hostsPlans = plansForCategory(dynamicGroups, 'hosts', FALLBACK_HOSTS);
+  const hotelsPlans = plansForCategory(dynamicGroups, 'hotels', FALLBACK_HOTELS);
 
   return (
     <section className="pricing-section" aria-labelledby="pricing-heading">
