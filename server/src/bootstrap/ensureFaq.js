@@ -1,32 +1,29 @@
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
 import { FAQ_SEED_ROWS } from '../data/faqSeed.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function sanitizeSql(sql) {
-  return sql
-    .split('\n')
-    .filter((line) => {
-      const t = line.trim().toUpperCase();
-      return !t.startsWith('USE ') && !t.startsWith('CREATE DATABASE');
-    })
-    .join('\n');
-}
+import { resolveDbFile, sanitizeBootstrapSql } from '../utils/resolveDbFile.js';
 
 export async function ensureFaqSeed() {
-  const ddlPath = path.join(__dirname, '../../../db/faq_tables.sql');
-  if (!fs.existsSync(ddlPath)) {
-    console.warn('[faq] faq_tables.sql not found — skipping FAQ bootstrap');
-    return;
+  const ddlPath = resolveDbFile('faq_tables.sql');
+  if (ddlPath) {
+    await pool.query(sanitizeBootstrapSql(fs.readFileSync(ddlPath, 'utf8')));
+  } else {
+    console.warn('[faq] faq_tables.sql not found — skipping DDL (will seed if table exists)');
   }
 
-  await pool.query(sanitizeSql(fs.readFileSync(ddlPath, 'utf8')));
+  let count = 0;
+  try {
+    const [[{ n }]] = await pool.query('SELECT COUNT(*) AS n FROM faq_items');
+    count = Number(n);
+  } catch (e) {
+    if (e.code === 'ER_NO_SUCH_TABLE') {
+      console.warn('[faq] faq_items table missing — cannot seed');
+      return;
+    }
+    throw e;
+  }
 
-  const [[{ n }]] = await pool.query('SELECT COUNT(*) AS n FROM faq_items');
-  if (Number(n) > 0) {
+  if (count > 0) {
     return;
   }
 

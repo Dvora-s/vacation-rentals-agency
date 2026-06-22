@@ -27,6 +27,11 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 import { isMailerConfigured, getMailerMode } from './utils/mailer.js';
 import { getMailerDiagnostics, logMailerStartup } from './utils/resendMailer.js';
+import {
+  configureCloudinary,
+  getCloudinaryDiagnostics,
+  logCloudinaryStartup,
+} from './config/cloudinary.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -206,6 +211,7 @@ app.get('/api/health', async (_req, res) => {
         mode: getMailerMode(),
         ...getMailerDiagnostics(),
       },
+      uploads: getCloudinaryDiagnostics(),
       paypal,
       payme,
     });
@@ -249,6 +255,8 @@ app.listen(PORT, HOST, () => {
     );
   }
   logMailerStartup();
+  configureCloudinary();
+  logCloudinaryStartup();
   try {
     await ensurePricingSeed();
   } catch (err) {

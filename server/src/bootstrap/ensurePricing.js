@@ -1,32 +1,29 @@
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
 import { PRICING_SEED_ROWS } from '../data/pricingSeed.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function sanitizeSql(sql) {
-  return sql
-    .split('\n')
-    .filter((line) => {
-      const t = line.trim().toUpperCase();
-      return !t.startsWith('USE ') && !t.startsWith('CREATE DATABASE');
-    })
-    .join('\n');
-}
+import { resolveDbFile, sanitizeBootstrapSql } from '../utils/resolveDbFile.js';
 
 export async function ensurePricingSeed() {
-  const ddlPath = path.join(__dirname, '../../../db/pricing_tables.sql');
-  if (!fs.existsSync(ddlPath)) {
-    console.warn('[pricing] pricing_tables.sql not found — skipping pricing bootstrap');
-    return;
+  const ddlPath = resolveDbFile('pricing_tables.sql');
+  if (ddlPath) {
+    await pool.query(sanitizeBootstrapSql(fs.readFileSync(ddlPath, 'utf8')));
+  } else {
+    console.warn('[pricing] pricing_tables.sql not found — skipping DDL (will seed if table exists)');
   }
 
-  await pool.query(sanitizeSql(fs.readFileSync(ddlPath, 'utf8')));
+  let count = 0;
+  try {
+    const [[{ n }]] = await pool.query('SELECT COUNT(*) AS n FROM pricing_plans');
+    count = Number(n);
+  } catch (e) {
+    if (e.code === 'ER_NO_SUCH_TABLE') {
+      console.warn('[pricing] pricing_plans table missing — cannot seed');
+      return;
+    }
+    throw e;
+  }
 
-  const [[{ n }]] = await pool.query('SELECT COUNT(*) AS n FROM pricing_plans');
-  if (Number(n) > 0) {
+  if (count > 0) {
     return;
   }
 
@@ -35,7 +32,7 @@ export async function ensurePricingSeed() {
       `INSERT INTO pricing_plans
        (slug, category, name, description, price, compare_at_price, currency, duration_months, duration_label,
         features_json, highlight_type, badge_text, sort_order, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         row.slug,
         row.category,
