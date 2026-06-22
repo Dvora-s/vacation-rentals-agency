@@ -7,6 +7,7 @@
 import https from 'node:https';
 
 const DEFAULT_SANDBOX_BASE = 'https://api-m.sandbox.paypal.com';
+const DEFAULT_LIVE_BASE = 'https://api-m.paypal.com';
 
 /** מסיר רווחים, BOM, תווים בלתי־נראים ומירכאות שגויות מסביב לערך מ־.env */
 function cleanEnvValue(v) {
@@ -122,22 +123,56 @@ function hintPayPalTlsIfFetchFailed(message) {
   return '';
 }
 
+function resolvePayPalMode() {
+  const explicit = readEnvTrimmedKey('PAYPAL_MODE').toLowerCase();
+  if (explicit === 'live' || explicit === 'production') return 'live';
+  if (explicit === 'sandbox' || explicit === 'test') return 'sandbox';
+  const base = readEnvTrimmedKey('PAYPAL_API_BASE').toLowerCase();
+  if (base.includes('sandbox')) return 'sandbox';
+  if (base.includes('api-m.paypal.com')) return 'live';
+  return 'sandbox';
+}
+
 function getApiBase() {
-  const raw = (process.env.PAYPAL_API_BASE || '').trim();
-  return raw || DEFAULT_SANDBOX_BASE;
+  const raw = readEnvTrimmedKey('PAYPAL_API_BASE');
+  if (raw) return raw;
+  return resolvePayPalMode() === 'live' ? DEFAULT_LIVE_BASE : DEFAULT_SANDBOX_BASE;
 }
 
 /** לבדיקת `/api/health` — בלי חשיפת ערכים */
 export function getPayPalEnvStatus() {
   const id = readEnvTrimmedKey('PAYPAL_CLIENT_ID');
   const secret = readEnvTrimmedKey('PAYPAL_CLIENT_SECRET');
+  const mode = resolvePayPalMode();
+  const configured = Boolean(id && secret);
+  const missing = [];
+  if (!id) missing.push('PAYPAL_CLIENT_ID');
+  if (!secret) missing.push('PAYPAL_CLIENT_SECRET');
+
   return {
-    configured: Boolean(id && secret),
+    configured,
     hasClientId: Boolean(id),
     hasClientSecret: Boolean(secret),
+    mode,
+    apiBase: getApiBase(),
     /** true רק בפיתוח כש־PAYPAL_TLS_INSECURE מופעל */
     tlsInsecureDev: payPalTlsInsecureEnabled(),
+    missing,
+    setupHint: configured
+      ? null
+      : 'Railway: הוסיפו PAYPAL_CLIENT_ID ו-PAYPAL_CLIENT_SECRET (אותה אפליקציה כמו VITE_PAYPAL_CLIENT_ID ב-Vercel).',
   };
+}
+
+export function logPayPalStartup() {
+  const s = getPayPalEnvStatus();
+  if (s.configured) {
+    console.info(`[PayPal] מוכן (${s.mode}) → ${s.apiBase}`);
+    return;
+  }
+  console.warn(
+    `[PayPal] לא מוגדר: חסרים ${s.missing.join(', ') || 'משתני סביבה'}. ${s.setupHint} GET /api/health → paypal.`,
+  );
 }
 
 function requireCredentials() {

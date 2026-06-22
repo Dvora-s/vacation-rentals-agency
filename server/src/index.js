@@ -14,7 +14,7 @@ import faqAdminRouter from './routes/faqAdmin.js';
 import locationsRouter from './routes/locations.js';
 import contentRouter from './routes/content.js';
 import paypalOrdersRouter from './routes/paypalOrders.js';
-import { getPayPalEnvStatus } from './services/paypalRest.js';
+import { getPayPalEnvStatus, logPayPalStartup } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
 import { ensurePricingSeed } from './bootstrap/ensurePricing.js';
@@ -242,12 +242,7 @@ app.use(errorHandler);
 app.listen(PORT, HOST, () => {
   logger.info(`Server running on http://${HOST}:${PORT}`);
   void (async () => {
-  const pp = getPayPalEnvStatus();
-  if (!pp.configured) {
-    logger.warn(
-      `[PayPal] חסרים משתני סביבה: hasClientId=${pp.hasClientId} hasClientSecret=${pp.hasClientSecret}. בדקו server/.env (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET) והפעלה מחדש. GET /api/health מחזיר את אותו סטטוס.`,
-    );
-  }
+  logPayPalStartup();
   const pm = getPayMeEnvStatus();
   if (!pm.configured) {
     logger.warn(

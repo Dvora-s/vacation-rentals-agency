@@ -348,9 +348,9 @@ export async function resetSiteContent(key) {
 
 // ────────── PayPal (Orders API — create + capture via backend) ──────────
 export async function createPayPalOrder(body) {
-  return apiFetch('/orders', { method: 'POST', body });
+  return apiFetch('/orders', { method: 'POST', body, auth: true });
 }
 
 export async function capturePayPalOrder(orderID) {
-  return apiFetch(`/orders/${encodeURIComponent(orderID)}/capture`, { method: 'POST' });
+  return apiFetch(`/orders/${encodeURIComponent(orderID)}/capture`, { method: 'POST', auth: true });
 }

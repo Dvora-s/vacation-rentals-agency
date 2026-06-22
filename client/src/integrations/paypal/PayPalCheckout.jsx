@@ -3,6 +3,11 @@ import { capturePayPalOrder, createPayPalOrder } from '../../services/api.js';
 import './PayPalCheckout.css';
 
 const clientId = String(import.meta.env.VITE_PAYPAL_CLIENT_ID ?? '').trim();
+const payPalMode = String(import.meta.env.VITE_PAYPAL_MODE ?? 'sandbox').trim().toLowerCase();
+const payPalSdkHost =
+  payPalMode === 'live' || payPalMode === 'production'
+    ? 'https://www.paypal.com'
+    : 'https://www.sandbox.paypal.com';
 
 /** Load official PayPal JS SDK from CDN (no extra npm package — avoids registry TLS issues). */
 function loadPayPalScript(cid, currency) {
@@ -28,7 +33,15 @@ function loadPayPalScript(cid, currency) {
     const script = document.createElement('script');
     script.setAttribute('data-nofesh-paypal-sdk', '1');
     script.async = true;
-    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cid)}&currency=${encodeURIComponent(currency)}&intent=capture`;
+    const params = new URLSearchParams({
+      'client-id': cid,
+      currency,
+      intent: 'capture',
+      locale: 'he_IL',
+      'buyer-country': 'IL',
+      components: 'buttons',
+    });
+    script.src = `${payPalSdkHost}/sdk/js?${params.toString()}`;
     script.onload = () => {
       if (window.paypal) resolve(window.paypal);
       else reject(new Error('PayPal SDK loaded but window.paypal is missing'));
@@ -97,12 +110,12 @@ export default function PayPalCheckout({
               currency_code: currencyCode,
               value: value.toFixed(2),
             });
-            if (!data?.id) {
+            if (!data?.id && !data?.orderID) {
               const err = new Error('השרת לא החזיר מזהה הזמנה מ־PayPal');
               handleError(err);
               throw err;
             }
-            return data.id;
+            return data.id || data.orderID;
           },
           onApprove: async (data) => {
             try {

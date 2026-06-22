@@ -93,7 +93,12 @@ export async function createListingPayment(req, res) {
             },
           ],
           total: amount,
-          paymentMethod: 'תשלום מאובטח בכרטיס אשראי',
+          paymentMethod:
+            provider === 'paypal'
+              ? 'תשלום מאובטח ב־PayPal'
+              : provider === 'payme'
+                ? 'תשלום מאובטח בכרטיס אשראי (PayMe)'
+                : 'תשלום מאובטח בכרטיס אשראי',
           billing: { name: billingName, address: billingAddress, email: billingEmail },
         },
       });
