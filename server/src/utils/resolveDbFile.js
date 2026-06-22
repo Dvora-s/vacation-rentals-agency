@@ -22,3 +22,16 @@ export function sanitizeBootstrapSql(sql) {
     })
     .join('\n');
 }
+
+/** מריץ DDL — statement אחד בכל פעם (pool ללא multipleStatements). */
+export async function executeBootstrapSql(pool, sql) {
+  const cleaned = sanitizeBootstrapSql(sql);
+  const statements = cleaned
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of statements) {
+    await pool.query(stmt);
+  }
+}

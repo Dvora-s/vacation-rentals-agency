@@ -1,12 +1,12 @@
 import fs from 'fs';
 import pool from '../config/db.js';
 import { FAQ_SEED_ROWS } from '../data/faqSeed.js';
-import { resolveDbFile, sanitizeBootstrapSql } from '../utils/resolveDbFile.js';
+import { executeBootstrapSql, resolveDbFile } from '../utils/resolveDbFile.js';
 
 export async function ensureFaqSeed() {
   const ddlPath = resolveDbFile('faq_tables.sql');
   if (ddlPath) {
-    await pool.query(sanitizeBootstrapSql(fs.readFileSync(ddlPath, 'utf8')));
+    await executeBootstrapSql(pool, fs.readFileSync(ddlPath, 'utf8'));
   } else {
     console.warn('[faq] faq_tables.sql not found — skipping DDL (will seed if table exists)');
   }

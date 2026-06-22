@@ -1,12 +1,12 @@
 import fs from 'fs';
 import pool from '../config/db.js';
 import { PRICING_SEED_ROWS } from '../data/pricingSeed.js';
-import { resolveDbFile, sanitizeBootstrapSql } from '../utils/resolveDbFile.js';
+import { executeBootstrapSql, resolveDbFile } from '../utils/resolveDbFile.js';
 
 export async function ensurePricingSeed() {
   const ddlPath = resolveDbFile('pricing_tables.sql');
   if (ddlPath) {
-    await pool.query(sanitizeBootstrapSql(fs.readFileSync(ddlPath, 'utf8')));
+    await executeBootstrapSql(pool, fs.readFileSync(ddlPath, 'utf8'));
   } else {
     console.warn('[pricing] pricing_tables.sql not found — skipping DDL (will seed if table exists)');
   }
@@ -32,7 +32,7 @@ export async function ensurePricingSeed() {
       `INSERT INTO pricing_plans
        (slug, category, name, description, price, compare_at_price, currency, duration_months, duration_label,
         features_json, highlight_type, badge_text, sort_order, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)`,
       [
         row.slug,
         row.category,
