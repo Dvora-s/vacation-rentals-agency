@@ -12,7 +12,7 @@ export default function RejectedListingActions({
   showResubmitButton = true,
   className = '',
 }) {
-  if (!apartment || apartment.status !== 'rejected') return null;
+  if (!apartment || String(apartment.status || '').toLowerCase() !== 'rejected') return null;
 
   return (
     <div className={`rejected-listing-actions ${className}`.trim()} role="region" aria-label="דירה שנדחתה">

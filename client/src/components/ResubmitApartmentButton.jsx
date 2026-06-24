@@ -12,7 +12,9 @@ export default function ResubmitApartmentButton({
 }) {
   const [busy, setBusy] = useState(false);
 
-  if (!apartment || apartment.status !== 'rejected') return null;
+  if (!apartment) return null;
+  const isRejected = String(apartment.status || '').toLowerCase() === 'rejected';
+  if (!isRejected) return null;
 
   async function handleClick() {
     if (!confirm('לשלוח את הדירה שוב לאישור המנהל?')) return;

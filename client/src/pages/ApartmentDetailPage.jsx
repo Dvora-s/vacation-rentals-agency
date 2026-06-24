@@ -128,7 +128,7 @@ function ApartmentDetailPage() {
           >
             ✎ עריכת דירה
           </Link>
-          {isOwner && !isAdmin && apartment.status === 'rejected' && (
+          {isOwner && apartment.status === 'rejected' && (
             <ResubmitApartmentButton
               apartment={apartment}
               onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
@@ -142,11 +142,11 @@ function ApartmentDetailPage() {
         </div>
       )}
 
-      {isOwner && !isAdmin && apartment.status === 'rejected' && (
+      {isOwner && apartment.status === 'rejected' && (
         <RejectedListingActions
           apartment={apartment}
           onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
-          showEditLink={false}
+          showEditLink
           className="detail-rejected-actions"
         />
       )}

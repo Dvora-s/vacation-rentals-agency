@@ -222,6 +222,12 @@
   align-items: center;
 }
 
+.rejected-listing-actions__buttons .btn-primary {
+  font-size: 0.95rem;
+  padding: 0.55rem 1.25rem;
+  font-weight: 700;
+}
+
 .my-apt-rejected-block {
   margin-bottom: 0.5rem;
 }

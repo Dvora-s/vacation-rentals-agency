@@ -4,12 +4,13 @@ import ApartmentForm from '../components/ApartmentForm';
 import RejectedListingActions from '../components/RejectedListingActions';
 import { getApartmentById, resubmitApartmentForApproval, updateApartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { isApartmentOwner } from '../utils/apartmentOwnership';
 import '../pages/MyApartmentsPage.css';
 
 function EditApartmentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,11 +18,13 @@ function EditApartmentPage() {
   const [resubmitting, setResubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const isRejectedOwner = apartment?.status === 'rejected' && !isAdmin;
-  const isAwaitingPayment = apartment?.status === 'awaiting_payment' && !isAdmin;
+  const isRejected = apartment?.status === 'rejected';
+  const isOwner = apartment && isApartmentOwner(apartment, user);
+  const canResubmit = isRejected && isOwner;
+  const isAwaitingPayment = apartment?.status === 'awaiting_payment' && isOwner && !isAdmin;
 
   function editSubtitle() {
-    if (isRejectedOwner) {
+    if (canResubmit) {
       return 'עדכנו את הפרטים לפי סיבת הדחייה. "שמירת שינויים" שומרת בלי לשלוח לאישור; "שליחה לאישור מחדש" שומרת ושולחת למנהל.';
     }
     if (isAwaitingPayment) {
@@ -48,7 +51,7 @@ function EditApartmentPage() {
     try {
       const updated = await updateApartment(id, payload);
       setApartment(updated);
-      if (isRejectedOwner) {
+      if (canResubmit) {
         setSaveSuccess(true);
       } else {
         navigate(isAdmin ? `/apartments/${id}` : '/my-apartments');
@@ -94,15 +97,19 @@ function EditApartmentPage() {
       <h1 className="page-title">עריכת דירה</h1>
       <p className="page-subtitle">{editSubtitle()}</p>
 
-      {isRejectedOwner && (
+      {canResubmit && (
         <RejectedListingActions
           apartment={apartment}
           showEditLink={false}
-          showResubmitButton={false}
+          showResubmitButton
+          onResubmitted={(updated) => {
+            setApartment(updated);
+            navigate('/my-apartments');
+          }}
         />
       )}
 
-      {apartment?.status === 'rejected' && isAdmin && (
+      {isRejected && isAdmin && !isOwner && (
         <p className="my-apt-reject" role="status">
           <strong>הדירה נדחתה.</strong>{' '}
           {apartment.rejection_reason
@@ -120,12 +127,12 @@ function EditApartmentPage() {
       <ApartmentForm
         apartment={apartment}
         onSubmit={handleSubmit}
-        onSecondarySubmit={isRejectedOwner ? handleResubmitForApproval : undefined}
+        onSecondarySubmit={canResubmit ? handleResubmitForApproval : undefined}
         submitting={submitting}
         secondarySubmitting={resubmitting}
         error={error}
         submitLabel="שמירת שינויים"
-        secondarySubmitLabel={isRejectedOwner ? 'שליחה לאישור מחדש' : undefined}
+        secondarySubmitLabel={canResubmit ? 'שליחה לאישור מחדש' : undefined}
       />
     </div>
   );
