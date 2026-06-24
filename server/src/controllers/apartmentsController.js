@@ -270,29 +270,9 @@ export async function update(req, res) {
     updates.push('approved_at = NULL');
   }
 
-  const resubmitRejectedOnSave =
-    req.user.role !== 'admin' && apt.status === 'rejected' && updates.length > 0;
-  if (resubmitRejectedOnSave) {
-    updates.push('status = ?');
-    values.push('pending');
-    updates.push('rejection_reason = NULL');
-    updates.push('approved_at = NULL');
-  }
-
   if (updates.length > 0) {
     values.push(req.params.id);
     await updateApartmentDynamic(updates, values);
-  }
-
-  if (resubmitRejectedOnSave) {
-    try {
-      await notifyAdminNewListing(req.params.id, {
-        userId: req.user.id,
-        userEmail: req.user.email,
-      });
-    } catch (err) {
-      console.error('[mailer] התראת שליחה חוזרת אחרי עריכה נכשלה:', err.message);
-    }
   }
 
   const updated = await selectApartmentById(req.params.id);

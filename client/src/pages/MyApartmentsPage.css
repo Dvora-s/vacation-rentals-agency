@@ -226,6 +226,15 @@
   margin-bottom: 0.5rem;
 }
 
+.edit-apt-save-success {
+  background: #f6ffed;
+  color: #389e0d;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
 .detail-rejected-actions {
   margin-bottom: 1.25rem;
 }

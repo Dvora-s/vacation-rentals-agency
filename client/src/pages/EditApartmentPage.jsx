@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import RejectedListingActions from '../components/RejectedListingActions';
-import { getApartmentById, updateApartment } from '../services/api';
+import { getApartmentById, resubmitApartmentForApproval, updateApartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../pages/MyApartmentsPage.css';
 
@@ -14,6 +14,10 @@ function EditApartmentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const isRejectedOwner = apartment?.status === 'rejected' && !isAdmin;
 
   useEffect(() => {
     setLoading(true);
@@ -25,14 +29,37 @@ function EditApartmentPage() {
 
   async function handleSubmit(payload) {
     setError(null);
+    setSaveSuccess(false);
     setSubmitting(true);
     try {
-      await updateApartment(id, payload);
-      navigate(isAdmin ? `/apartments/${id}` : '/my-apartments');
+      const updated = await updateApartment(id, payload);
+      setApartment(updated);
+      if (isRejectedOwner) {
+        setSaveSuccess(true);
+      } else {
+        navigate(isAdmin ? `/apartments/${id}` : '/my-apartments');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResubmitForApproval(payload) {
+    if (!confirm('לשלוח את הדירה שוב לאישור המנהל?')) return;
+    setError(null);
+    setSaveSuccess(false);
+    setResubmitting(true);
+    try {
+      await updateApartment(id, payload);
+      const updated = await resubmitApartmentForApproval(id);
+      setApartment(updated);
+      navigate('/my-apartments');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResubmitting(false);
     }
   }
 
@@ -52,16 +79,16 @@ function EditApartmentPage() {
     <div className="list-apt-page section-container">
       <h1 className="page-title">עריכת דירה</h1>
       <p className="page-subtitle">
-        {apartment?.status === 'rejected' && !isAdmin
-          ? 'עדכנו את הפרטים לפי סיבת הדחייה, שמרו — או לחצו "שליחה חוזרת לאישור".'
+        {isRejectedOwner
+          ? 'עדכנו את הפרטים לפי סיבת הדחייה. "שמירת שינויים" שומרת בלי לשלוח לאישור; "שליחה לאישור מחדש" שומרת ושולחת למנהל.'
           : 'שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).'}
       </p>
 
-      {apartment?.status === 'rejected' && !isAdmin && (
+      {isRejectedOwner && (
         <RejectedListingActions
           apartment={apartment}
-          onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
           showEditLink={false}
+          showResubmitButton={false}
         />
       )}
 
@@ -74,12 +101,21 @@ function EditApartmentPage() {
         </p>
       )}
 
+      {saveSuccess && (
+        <p className="edit-apt-save-success" role="status">
+          השינויים נשמרו. כשתהיו מוכנים, לחצו על "שליחה לאישור מחדש".
+        </p>
+      )}
+
       <ApartmentForm
         apartment={apartment}
         onSubmit={handleSubmit}
+        onSecondarySubmit={isRejectedOwner ? handleResubmitForApproval : undefined}
         submitting={submitting}
+        secondarySubmitting={resubmitting}
         error={error}
         submitLabel="שמירת שינויים"
+        secondarySubmitLabel={isRejectedOwner ? 'שליחה לאישור מחדש' : undefined}
       />
     </div>
   );

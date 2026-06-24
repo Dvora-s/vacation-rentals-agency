@@ -203,6 +203,13 @@
   flex: 1;
 }
 
+.apt-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .apt-submit {
   align-self: flex-start;
 }

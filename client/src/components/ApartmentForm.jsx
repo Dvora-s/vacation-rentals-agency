@@ -58,7 +58,16 @@ function buildInitial(apartment) {
   };
 }
 
-function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) {
+function ApartmentForm({
+  apartment,
+  onSubmit,
+  onSecondarySubmit,
+  submitting,
+  secondarySubmitting = false,
+  submitLabel,
+  secondarySubmitLabel,
+  error,
+}) {
   const [form, setForm] = useState(() => buildInitial(apartment));
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -127,28 +136,26 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
     setUrlInput('');
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  function buildPayload() {
     setFormError(null);
 
-    // מעל סף המיטות לנכס שאינו "מתחמי אירוח" — חוסם המשך.
     if (
       form.property_type !== COMPLEX_PROPERTY_TYPE &&
       Number(form.max_guests) > MAX_GUESTS_NON_COMPLEX
     ) {
       setFormError('אופס, יותר מדי מיטות זה מתחמי אירוח.');
-      return;
+      return null;
     }
 
     const images = form.images.filter(Boolean);
-    // שמירת הקטגוריות בסדר הקבוע של CATEGORIES, מופרדות בפסיק.
     const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
       (c) => c.label,
     );
     const rental_period = orderedCats.length > 0 ? orderedCats.join(', ') : ALL_YEAR_LABEL;
     const address =
       [form.street.trim(), String(form.house_number).trim()].filter(Boolean).join(' ') || null;
-    onSubmit({
+
+    return {
       title: form.title.trim(),
       description: form.description.trim() || null,
       location: form.location.trim(),
@@ -166,7 +173,19 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
       owner_email: form.owner_email.trim() || null,
       contact_via_whatsapp: !!form.contact_via_whatsapp,
       is_available: !!form.is_available,
-    });
+    };
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const payload = buildPayload();
+    if (payload) onSubmit(payload);
+  }
+
+  function handleSecondary(e) {
+    e.preventDefault();
+    const payload = buildPayload();
+    if (payload) onSecondarySubmit?.(payload);
   }
 
   return (
@@ -449,9 +468,21 @@ function ApartmentForm({ apartment, onSubmit, submitting, submitLabel, error }) 
         </div>
       </fieldset>
 
-      <button type="submit" className="btn-primary apt-submit" disabled={submitting}>
-        {submitting ? 'שומרת...' : submitLabel || 'שמירה'}
-      </button>
+      <div className="apt-form-actions">
+        <button type="submit" className="btn-primary apt-submit" disabled={submitting || secondarySubmitting}>
+          {submitting ? 'שומרת...' : submitLabel || 'שמירה'}
+        </button>
+        {onSecondarySubmit && secondarySubmitLabel && (
+          <button
+            type="button"
+            className="btn-outline-gold apt-submit-secondary"
+            onClick={handleSecondary}
+            disabled={submitting || secondarySubmitting}
+          >
+            {secondarySubmitting ? 'שולחת...' : secondarySubmitLabel}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
