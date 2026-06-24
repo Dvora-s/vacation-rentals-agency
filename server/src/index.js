@@ -31,6 +31,7 @@ import {
   configureCloudinary,
   getCloudinaryDiagnostics,
   logCloudinaryStartup,
+  verifyCloudinaryOnStartup,
 } from './config/cloudinary.js';
 
 const app = express();
@@ -252,6 +253,11 @@ app.listen(PORT, HOST, () => {
   logMailerStartup();
   configureCloudinary();
   logCloudinaryStartup();
+  try {
+    await verifyCloudinaryOnStartup();
+  } catch (err) {
+    logger.warn('[uploads] Cloudinary verify:', err.message);
+  }
   try {
     await ensurePricingSeed();
   } catch (err) {

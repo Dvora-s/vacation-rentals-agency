@@ -27,7 +27,12 @@ export function getPayMeConfig() {
 
 function optionalTrim(v) {
   if (v === undefined || v === null) return undefined;
-  const s = String(v).trim();
+  let s = String(v).replace(/^\uFEFF/g, '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  // כותרות HTTP חייבות להיות ASCII — מונע שגיאת ByteString כשמדביקים עם תווים עבריים/חצים
+  s = s.replace(/[^\x20-\x7E]/g, '');
   return s === '' ? undefined : s;
 }
 

@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import {
   configureCloudinary,
+  formatCloudinaryUploadError,
   isCloudinaryConfigured,
 } from '../config/cloudinary.js';
 import { uploadFilesToCloudinary } from '../services/cloudinaryUpload.js';
@@ -80,7 +81,7 @@ export async function postImages(req, res) {
     } catch (uploadErr) {
       console.error('[uploads] Cloudinary upload failed:', uploadErr.message);
       return res.status(502).json({
-        error: 'העלאת התמונות לענן נכשלה. בדקו את הגדרות Cloudinary בשרת.',
+        error: formatCloudinaryUploadError(uploadErr),
       });
     }
   });
