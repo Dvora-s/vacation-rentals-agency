@@ -1,6 +1,7 @@
 import { sendPaymentReceiptEmail } from '../utils/mailer.js';
 import { getPlanAmount, isPremiumApartment } from '../config/pricing.js';
-import { updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
+import { markApartmentPendingForReview, updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
+import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import {
   insertListingPaymentRow,
   selectAllListingPaymentsAdmin,
@@ -71,6 +72,20 @@ export async function createListingPayment(req, res) {
     periodEnd,
     wasExpired: apt.status === 'expired',
   });
+
+  if (apt.status === 'awaiting_payment') {
+    const moved = await markApartmentPendingForReview(apartment_id);
+    if (moved) {
+      try {
+        await notifyAdminNewListing(apartment_id, {
+          userId: req.user.id,
+          userEmail: req.user.email,
+        });
+      } catch (err) {
+        console.error('[mailer] התראת דירה חדשה למנהל אחרי תשלום נכשלה:', err.message);
+      }
+    }
+  }
 
   (async () => {
     try {

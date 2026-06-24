@@ -8,6 +8,7 @@ import {
   deleteApartmentImages,
   insertApartmentImagesRows,
   insertApartmentPending,
+  markApartmentPendingForReview,
   rejectApartmentRow,
   selectApartmentById,
   selectApprovedApartments,
@@ -15,27 +16,16 @@ import {
   selectPendingApartments,
   updateApartmentDynamic,
 } from '../models/apartmentModel.js';
-import { signApproveToken, verifyApproveToken } from '../middlewares/auth.js';
+import { verifyApproveToken } from '../middlewares/auth.js';
 import {
-  sendNewListingToAdmin,
   sendListingLiveEmail,
   sendListingInquiryEmail,
 } from '../utils/mailer.js';
+import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
-import {
-  selectAdminEmailsFromDb,
-  selectUserContactById,
-  selectUserPublisherFields,
-} from '../models/userModel.js';
+import { selectUserContactById } from '../models/userModel.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-const PUBLIC_API_URL = (process.env.PUBLIC_API_URL || `${APP_URL}/api`).replace(/\/$/, '');
-
-function absoluteImageUrl(url) {
-  if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${APP_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-}
 
 async function resolveOwnerContact(apt) {
   let ownerEmail = apt.owner_email || null;
@@ -48,14 +38,6 @@ async function resolveOwnerContact(apt) {
     }
   }
   return { ownerEmail, ownerName };
-}
-
-async function getAdminEmails() {
-  if (process.env.ADMIN_NOTIFY_EMAIL) {
-    return process.env.ADMIN_NOTIFY_EMAIL.split(',').map((e) => e.trim()).filter(Boolean);
-  }
-  const emails = await selectAdminEmailsFromDb();
-  return emails.filter((email) => !email.endsWith('.local'));
 }
 
 export async function listPublic(_req, res) {
@@ -191,45 +173,37 @@ export async function create(req, res) {
   const row = await selectApartmentById(insertId);
   const apartment = await attachImagesToApartment(row);
 
-  (async () => {
-    try {
-      const adminEmails = await getAdminEmails();
-      if (adminEmails.length === 0) return;
-
-      let publisherName = body.owner_name || null;
-      let publisherEmail = body.owner_email || null;
-      let publisherPhone = body.owner_phone || null;
-      if (!publisherName || !publisherEmail) {
-        const u = await selectUserPublisherFields(req.user.id);
-        publisherName = publisherName || u?.full_name || req.user.email;
-        publisherEmail = publisherEmail || u?.email || req.user.email;
-        publisherPhone = publisherPhone || u?.phone || null;
-      }
-
-      const approveToken = signApproveToken({ id: apartment.id });
-      const approveUrl = `${PUBLIC_API_URL}/apartments/${apartment.id}/email-approve?token=${encodeURIComponent(approveToken)}`;
-      const adminPanelUrl = `${APP_URL}/admin`;
-
-      const emailApartment = {
-        ...apartment,
-        images: (apartment.images || []).map(absoluteImageUrl).filter(Boolean),
-      };
-
-      await sendNewListingToAdmin({
-        to: adminEmails.join(', '),
-        apartment: emailApartment,
-        publisherName,
-        publisherPhone,
-        publisherEmail,
-        approveUrl,
-        adminPanelUrl,
-      });
-    } catch (err) {
-      console.error('[mailer] התראת דירה חדשה למנהל נכשלה:', err.message);
-    }
-  })();
-
   res.status(201).json(apartment);
+}
+
+/** שליחה חוזרת לאישור מנהל (דירה שנדחתה) */
+export async function resubmitForApproval(req, res) {
+  const apt = await loadOwnedApartment(req, res);
+  if (!apt) return;
+
+  if (apt.status !== 'rejected') {
+    return res.status(400).json({
+      error: 'ניתן לשלוח שוב לאישור רק דירה שנדחתה על ידי המנהל',
+    });
+  }
+
+  const moved = await markApartmentPendingForReview(req.params.id);
+  if (!moved) {
+    return res.status(400).json({ error: 'לא ניתן לעדכן את סטטוס הדירה' });
+  }
+
+  try {
+    await notifyAdminNewListing(req.params.id, {
+      userId: req.user.id,
+      userEmail: req.user.email,
+    });
+  } catch (err) {
+    console.error('[mailer] התראת שליחה חוזרת למנהל נכשלה:', err.message);
+    return res.status(502).json({ error: 'הדירה עודכנה אך שליחת ההתראה למנהל נכשלה. נסו שוב.' });
+  }
+
+  const row = await selectApartmentById(req.params.id);
+  res.json(await attachImagesToApartment(row));
 }
 
 async function loadOwnedApartment(req, res) {

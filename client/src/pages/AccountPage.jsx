@@ -6,11 +6,13 @@ import {
   deleteApartment,
   getMyPayments,
   getMyContactMessages,
+  resubmitApartmentForApproval,
 } from '../services/api';
 import './MyApartmentsPage.css';
 import './AccountPage.css';
 
 const STATUS_LABEL = {
+  awaiting_payment: 'ממתינה לתשלום',
   pending: 'ממתינה לאישור מנהל',
   approved: 'מאושרת ומפורסמת',
   rejected: 'נדחתה',
@@ -87,6 +89,16 @@ function ApartmentsTab() {
     }
   }
 
+  async function handleResubmit(id) {
+    if (!confirm('לשלוח את הדירה שוב לאישור המנהל?')) return;
+    try {
+      const updated = await resubmitApartmentForApproval(id);
+      setApartments((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   if (loading) return <p className="loading-text">טוען...</p>;
   if (error) return <div className="auth-error">{error}</div>;
 
@@ -124,6 +136,20 @@ function ApartmentsTab() {
               <p className="my-apt-reject">תוקף הפרסום פג והמודעה הושעתה. ניתן לחדש את הפרסום בתשלום.</p>
             )}
             <div className="my-apt-actions">
+              {apt.status === 'awaiting_payment' && (
+                <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
+                  המשך לתשלום
+                </Link>
+              )}
+              {apt.status === 'rejected' && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleResubmit(apt.id)}
+                >
+                  שליחה חוזרת לאישור
+                </button>
+              )}
               {apt.status === 'expired' && (
                 <Link to={`/my-apartments/${apt.id}/renew`} className="btn-primary">
                   חדש מודעה בתשלום

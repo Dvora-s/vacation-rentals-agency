@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import './ApartmentDetailPage.css';
 
 const STATUS_LABELS = {
+  awaiting_payment: 'ממתינה לתשלום',
   pending: 'ממתין לאישור',
   approved: 'מפורסם',
   rejected: 'נדחה',

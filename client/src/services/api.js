@@ -136,6 +136,10 @@ export async function rejectApartment(id, reason) {
   });
 }
 
+export async function resubmitApartmentForApproval(id) {
+  return apiFetch(`/apartments/${id}/resubmit-for-approval`, { method: 'POST', auth: true });
+}
+
 // ────────── העלאת תמונות ──────────
 export async function uploadImages(files) {
   const list = Array.from(files || []).filter(Boolean);

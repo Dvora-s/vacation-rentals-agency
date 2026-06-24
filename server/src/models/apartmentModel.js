@@ -68,7 +68,13 @@ export async function selectMineApartments(userId, emailLower) {
 
 export async function selectPendingApartments() {
   const [rows] = await pool.query(
-    "SELECT * FROM apartments WHERE status = 'pending' ORDER BY created_at ASC",
+    `SELECT a.* FROM apartments a
+     WHERE a.status = 'pending'
+       AND EXISTS (
+         SELECT 1 FROM listing_payments lp
+         WHERE lp.apartment_id = a.id AND lp.status = 'paid'
+       )
+     ORDER BY a.created_at ASC`,
   );
   return rows;
 }
@@ -103,7 +109,7 @@ export async function insertApartmentPending({
        price_per_night, bedrooms, bathrooms, max_guests, rating, image_url,
        owner_name, owner_phone, owner_email, contact_via_whatsapp,
        is_available, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_payment')`,
     [
       owner_id,
       title,
@@ -170,6 +176,17 @@ export async function rejectApartmentRow(id, reason) {
      WHERE id = ?`,
     [reason, id],
   );
+}
+
+/** אחרי תשלום ראשון או שליחה חוזרת מבעלים — מעביר לאישור מנהל */
+export async function markApartmentPendingForReview(id) {
+  const [result] = await pool.query(
+    `UPDATE apartments
+     SET status = 'pending', rejection_reason = NULL, approved_at = NULL
+     WHERE id = ? AND status IN ('awaiting_payment', 'rejected')`,
+    [id],
+  );
+  return result.affectedRows > 0;
 }
 
 export async function updateApartmentExpiryFromPayment({ apartmentId, periodEnd, wasExpired }) {

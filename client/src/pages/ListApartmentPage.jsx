@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
-import { createApartment } from '../services/api';
+import { createApartment, getApartmentById } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
 import {
@@ -38,6 +38,44 @@ function ListApartmentPage() {
     }
   }, [searchParams, setSearchParams]);
 
+  const resumePaymentForApartment = useCallback(async (apt) => {
+    const mustPremium = requiresPremium(apt);
+    const effectiveTier = mustPremium ? 'premium' : 'standard';
+    const planList = effectiveTier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
+    let initialPlanId = planList[0].id;
+    if (selectedPlan) {
+      const match = planList.find((p) => p.months === selectedPlan.months);
+      if (match) initialPlanId = match.id;
+    }
+    setCreatedApt(apt);
+    setTier(effectiveTier);
+    setPlanId(initialPlanId);
+    setPremiumForced(mustPremium && (selectedPlan?.tier || 'standard') !== 'premium');
+    setStep('payment');
+  }, [selectedPlan]);
+
+  useEffect(() => {
+    const resumeId = searchParams.get('resume');
+    if (!resumeId || !user) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const apt = await getApartmentById(resumeId);
+        if (cancelled) return;
+        if (apt.status !== 'awaiting_payment') {
+          setError('הדירה כבר שולמה או אינה ממתינה לתשלום.');
+          return;
+        }
+        await resumePaymentForApartment(apt);
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, user, resumePaymentForApartment]);
+
   usePayMeListingReturn({
     validatePending: useCallback((p) => p.flow === 'list_apartment' && Number(p.apartmentId) > 0, []),
     onPaid: useCallback((pending) => {
@@ -67,24 +105,7 @@ function ListApartmentPage() {
         owner_email: payload.owner_email || user?.email || null,
         owner_phone: payload.owner_phone || user?.phone || null,
       });
-      setCreatedApt(apt);
-
-      // תעריף נקבע לפי סוג הנכס: "מתחמי אירוח" => פרימיום.
-      const mustPremium = requiresPremium(apt);
-      const effectiveTier = mustPremium ? 'premium' : 'standard';
-      const planList = effectiveTier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
-
-      // ברירת מחדל: המסלול שנבחר במחירון (אם תואם ל-tier), אחרת הראשון ברשימה.
-      let initialPlanId = planList[0].id;
-      if (selectedPlan) {
-        const match = planList.find((p) => p.months === selectedPlan.months);
-        if (match) initialPlanId = match.id;
-      }
-
-      setTier(effectiveTier);
-      setPlanId(initialPlanId);
-      setPremiumForced(mustPremium && (selectedPlan?.tier || 'standard') !== 'premium');
-      setStep('payment');
+      await resumePaymentForApartment(apt);
     } catch (err) {
       setError(err.message);
     } finally {

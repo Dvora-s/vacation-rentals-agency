@@ -17,6 +17,7 @@ router.post('/:id/inquiry', asyncHandler(apartments.postInquiry));
 router.post('/', requireAuth, asyncHandler(apartments.create));
 router.put('/:id', requireAuth, asyncHandler(apartments.update));
 router.delete('/:id', requireAuth, asyncHandler(apartments.remove));
+router.post('/:id/resubmit-for-approval', requireAuth, asyncHandler(apartments.resubmitForApproval));
 router.post('/:id/approve', requireAuth, requireRole('admin'), asyncHandler(apartments.approve));
 router.get('/:id/email-approve', asyncHandler(apartments.emailApprove));
 router.post('/:id/reject', requireAuth, requireRole('admin'), asyncHandler(apartments.reject));
