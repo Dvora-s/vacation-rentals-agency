@@ -8,6 +8,7 @@ import {
   getMyContactMessages,
 } from '../services/api';
 import RejectedListingActions from '../components/RejectedListingActions';
+import ResubmitApartmentButton from '../components/ResubmitApartmentButton';
 import './MyApartmentsPage.css';
 import './AccountPage.css';
 
@@ -123,10 +124,8 @@ function ApartmentsTab() {
               <RejectedListingActions
                 apartment={apt}
                 showEditLink={false}
+                showResubmitButton={false}
                 className="my-apt-rejected-block"
-                onResubmitted={(updated) =>
-                  setApartments((prev) => prev.map((a) => (a.id === apt.id ? { ...a, ...updated } : a)))
-                }
               />
             )}
             {apt.status === 'expired' && (
@@ -137,6 +136,16 @@ function ApartmentsTab() {
                 <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
                   המשך לתשלום
                 </Link>
+              )}
+              {apt.status === 'rejected' && (
+                <ResubmitApartmentButton
+                  apartment={apt}
+                  onResubmitted={(updated) =>
+                    setApartments((prev) =>
+                      prev.map((a) => (a.id === apt.id ? { ...a, ...updated } : a)),
+                    )
+                  }
+                />
               )}
               {apt.status === 'expired' && (
                 <Link to={`/my-apartments/${apt.id}/renew`} className="btn-primary">

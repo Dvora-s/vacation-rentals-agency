@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getApartmentById, sendListingInquiry, updateApartment, deleteApartment } from '../services/api';
 import EditableImage from '../components/EditableImage';
 import RejectedListingActions from '../components/RejectedListingActions';
+import ResubmitApartmentButton from '../components/ResubmitApartmentButton';
 import { getApartmentCategories } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
 import { isApartmentOwner } from '../utils/apartmentOwnership';
@@ -127,6 +128,12 @@ function ApartmentDetailPage() {
           >
             ✎ עריכת דירה
           </Link>
+          {isOwner && !isAdmin && apartment.status === 'rejected' && (
+            <ResubmitApartmentButton
+              apartment={apartment}
+              onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
+            />
+          )}
           {isAdmin && (
             <button type="button" className="my-apt-delete detail-admin-delete" onClick={handleAdminDelete}>
               מחק מהאתר
