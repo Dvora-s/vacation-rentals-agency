@@ -2,6 +2,21 @@
   margin-top: 0.5rem;
 }
 
+.payment-method-selector .contact-consent {
+  margin-bottom: 1.25rem;
+}
+
+.payment-method-selector__policy-hint {
+  font-size: 0.9rem;
+  color: #6a4a00;
+  background: #fff8e6;
+  border: 1px solid #e6c200;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin: 0 0 1rem;
+  line-height: 1.45;
+}
+
 .payment-method-selector__missing-paypal {
   font-size: 0.88rem;
   color: #6a4a00;

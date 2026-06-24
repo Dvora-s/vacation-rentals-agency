@@ -129,8 +129,10 @@ function ApartmentsTab() {
               {apt.location} · {apt.bedrooms} חדרי שינה · עד {apt.max_guests} נפשות · ₪
               {apt.price_per_night}
             </p>
-            {apt.status === 'rejected' && apt.rejection_reason && (
-              <p className="my-apt-reject">סיבת דחייה: {apt.rejection_reason}</p>
+            {apt.status === 'rejected' && (
+              <p className="my-apt-reject">
+                סיבת דחייה: {apt.rejection_reason || 'לא צוינה סיבה — פנו למנהל המערכת.'}
+              </p>
             )}
             {apt.status === 'expired' && (
               <p className="my-apt-reject">תוקף הפרסום פג והמודעה הושעתה. ניתן לחדש את הפרסום בתשלום.</p>

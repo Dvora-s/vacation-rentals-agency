@@ -365,7 +365,10 @@ export async function reject(req, res) {
   if (!(await apartmentExists(req.params.id))) {
     return res.status(404).json({ error: 'דירה לא נמצאה' });
   }
-  const reason = (req.body && req.body.reason) || null;
+  const reason = String(req.body?.reason || '').trim();
+  if (reason.length < 5) {
+    return res.status(400).json({ error: 'נדרשת סיבת דחייה (לפחות 5 תווים)' });
+  }
   await rejectApartmentRow(req.params.id, reason);
   const row = await selectApartmentById(req.params.id);
   res.json(await attachImagesToApartment(row));

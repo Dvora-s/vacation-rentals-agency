@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import { getApartmentById, updateApartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import '../pages/MyApartmentsPage.css';
 
 function EditApartmentPage() {
   const { id } = useParams();
@@ -52,6 +53,15 @@ function EditApartmentPage() {
       <p className="page-subtitle">
         שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).
       </p>
+
+      {apartment?.status === 'rejected' && (
+        <p className="my-apt-reject" role="status">
+          <strong>הדירה נדחתה.</strong>{' '}
+          {apartment.rejection_reason
+            ? `סיבת הדחייה: ${apartment.rejection_reason}`
+            : 'לא צוינה סיבת דחייה — פנו למנהל המערכת.'}
+        </p>
+      )}
 
       <ApartmentForm
         apartment={apartment}

@@ -41,6 +41,17 @@
   color: #a8071a;
 }
 
+.detail-reject-notice {
+  background: #fff1f0;
+  color: #a8071a;
+  border: 1px solid #ffa39e;
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: 1.15fr 1fr 320px;

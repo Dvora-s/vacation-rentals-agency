@@ -6,7 +6,8 @@ import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import './AuthPages.css';
 
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+import { PASSWORD_RULE, PASSWORD_HINT } from '../utils/passwordPolicy';
+
 const PENDING_VERIFICATION_KEY = 'nofesh.pendingVerification';
 
 function readStoredVerification() {
@@ -98,7 +99,7 @@ function RegisterPage() {
       return;
     }
     if (!PASSWORD_RULE.test(form.password)) {
-      setError('סיסמה חלשה. חייבת לכלול לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.');
+      setError(`סיסמה חלשה. ${PASSWORD_HINT}.`);
       return;
     }
 
@@ -183,7 +184,7 @@ function RegisterPage() {
     <div className="auth-wrap">
       <h1 className="auth-title">הרשמה</h1>
       <p className="auth-subtitle">
-        פתחו חשבון כדי לפרסם דירות. דרישת סיסמה: 8+ תווים, אות גדולה, קטנה, ספרה ותו מיוחד.
+        פתחו חשבון כדי לפרסם דירות. דרישת סיסמה: {PASSWORD_HINT}.
       </p>
 
       <form className="auth-form" onSubmit={handleSubmit}>

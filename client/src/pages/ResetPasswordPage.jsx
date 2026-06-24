@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/api';
+import { PASSWORD_RULE, PASSWORD_HINT } from '../utils/passwordPolicy';
 import './AuthPages.css';
 
 function ResetPasswordPage() {
@@ -22,6 +23,10 @@ function ResetPasswordPage() {
 
     if (form.password !== form.confirm) {
       setError('הסיסמאות אינן תואמות.');
+      return;
+    }
+    if (!PASSWORD_RULE.test(form.password)) {
+      setError(`סיסמה חלשה. ${PASSWORD_HINT}.`);
       return;
     }
 
@@ -88,9 +93,7 @@ function ResetPasswordPage() {
           />
         </div>
 
-        <p className="auth-hint">
-          הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.
-        </p>
+        <p className="auth-hint">{PASSWORD_HINT}.</p>
 
         <button type="submit" className="btn-primary auth-submit" disabled={submitting}>
           {submitting ? 'מעדכנת...' : 'עדכון סיסמה'}

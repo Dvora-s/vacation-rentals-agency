@@ -117,6 +117,15 @@ function ApartmentDetailPage() {
         </div>
       )}
 
+      {canManage && apartment.status === 'rejected' && (
+        <p className="detail-reject-notice" role="status">
+          <strong>הדירה נדחתה.</strong>{' '}
+          {apartment.rejection_reason
+            ? `סיבת הדחייה: ${apartment.rejection_reason}`
+            : 'לא צוינה סיבת דחייה — פנו למנהל המערכת.'}
+        </p>
+      )}
+
       <div className="detail-layout">
         <div className="detail-gallery">
           <div className="gallery-main">

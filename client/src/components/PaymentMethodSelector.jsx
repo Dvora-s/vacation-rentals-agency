@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PayPalCheckout from '../integrations/paypal/PayPalCheckout.jsx';
+import PolicyConsentCheckbox from './PolicyConsentCheckbox.jsx';
 import { payForListing } from '../services/api.js';
 import { createPayment } from '../services/paymentService.js';
 import { PAYME_LISTING_STORAGE_KEY } from '../hooks/usePayMeListingReturn.js';
@@ -42,6 +43,8 @@ export default function PaymentMethodSelector({
   const [paypalWorking, setPaypalWorking] = useState(false);
   const [paymeWorking, setPaymeWorking] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [policyConsent, setPolicyConsent] = useState(false);
+  const [policyConsentError, setPolicyConsentError] = useState(null);
   const paypalSectionRef = useRef(null);
   const paymeSectionRef = useRef(null);
   const paymeExtraRef = useRef(paymePendingExtra);
@@ -50,6 +53,11 @@ export default function PaymentMethodSelector({
   const totalStr = Number(totalIls).toFixed(2);
 
   const startPayMeCard = useCallback(async () => {
+    if (!policyConsent) {
+      setPolicyConsentError('יש לאשר את תנאי השימוש ומדיניות הפרטיות לפני התשלום');
+      return;
+    }
+    setPolicyConsentError(null);
     setLocalError(null);
     setPaymeWorking(true);
     try {
@@ -93,7 +101,7 @@ export default function PaymentMethodSelector({
       setLocalError(e instanceof Error ? e.message : String(e));
       setPaymeWorking(false);
     }
-  }, [apartmentId, months, tier, totalIls, currencyCode, paymeReturnPath, paymeFlow]);
+  }, [apartmentId, months, tier, totalIls, currencyCode, paymeReturnPath, paymeFlow, policyConsent]);
 
   useEffect(() => {
     if (method === 'paypal' && paypalSectionRef.current) {
@@ -118,6 +126,15 @@ export default function PaymentMethodSelector({
 
       {showChooser && (
         <>
+          <PolicyConsentCheckbox
+            id={`policy-consent-${apartmentId}`}
+            checked={policyConsent}
+            onChange={(checked) => {
+              setPolicyConsent(checked);
+              if (checked) setPolicyConsentError(null);
+            }}
+            error={policyConsentError}
+          />
           <p className="payment-method-selector__title">בחרו איך לשלם</p>
           <div className="pay-tiles" role="group" aria-label="אמצעי תשלום">
             {hasPayPalClient && (
@@ -177,34 +194,42 @@ export default function PaymentMethodSelector({
           <p className="payment-method-selector__paypal-intro">
             סכום לתשלום ב־PayPal: <strong>₪{totalStr}</strong> ({currencyCode})
           </p>
-          <p className="payment-method-selector__paypal-hint">
-            השתמשו בכפתור PayPal למטה — זה ממשק התשלום הרשמי של PayPal (חלון מאובטח).
-          </p>
-          <PayPalCheckout
-            key={`${apartmentId}-${totalStr}-${currencyCode}`}
-            currencyCode={currencyCode}
-            fixedAmount={totalStr}
-            brandedPayPalOnly
-            onCaptureSuccess={async (result) => {
-              setLocalError(null);
-              setPaypalWorking(true);
-              try {
-                await payForListing({
-                  apartment_id: apartmentId,
-                  months,
-                  tier,
-                  provider: 'paypal',
-                  provider_reference: paypalCaptureRef(result),
-                });
-                onSuccess?.();
-              } catch (e) {
-                setLocalError(e?.message || String(e));
-              } finally {
-                setPaypalWorking(false);
-              }
-            }}
-            onError={(err) => setLocalError(err?.message || String(err))}
-          />
+          {!policyConsent ? (
+            <p className="payment-method-selector__policy-hint" role="status">
+              סמנו את אישור תנאי השימוש ומדיניות הפרטיות למעלה כדי להמשיך לתשלום.
+            </p>
+          ) : (
+            <>
+              <p className="payment-method-selector__paypal-hint">
+                השתמשו בכפתור PayPal למטה — זה ממשק התשלום הרשמי של PayPal (חלון מאובטח).
+              </p>
+              <PayPalCheckout
+                key={`${apartmentId}-${totalStr}-${currencyCode}`}
+                currencyCode={currencyCode}
+                fixedAmount={totalStr}
+                brandedPayPalOnly
+                onCaptureSuccess={async (result) => {
+                  setLocalError(null);
+                  setPaypalWorking(true);
+                  try {
+                    await payForListing({
+                      apartment_id: apartmentId,
+                      months,
+                      tier,
+                      provider: 'paypal',
+                      provider_reference: paypalCaptureRef(result),
+                    });
+                    onSuccess?.();
+                  } catch (e) {
+                    setLocalError(e?.message || String(e));
+                  } finally {
+                    setPaypalWorking(false);
+                  }
+                }}
+                onError={(err) => setLocalError(err?.message || String(err))}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -220,7 +245,7 @@ export default function PaymentMethodSelector({
             type="button"
             className="btn-primary payment-method-selector__payme-btn"
             onClick={startPayMeCard}
-            disabled={paymeWorking || paypalWorking}
+            disabled={paymeWorking || paypalWorking || !policyConsent}
           >
             {paymeWorking ? 'מכין תשלום…' : 'המשך לתשלום בכרטיס אשראי (PayMe)'}
           </button>

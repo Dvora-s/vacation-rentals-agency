@@ -23,7 +23,7 @@ import {
   sendPasswordResetEmail,
   isMailerConfigured,
 } from '../utils/mailer.js';
-const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+import { STRONG_PASSWORD, STRONG_PASSWORD_MESSAGE } from '../utils/passwordPolicy.js';
 
 const APP_URL = (
   process.env.APP_URL ||
@@ -129,10 +129,7 @@ export async function register(req, res) {
     return res.status(400).json({ error: 'שם מלא, אימייל וסיסמה הם שדות חובה' });
   }
   if (!STRONG_PASSWORD.test(password)) {
-    return res.status(400).json({
-      error:
-        'הסיסמה חלשה מדי. חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.',
-    });
+    return res.status(400).json({ error: STRONG_PASSWORD_MESSAGE });
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
@@ -291,10 +288,7 @@ export async function resetPassword(req, res) {
     return res.status(400).json({ error: 'נדרשים טוקן וסיסמה חדשה' });
   }
   if (!STRONG_PASSWORD.test(password)) {
-    return res.status(400).json({
-      error:
-        'הסיסמה חלשה מדי. חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד.',
-    });
+    return res.status(400).json({ error: STRONG_PASSWORD_MESSAGE });
   }
 
   let decoded;

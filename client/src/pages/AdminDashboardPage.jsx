@@ -12,6 +12,9 @@ function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectError, setRejectError] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -42,15 +45,35 @@ function AdminDashboardPage() {
     }
   }
 
-  async function handleReject(id) {
-    const reason = prompt('סיבת הדחייה (אופציונלי):');
-    if (reason === null) return;
-    setBusyId(id);
+  function openRejectModal(apt) {
+    setRejectTarget({ id: apt.id, title: apt.title });
+    setRejectReason('');
+    setRejectError(null);
+  }
+
+  function closeRejectModal() {
+    if (busyId) return;
+    setRejectTarget(null);
+    setRejectReason('');
+    setRejectError(null);
+  }
+
+  async function confirmReject() {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (reason.length < 5) {
+      setRejectError('נא לציין סיבת דחייה (לפחות 5 תווים)');
+      return;
+    }
+    setRejectError(null);
+    setBusyId(rejectTarget.id);
     try {
-      await rejectApartment(id, reason || null);
-      setList((prev) => prev.filter((a) => a.id !== id));
+      await rejectApartment(rejectTarget.id, reason);
+      setList((prev) => prev.filter((a) => a.id !== rejectTarget.id));
+      setRejectTarget(null);
+      setRejectReason('');
     } catch (err) {
-      alert(err.message);
+      setRejectError(err.message);
     } finally {
       setBusyId(null);
     }
@@ -128,7 +151,7 @@ function AdminDashboardPage() {
                   <button
                     type="button"
                     className="my-apt-delete"
-                    onClick={() => handleReject(apt.id)}
+                    onClick={() => openRejectModal(apt)}
                     disabled={busyId === apt.id}
                   >
                     דחייה
@@ -143,6 +166,58 @@ function AdminDashboardPage() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {rejectTarget && (
+        <div className="admin-reject-overlay" role="presentation" onClick={closeRejectModal}>
+          <div
+            className="admin-reject-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="reject-modal-title">דחיית דירה</h2>
+            <p className="admin-reject-modal__subtitle">
+              {rejectTarget.title} — נא לציין למה הדירה נדחית. הבעלים יראה את הסיבה בחשבון שלו.
+            </p>
+            <label className="admin-reject-modal__label" htmlFor="reject-reason">
+              סיבת הדחייה
+            </label>
+            <textarea
+              id="reject-reason"
+              className="admin-reject-modal__textarea"
+              rows={4}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="לדוגמה: התמונות אינן ברורות, חסרים פרטי קשר, או שהתיאור לא מספיק מפורט..."
+              disabled={busyId === rejectTarget.id}
+            />
+            {rejectError && (
+              <div className="auth-error" role="alert">
+                {rejectError}
+              </div>
+            )}
+            <div className="admin-reject-modal__actions">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={confirmReject}
+                disabled={busyId === rejectTarget.id}
+              >
+                {busyId === rejectTarget.id ? 'שולח...' : 'אישור דחייה'}
+              </button>
+              <button
+                type="button"
+                className="btn-outline-gold"
+                onClick={closeRejectModal}
+                disabled={busyId === rejectTarget.id}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
