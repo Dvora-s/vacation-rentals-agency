@@ -8,7 +8,7 @@ import {
   getMyContactMessages,
 } from '../services/api';
 import RejectedListingActions from '../components/RejectedListingActions';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { getApartmentCoverUrl } from '../utils/mediaUrl';
 import './MyApartmentsPage.css';
 import './AccountPage.css';
 
@@ -109,7 +109,9 @@ function ApartmentsTab() {
       {apartments.map((apt) => (
         <article key={apt.id} className={`my-apt-card status-${apt.status}`}>
           <div className="my-apt-thumb">
-            {apt.image && <img src={resolveMediaUrl(apt.image)} alt={apt.title} />}
+            {getApartmentCoverUrl(apt) && (
+              <img src={getApartmentCoverUrl(apt)} alt={apt.title} />
+            )}
           </div>
           <div className="my-apt-body">
             <div className="my-apt-header">

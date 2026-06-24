@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 import { getApartmentCategories } from '../data/categories';
 import { updateApartment } from '../services/api';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { useAuth } from '../context/AuthContext';
+import { getApartmentCoverUrl } from '../utils/mediaUrl';
 import EditableImage from './EditableImage';
 import './styles/ApartmentCard.css';
 
 function ApartmentCard({ apartment, onApartmentUpdate }) {
+  const { isAdmin } = useAuth();
   const categories = getApartmentCategories(apartment);
+  const coverUrl = getApartmentCoverUrl(apartment);
 
   async function saveCoverImage(url) {
     const images = apartment.images?.length
@@ -20,14 +23,27 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
 
   return (
     <article className={`apartment-card ${!apartment.is_available ? 'unavailable' : ''}`}>
-      <EditableImage
-        id={`apt.${apartment.id}.cover`}
-        src={resolveMediaUrl(apartment.image)}
-        alt={apartment.title}
-        className="card-image-wrap"
-        imgClassName="card-image"
-        onSave={saveCoverImage}
-      />
+      <div className="card-image-wrap">
+        {coverUrl ? (
+          isAdmin ? (
+            <EditableImage
+              id={`apt.${apartment.id}.cover`}
+              src={coverUrl}
+              alt={apartment.title}
+              className="card-image-inner"
+              imgClassName="card-image"
+              onSave={saveCoverImage}
+            />
+          ) : (
+            <img src={coverUrl} alt={apartment.title} className="card-image" loading="lazy" />
+          )
+        ) : (
+          <div className="card-image-placeholder" aria-hidden="true">
+            <span>📷</span>
+            <span>אין תמונה</span>
+          </div>
+        )}
+      </div>
 
       <div className="card-body">
         <div className="card-header-row">

@@ -1,10 +1,22 @@
 import { absoluteMediaUrl } from './mediaUrl.js';
 
+function pickCoverUrl(row, galleryUrls) {
+  const fromColumn = absoluteMediaUrl(row.image_url);
+  const fromGallery = galleryUrls[0] || null;
+  if (!fromColumn) return fromGallery;
+  if (!fromGallery) return fromColumn;
+  // תיקון ישן: image_url מ-localhost בעוד שהגלריה בכתובת ענן/שרת
+  if (/localhost|127\.0\.0\.1/i.test(fromColumn) && !/localhost|127\.0\.0\.1/i.test(fromGallery)) {
+    return fromGallery;
+  }
+  return fromColumn;
+}
+
 export function mapApartmentRow(row, images = []) {
   if (!row) return null;
   const galleryUrls = Array.isArray(images) ? images.filter(Boolean).map(absoluteMediaUrl) : [];
   const fallback = row.image_url ? [absoluteMediaUrl(row.image_url)] : [];
-  const cover = galleryUrls[0] || absoluteMediaUrl(row.image_url);
+  const cover = pickCoverUrl(row, galleryUrls);
   return {
     id: row.id,
     catalog_number: row.catalog_number,

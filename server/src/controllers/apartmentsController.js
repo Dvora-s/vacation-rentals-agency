@@ -242,8 +242,10 @@ export async function update(req, res) {
   const body = req.body || {};
   const updates = [];
   const values = [];
+  const skipFields = Array.isArray(body.images) ? new Set(['image_url']) : new Set();
 
   for (const field of APARTMENT_EDITABLE_FIELDS) {
+    if (skipFields.has(field)) continue;
     if (body[field] === undefined) continue;
     let value = body[field];
     if (field === 'contact_via_whatsapp' || field === 'is_available') {
@@ -262,10 +264,9 @@ export async function update(req, res) {
       const inserts = images.map((url, idx) => [req.params.id, url, idx]);
       await insertApartmentImagesRows(inserts);
     }
-    if (!body.image_url) {
-      updates.push('image_url = ?');
-      values.push(images[0] || null);
-    }
+    const coverUrl = body.image_url || images[0] || null;
+    updates.push('image_url = ?');
+    values.push(coverUrl);
   }
 
   if (updates.length === 0 && !Array.isArray(body.images)) {

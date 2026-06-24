@@ -4,6 +4,7 @@ import { CITY_NAMES, getStreetsForCity } from '../data/locations';
 import { COMPLEX_PROPERTY_TYPE, MAX_GUESTS_NON_COMPLEX } from '../data/pricing';
 import Combobox from './Combobox';
 import { uploadImages } from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import './styles/ApartmentForm.css';
 
 const EMPTY = {
@@ -39,6 +40,25 @@ function splitAddress(address) {
   return { street: raw, house_number: '' };
 }
 
+function getInitialCoverIndex(apartment) {
+  if (!apartment?.images?.length) return 0;
+  const cover = apartment.image || apartment.image_url;
+  if (!cover) return 0;
+  const idx = apartment.images.findIndex((url) => url === cover);
+  return idx >= 0 ? idx : 0;
+}
+
+function orderImagesWithCover(images, coverIndex) {
+  const list = images.filter(Boolean);
+  if (list.length <= 1) return list;
+  const idx = Math.min(Math.max(0, coverIndex), list.length - 1);
+  if (idx === 0) return list;
+  const ordered = [...list];
+  const [cover] = ordered.splice(idx, 1);
+  ordered.unshift(cover);
+  return ordered;
+}
+
 function buildInitial(apartment) {
   if (!apartment) return EMPTY;
   const cats = getApartmentCategories(apartment);
@@ -69,7 +89,7 @@ function ApartmentForm({
   error,
 }) {
   const [form, setForm] = useState(() => buildInitial(apartment));
-  const [coverIndex, setCoverIndex] = useState(0);
+  const [coverIndex, setCoverIndex] = useState(() => getInitialCoverIndex(apartment));
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -157,12 +177,7 @@ function ApartmentForm({
       return null;
     }
 
-    const images = form.images.filter(Boolean);
-    const orderedImages = [...images];
-    if (coverIndex > 0 && coverIndex < orderedImages.length) {
-      const [cover] = orderedImages.splice(coverIndex, 1);
-      orderedImages.unshift(cover);
-    }
+    const orderedImages = orderImagesWithCover(form.images, coverIndex);
     const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
       (c) => c.label,
     );
@@ -390,31 +405,32 @@ function ApartmentForm({
 
             {form.images.length > 0 && (
               <div className="apt-thumbs">
-                <p className="auth-hint apt-cover-hint">לחצו על תמונה כדי לקבוע אותה כתמונה ראשית (תוצג בחוץ)</p>
-                {form.images.map((url, index) => (
-                  <div
-                    className={`apt-thumb ${index === coverIndex ? 'is-cover' : ''}`}
-                    key={`${url}-${index}`}
-                  >
-                    <button
-                      type="button"
-                      className="apt-thumb-select"
-                      onClick={() => setAsCover(index)}
-                      aria-label={index === coverIndex ? 'תמונה ראשית' : 'קבע כתמונה ראשית'}
+                <p className="apt-cover-picker-title">בחרו תמונה ראשית — זו שתופיע בחיפוש ובכרטיס הדירה:</p>
+                <div className="apt-thumbs-grid">
+                  {form.images.map((url, index) => (
+                    <div
+                      className={`apt-thumb ${index === coverIndex ? 'is-cover' : ''}`}
+                      key={`${url}-${index}`}
                     >
-                      <img src={url} alt="" />
-                    </button>
-                    <button
-                      type="button"
-                      className="apt-thumb-remove"
-                      onClick={() => removeImage(index)}
-                      aria-label="הסר תמונה"
-                    >
-                      ×
-                    </button>
-                    {index === coverIndex && <span className="apt-thumb-badge">ראשית</span>}
-                  </div>
-                ))}
+                      <img src={resolveMediaUrl(url)} alt="" />
+                      <button
+                        type="button"
+                        className="apt-thumb-remove"
+                        onClick={() => removeImage(index)}
+                        aria-label="הסר תמונה"
+                      >
+                        ×
+                      </button>
+                      <button
+                        type="button"
+                        className={`apt-thumb-cover-btn ${index === coverIndex ? 'is-active' : ''}`}
+                        onClick={() => setAsCover(index)}
+                      >
+                        {index === coverIndex ? '★ תמונה ראשית' : 'קבעו כראשית'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

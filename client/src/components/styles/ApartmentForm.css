@@ -128,53 +128,68 @@
 }
 
 .apt-thumbs {
+  margin-top: 0.75rem;
+}
+
+.apt-cover-picker-title {
+  font-weight: 600;
+  color: var(--color-navy);
+  font-size: 0.92rem;
+  margin: 0 0 0.65rem;
+}
+
+.apt-thumbs-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.75rem;
+  gap: 0.75rem;
 }
 
 .apt-thumb {
   position: relative;
-  width: 92px;
-  height: 92px;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
+  padding: 0.35rem;
+  border: 2px solid var(--color-border);
   background: #fff;
-}
-
-.apt-cover-hint {
-  width: 100%;
-  margin-bottom: 0.25rem;
 }
 
 .apt-thumb.is-cover {
   border-color: var(--color-gold, #b8860b);
-  box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.35);
-}
-
-.apt-thumb-select {
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.apt-thumb-select img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.25);
 }
 
 .apt-thumb img {
   width: 100%;
-  height: 100%;
+  height: 88px;
   object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.apt-thumb-cover-btn {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-cream, #faf7ef);
+  color: var(--color-navy);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.apt-thumb-cover-btn.is-active {
+  background: var(--color-gold, #b8860b);
+  border-color: var(--color-gold, #b8860b);
+  color: #fff;
+}
+
+.apt-thumb-cover-btn:hover:not(.is-active) {
+  border-color: var(--color-gold, #b8860b);
 }
 
 .apt-thumb-remove {
