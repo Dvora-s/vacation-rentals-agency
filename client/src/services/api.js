@@ -35,7 +35,13 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (!token) {
+      const err = new Error('יש להתחבר לאתר לפני ביצוע התשלום. התחברו מחדש ונסו שוב.');
+      err.status = 401;
+      err.needsLogin = true;
+      throw err;
+    }
+    headers.Authorization = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -45,7 +51,12 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message = data?.error || `שגיאה ${res.status}`;
+    const message =
+      data?.error === 'Missing authentication token'
+        ? 'פג תוקף ההתחברות או שלא התחברתם. התחברו מחדש ואז נסו לשלם שוב.'
+        : data?.error === 'Invalid or expired token'
+          ? 'פג תוקף ההתחברות. התחברו מחדש ואז נסו לשלם שוב.'
+          : data?.error || `שגיאה ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
     if (data?.needs_verification) err.needsVerification = true;
