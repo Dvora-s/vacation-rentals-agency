@@ -79,6 +79,16 @@ export async function selectPendingApartments() {
   return rows;
 }
 
+/** דירות שפורסמו או היו פעילות — לניהול מחיקה על ידי מנהל */
+export async function selectPublishedApartmentsForAdmin() {
+  const [rows] = await pool.query(
+    `SELECT * FROM apartments
+     WHERE status IN ('approved', 'expired')
+     ORDER BY approved_at DESC, id DESC`,
+  );
+  return rows;
+}
+
 export async function selectApartmentById(id) {
   const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [id]);
   return rows[0] || null;

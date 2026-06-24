@@ -23,6 +23,7 @@ import ListApartmentPage from './pages/ListApartmentPage';
 import EditApartmentPage from './pages/EditApartmentPage';
 import RenewApartmentPage from './pages/RenewApartmentPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminPublishedListingsPage from './pages/AdminPublishedListingsPage';
 import AdminPricingPage from './pages/AdminPricingPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminFaqPage from './pages/AdminFaqPage';
@@ -148,6 +149,15 @@ function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminFaqPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="admin/listings"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminPublishedListingsPage />
                 </ProtectedRoute>
               }
             />

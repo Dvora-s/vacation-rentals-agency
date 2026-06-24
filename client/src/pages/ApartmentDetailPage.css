@@ -19,6 +19,10 @@
   margin-inline-start: auto;
 }
 
+.detail-admin-delete {
+  flex-shrink: 0;
+}
+
 .detail-manage-bar .status-pill {
   display: inline-flex;
   align-items: center;

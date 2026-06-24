@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
+import RejectedListingActions from '../components/RejectedListingActions';
 import { getApartmentById, updateApartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../pages/MyApartmentsPage.css';
@@ -51,10 +52,20 @@ function EditApartmentPage() {
     <div className="list-apt-page section-container">
       <h1 className="page-title">עריכת דירה</h1>
       <p className="page-subtitle">
-        שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).
+        {apartment?.status === 'rejected' && !isAdmin
+          ? 'עדכנו את הפרטים לפי סיבת הדחייה, שמרו — או לחצו "שליחה חוזרת לאישור".'
+          : 'שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).'}
       </p>
 
-      {apartment?.status === 'rejected' && (
+      {apartment?.status === 'rejected' && !isAdmin && (
+        <RejectedListingActions
+          apartment={apartment}
+          onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
+          showEditLink={false}
+        />
+      )}
+
+      {apartment?.status === 'rejected' && isAdmin && (
         <p className="my-apt-reject" role="status">
           <strong>הדירה נדחתה.</strong>{' '}
           {apartment.rejection_reason

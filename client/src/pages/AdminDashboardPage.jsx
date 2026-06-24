@@ -93,6 +93,9 @@ function AdminDashboardPage() {
         <Link to="/admin/pricing" className="btn-outline-gold">
           ניהול מחירון ומבצעים
         </Link>
+        <Link to="/admin/listings" className="btn-outline-gold">
+          דירות שפורסמו
+        </Link>
         <Link to="/admin/users" className="my-apt-link">
           רשימת משתמשים
         </Link>

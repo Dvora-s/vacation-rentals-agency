@@ -6,8 +6,8 @@ import {
   deleteApartment,
   getMyPayments,
   getMyContactMessages,
-  resubmitApartmentForApproval,
 } from '../services/api';
+import RejectedListingActions from '../components/RejectedListingActions';
 import './MyApartmentsPage.css';
 import './AccountPage.css';
 
@@ -89,16 +89,6 @@ function ApartmentsTab() {
     }
   }
 
-  async function handleResubmit(id) {
-    if (!confirm('לשלוח את הדירה שוב לאישור המנהל?')) return;
-    try {
-      const updated = await resubmitApartmentForApproval(id);
-      setApartments((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
   if (loading) return <p className="loading-text">טוען...</p>;
   if (error) return <div className="auth-error">{error}</div>;
 
@@ -130,9 +120,14 @@ function ApartmentsTab() {
               {apt.price_per_night}
             </p>
             {apt.status === 'rejected' && (
-              <p className="my-apt-reject">
-                סיבת דחייה: {apt.rejection_reason || 'לא צוינה סיבה — פנו למנהל המערכת.'}
-              </p>
+              <RejectedListingActions
+                apartment={apt}
+                showEditLink={false}
+                className="my-apt-rejected-block"
+                onResubmitted={(updated) =>
+                  setApartments((prev) => prev.map((a) => (a.id === apt.id ? { ...a, ...updated } : a)))
+                }
+              />
             )}
             {apt.status === 'expired' && (
               <p className="my-apt-reject">תוקף הפרסום פג והמודעה הושעתה. ניתן לחדש את הפרסום בתשלום.</p>
@@ -142,15 +137,6 @@ function ApartmentsTab() {
                 <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
                   המשך לתשלום
                 </Link>
-              )}
-              {apt.status === 'rejected' && (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => handleResubmit(apt.id)}
-                >
-                  שליחה חוזרת לאישור
-                </button>
               )}
               {apt.status === 'expired' && (
                 <Link to={`/my-apartments/${apt.id}/renew`} className="btn-primary">

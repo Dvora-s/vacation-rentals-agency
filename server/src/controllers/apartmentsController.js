@@ -14,6 +14,7 @@ import {
   selectApprovedApartments,
   selectMineApartments,
   selectPendingApartments,
+  selectPublishedApartmentsForAdmin,
   updateApartmentDynamic,
 } from '../models/apartmentModel.js';
 import { verifyApproveToken } from '../middlewares/auth.js';
@@ -23,6 +24,7 @@ import {
 } from '../utils/mailer.js';
 import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -57,6 +59,11 @@ export async function listPending(_req, res) {
   res.json(await attachImagesToApartments(rows));
 }
 
+export async function listPublishedForAdmin(_req, res) {
+  const rows = await selectPublishedApartmentsForAdmin();
+  res.json(await attachImagesToApartments(rows));
+}
+
 export async function getById(req, res) {
   const apt = await selectApartmentById(req.params.id);
   if (!apt) {
@@ -64,7 +71,7 @@ export async function getById(req, res) {
   }
 
   if (apt.status !== 'approved') {
-    const isOwner = req.user && apt.owner_id && req.user.id === apt.owner_id;
+    const isOwner = req.user && isApartmentOwner(apt, req.user);
     const isAdmin = req.user && req.user.role === 'admin';
     if (!isOwner && !isAdmin) {
       return res.status(404).json({ error: 'דירה לא נמצאה' });
@@ -213,8 +220,7 @@ async function loadOwnedApartment(req, res) {
     return null;
   }
   const isAdmin = req.user.role === 'admin';
-  const isOwner = apt.owner_id === req.user.id;
-  if (!isAdmin && !isOwner) {
+  if (!isAdmin && !isApartmentOwner(apt, req.user)) {
     res.status(403).json({ error: 'אין הרשאה לערוך את הדירה' });
     return null;
   }
@@ -264,9 +270,29 @@ export async function update(req, res) {
     updates.push('approved_at = NULL');
   }
 
+  const resubmitRejectedOnSave =
+    req.user.role !== 'admin' && apt.status === 'rejected' && updates.length > 0;
+  if (resubmitRejectedOnSave) {
+    updates.push('status = ?');
+    values.push('pending');
+    updates.push('rejection_reason = NULL');
+    updates.push('approved_at = NULL');
+  }
+
   if (updates.length > 0) {
     values.push(req.params.id);
     await updateApartmentDynamic(updates, values);
+  }
+
+  if (resubmitRejectedOnSave) {
+    try {
+      await notifyAdminNewListing(req.params.id, {
+        userId: req.user.id,
+        userEmail: req.user.email,
+      });
+    } catch (err) {
+      console.error('[mailer] התראת שליחה חוזרת אחרי עריכה נכשלה:', err.message);
+    }
   }
 
   const updated = await selectApartmentById(req.params.id);

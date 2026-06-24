@@ -204,6 +204,32 @@
   margin-bottom: 0.75rem;
 }
 
+.rejected-listing-actions {
+  margin-bottom: 1rem;
+}
+
+.rejected-listing-actions__hint {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.rejected-listing-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.my-apt-rejected-block {
+  margin-bottom: 0.5rem;
+}
+
+.detail-rejected-actions {
+  margin-bottom: 1.25rem;
+}
+
 .admin-reject-modal__actions {
   display: flex;
   gap: 0.75rem;

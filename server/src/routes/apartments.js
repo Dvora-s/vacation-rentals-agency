@@ -12,6 +12,12 @@ const router = Router();
 router.get('/', optionalAuth, asyncHandler(apartments.listPublic));
 router.get('/mine', requireAuth, asyncHandler(apartments.listMine));
 router.get('/pending', requireAuth, requireRole('admin'), asyncHandler(apartments.listPending));
+router.get(
+  '/admin/published',
+  requireAuth,
+  requireRole('admin'),
+  asyncHandler(apartments.listPublishedForAdmin),
+);
 router.get('/:id', optionalAuth, asyncHandler(apartments.getById));
 router.post('/:id/inquiry', asyncHandler(apartments.postInquiry));
 router.post('/', requireAuth, asyncHandler(apartments.create));

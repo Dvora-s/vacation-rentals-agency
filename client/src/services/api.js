@@ -124,6 +124,10 @@ export async function getPendingApartments() {
   return apiFetch('/apartments/pending', { auth: true });
 }
 
+export async function getPublishedApartmentsForAdmin() {
+  return apiFetch('/apartments/admin/published', { auth: true });
+}
+
 export async function approveApartment(id) {
   return apiFetch(`/apartments/${id}/approve`, { method: 'POST', auth: true });
 }

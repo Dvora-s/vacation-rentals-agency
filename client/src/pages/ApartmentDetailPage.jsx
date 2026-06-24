@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { getApartmentById, sendListingInquiry, updateApartment } from '../services/api';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getApartmentById, sendListingInquiry, updateApartment, deleteApartment } from '../services/api';
 import EditableImage from '../components/EditableImage';
+import RejectedListingActions from '../components/RejectedListingActions';
 import { getApartmentCategories } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
+import { isApartmentOwner } from '../utils/apartmentOwnership';
 import './ApartmentDetailPage.css';
 
 const STATUS_LABELS = {
@@ -16,6 +18,7 @@ const STATUS_LABELS = {
 
 function ApartmentDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -95,9 +98,19 @@ function ApartmentDetailPage() {
     apartment.can_inquire ??
     (apartment.status === 'approved' && Boolean(apartment.owner_email));
 
-  // מנהל יכול לערוך כל דירה בכל שלב; בעל הנכס יכול לערוך את הדירות שלו.
-  const canManage =
-    isAdmin || (user && apartment.owner_id && user.id === apartment.owner_id);
+  // מנהל יכול לערוך כל דירה; בעל הנכס — לפי owner_id או מייל.
+  const isOwner = isApartmentOwner(apartment, user);
+  const canManage = isAdmin || isOwner;
+
+  async function handleAdminDelete() {
+    if (!confirm(`למחוק לצמיתות את הדירה "${apartment.title}" מהאתר?`)) return;
+    try {
+      await deleteApartment(apartment.id);
+      navigate(isAdmin ? '/admin/listings' : '/my-apartments');
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
   return (
     <div className="detail-page section-container">
@@ -114,10 +127,24 @@ function ApartmentDetailPage() {
           >
             ✎ עריכת דירה
           </Link>
+          {isAdmin && (
+            <button type="button" className="my-apt-delete detail-admin-delete" onClick={handleAdminDelete}>
+              מחק מהאתר
+            </button>
+          )}
         </div>
       )}
 
-      {canManage && apartment.status === 'rejected' && (
+      {isOwner && !isAdmin && apartment.status === 'rejected' && (
+        <RejectedListingActions
+          apartment={apartment}
+          onResubmitted={(updated) => setApartment((prev) => ({ ...prev, ...updated }))}
+          showEditLink={false}
+          className="detail-rejected-actions"
+        />
+      )}
+
+      {canManage && apartment.status === 'rejected' && isAdmin && (
         <p className="detail-reject-notice" role="status">
           <strong>הדירה נדחתה.</strong>{' '}
           {apartment.rejection_reason
