@@ -18,6 +18,20 @@ function EditApartmentPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const isRejectedOwner = apartment?.status === 'rejected' && !isAdmin;
+  const isAwaitingPayment = apartment?.status === 'awaiting_payment' && !isAdmin;
+
+  function editSubtitle() {
+    if (isRejectedOwner) {
+      return 'עדכנו את הפרטים לפי סיבת הדחייה. "שמירת שינויים" שומרת בלי לשלוח לאישור; "שליחה לאישור מחדש" שומרת ושולחת למנהל.';
+    }
+    if (isAwaitingPayment) {
+      return 'עדכנו את פרטי הדירה. לאחר השמירה, המשיכו לתשלום מ"הדירות שלי" — שליחה לאישור תתבצע אוטומטית רק לאחר התשלום.';
+    }
+    if (apartment?.status === 'approved' && !isAdmin) {
+      return 'שינוי פרטי דירה מפורסמת. לאחר שמירה, הדירה תועבר שוב לאישור המנהל.';
+    }
+    return 'שינוי פרטי הדירה.';
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -78,11 +92,7 @@ function EditApartmentPage() {
   return (
     <div className="list-apt-page section-container">
       <h1 className="page-title">עריכת דירה</h1>
-      <p className="page-subtitle">
-        {isRejectedOwner
-          ? 'עדכנו את הפרטים לפי סיבת הדחייה. "שמירת שינויים" שומרת בלי לשלוח לאישור; "שליחה לאישור מחדש" שומרת ושולחת למנהל.'
-          : 'שינוי פרטי הדירה. לאחר שמירה, הדירה תועבר שוב לאישור המנהל (אלא אם אתם מנהלי המערכת).'}
-      </p>
+      <p className="page-subtitle">{editSubtitle()}</p>
 
       {isRejectedOwner && (
         <RejectedListingActions

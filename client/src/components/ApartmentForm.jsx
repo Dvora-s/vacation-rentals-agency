@@ -69,6 +69,7 @@ function ApartmentForm({
   error,
 }) {
   const [form, setForm] = useState(() => buildInitial(apartment));
+  const [coverIndex, setCoverIndex] = useState(0);
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -127,6 +128,15 @@ function ApartmentForm({
 
   function removeImage(index) {
     setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    setCoverIndex((prev) => {
+      if (index === prev) return 0;
+      if (index < prev) return prev - 1;
+      return prev;
+    });
+  }
+
+  function setAsCover(index) {
+    setCoverIndex(index);
   }
 
   function addUrl() {
@@ -148,6 +158,11 @@ function ApartmentForm({
     }
 
     const images = form.images.filter(Boolean);
+    const orderedImages = [...images];
+    if (coverIndex > 0 && coverIndex < orderedImages.length) {
+      const [cover] = orderedImages.splice(coverIndex, 1);
+      orderedImages.unshift(cover);
+    }
     const orderedCats = CATEGORIES.filter((c) => form.categories.includes(c.label)).map(
       (c) => c.label,
     );
@@ -166,8 +181,8 @@ function ApartmentForm({
       bedrooms: Number(form.bedrooms),
       bathrooms: Number(form.bathrooms),
       max_guests: Number(form.max_guests),
-      image_url: images[0] || null,
-      images,
+      image_url: orderedImages[0] || null,
+      images: orderedImages,
       owner_name: form.owner_name.trim() || null,
       owner_phone: form.owner_phone.trim() || null,
       owner_email: form.owner_email.trim() || null,
@@ -321,7 +336,7 @@ function ApartmentForm({
           </div>
 
           <div className="apt-field">
-            <label>חדרי רחצה</label>
+            <label>מספר מיטות</label>
             <input
               type="number"
               min="0"
@@ -375,9 +390,20 @@ function ApartmentForm({
 
             {form.images.length > 0 && (
               <div className="apt-thumbs">
+                <p className="auth-hint apt-cover-hint">לחצו על תמונה כדי לקבוע אותה כתמונה ראשית (תוצג בחוץ)</p>
                 {form.images.map((url, index) => (
-                  <div className="apt-thumb" key={`${url}-${index}`}>
-                    <img src={url} alt="" />
+                  <div
+                    className={`apt-thumb ${index === coverIndex ? 'is-cover' : ''}`}
+                    key={`${url}-${index}`}
+                  >
+                    <button
+                      type="button"
+                      className="apt-thumb-select"
+                      onClick={() => setAsCover(index)}
+                      aria-label={index === coverIndex ? 'תמונה ראשית' : 'קבע כתמונה ראשית'}
+                    >
+                      <img src={url} alt="" />
+                    </button>
                     <button
                       type="button"
                       className="apt-thumb-remove"
@@ -386,7 +412,7 @@ function ApartmentForm({
                     >
                       ×
                     </button>
-                    {index === 0 && <span className="apt-thumb-badge">ראשית</span>}
+                    {index === coverIndex && <span className="apt-thumb-badge">ראשית</span>}
                   </div>
                 ))}
               </div>

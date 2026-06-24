@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { getApartmentCategories } from '../data/categories';
 import { updateApartment } from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import EditableImage from './EditableImage';
 import './styles/ApartmentCard.css';
 
@@ -21,7 +22,7 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
     <article className={`apartment-card ${!apartment.is_available ? 'unavailable' : ''}`}>
       <EditableImage
         id={`apt.${apartment.id}.cover`}
-        src={apartment.image}
+        src={resolveMediaUrl(apartment.image)}
         alt={apartment.title}
         className="card-image-wrap"
         imgClassName="card-image"

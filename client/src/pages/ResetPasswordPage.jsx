@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/api';
 import { PASSWORD_RULE, PASSWORD_HINT } from '../utils/passwordPolicy';
+import PasswordInput from '../components/PasswordInput';
 import './AuthPages.css';
 
 function ResetPasswordPage() {
@@ -67,29 +68,23 @@ function ResetPasswordPage() {
 
         <div className="auth-field">
           <label htmlFor="reset-password">סיסמה חדשה</label>
-          <input
+          <PasswordInput
             id="reset-password"
-            type="password"
-            className="auth-input"
             value={form.password}
             onChange={update('password')}
             required
             autoComplete="new-password"
-            dir="ltr"
           />
         </div>
 
         <div className="auth-field">
           <label htmlFor="reset-confirm">אימות סיסמה</label>
-          <input
+          <PasswordInput
             id="reset-confirm"
-            type="password"
-            className="auth-input"
             value={form.confirm}
             onChange={update('confirm')}
             required
             autoComplete="new-password"
-            dir="ltr"
           />
         </div>
 

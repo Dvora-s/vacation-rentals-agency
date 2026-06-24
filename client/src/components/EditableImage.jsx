@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useContent } from '../context/ContentContext';
 import { uploadImages } from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import { useEditableImage } from '../hooks/useEditableImage';
 import './styles/EditableImage.css';
 
@@ -35,7 +36,7 @@ function EditableImage({
   const { saveOverride, resetOverride } = useContent();
   const contentSrc = useEditableImage(id, defaultSrc);
   // תמונות דירה נשמרות במסד הנתונים — לא דרך site_content
-  const resolvedSrc = onSave ? defaultSrc : contentSrc;
+  const resolvedSrc = resolveMediaUrl(onSave ? defaultSrc : contentSrc);
 
   const [editing, setEditing] = useState(false);
   const [draftUrl, setDraftUrl] = useState(resolvedSrc);

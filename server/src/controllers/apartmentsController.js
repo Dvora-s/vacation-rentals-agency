@@ -26,6 +26,7 @@ import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
+import { apartmentHasPaidListing } from '../models/listingPaymentModel.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -194,6 +195,13 @@ export async function resubmitForApproval(req, res) {
     });
   }
 
+  const hasPaid = await apartmentHasPaidListing(req.params.id);
+  if (!hasPaid) {
+    return res.status(400).json({
+      error: 'לא ניתן לשלוח לאישור לפני השלמת תשלום על הפרסום. המשיכו לתשלום מ"הדירות שלי".',
+    });
+  }
+
   const moved = await markApartmentPendingForReview(req.params.id);
   if (!moved) {
     return res.status(400).json({ error: 'לא ניתן לעדכן את סטטוס הדירה' });
@@ -264,15 +272,34 @@ export async function update(req, res) {
     return res.status(400).json({ error: 'אין שדות לעדכון' });
   }
 
+  let shouldNotifyAdmin = false;
   if (req.user.role !== 'admin' && apt.status === 'approved' && updates.length > 0) {
+    const hasPaid = await apartmentHasPaidListing(req.params.id);
+    if (!hasPaid) {
+      return res.status(400).json({
+        error: 'לא ניתן לשלוח לאישור לפני השלמת תשלום על הפרסום.',
+      });
+    }
     updates.push('status = ?');
     values.push('pending');
     updates.push('approved_at = NULL');
+    shouldNotifyAdmin = true;
   }
 
   if (updates.length > 0) {
     values.push(req.params.id);
     await updateApartmentDynamic(updates, values);
+  }
+
+  if (shouldNotifyAdmin) {
+    try {
+      await notifyAdminNewListing(req.params.id, {
+        userId: req.user.id,
+        userEmail: req.user.email,
+      });
+    } catch (err) {
+      console.error('[mailer] התראת עדכון מודעה למנהל נכשלה:', err.message);
+    }
   }
 
   const updated = await selectApartmentById(req.params.id);

@@ -1,7 +1,10 @@
+import { absoluteMediaUrl } from './mediaUrl.js';
+
 export function mapApartmentRow(row, images = []) {
   if (!row) return null;
-  const galleryUrls = Array.isArray(images) ? images.filter(Boolean) : [];
-  const fallback = row.image_url ? [row.image_url] : [];
+  const galleryUrls = Array.isArray(images) ? images.filter(Boolean).map(absoluteMediaUrl) : [];
+  const fallback = row.image_url ? [absoluteMediaUrl(row.image_url)] : [];
+  const cover = galleryUrls[0] || absoluteMediaUrl(row.image_url);
   return {
     id: row.id,
     catalog_number: row.catalog_number,
@@ -21,7 +24,7 @@ export function mapApartmentRow(row, images = []) {
     status: row.status,
     rejection_reason: row.rejection_reason,
     approved_at: row.approved_at,
-    image: galleryUrls[0] || row.image_url,
+    image: cover,
     images: galleryUrls.length > 0 ? galleryUrls : fallback,
     owner_name: row.owner_name,
     owner_phone: row.owner_phone,

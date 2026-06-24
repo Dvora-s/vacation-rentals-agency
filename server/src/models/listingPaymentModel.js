@@ -33,6 +33,16 @@ export async function selectMineListingPayments(userId) {
   return rows;
 }
 
+export async function apartmentHasPaidListing(apartmentId) {
+  const [rows] = await pool.query(
+    `SELECT 1 FROM listing_payments
+     WHERE apartment_id = ? AND status = 'paid'
+     LIMIT 1`,
+    [apartmentId],
+  );
+  return rows.length > 0;
+}
+
 export async function selectAllListingPaymentsAdmin() {
   const [rows] = await pool.query(
     `SELECT lp.*, a.title AS apartment_title, u.email AS user_email

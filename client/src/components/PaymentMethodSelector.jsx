@@ -50,7 +50,20 @@ export default function PaymentMethodSelector({
   const paymeExtraRef = useRef(paymePendingExtra);
   paymeExtraRef.current = paymePendingExtra;
 
-  const totalStr = Number(totalIls).toFixed(2);
+  function requirePolicyConsent() {
+    if (!policyConsent) {
+      setPolicyConsentError('יש לאשר את תנאי השימוש ומדיניות הפרטיות לפני התשלום');
+      return false;
+    }
+    setPolicyConsentError(null);
+    return true;
+  }
+
+  function selectMethod(next) {
+    if (!requirePolicyConsent()) return;
+    setMethod(next);
+    setLocalError(null);
+  }
 
   const startPayMeCard = useCallback(async () => {
     if (!policyConsent) {
@@ -113,6 +126,7 @@ export default function PaymentMethodSelector({
   }, [method]);
 
   const showChooser = hasPayPalClient || hasPayMePath;
+  const totalStr = Number(totalIls).toFixed(2);
 
   return (
     <div className="payment-method-selector" dir="rtl">
@@ -141,10 +155,7 @@ export default function PaymentMethodSelector({
               <button
                 type="button"
                 className={`pay-tile pay-tile--paypal ${method === 'paypal' ? 'is-selected' : ''}`}
-                onClick={() => {
-                  setMethod('paypal');
-                  setLocalError(null);
-                }}
+                onClick={() => selectMethod('paypal')}
                 aria-pressed={method === 'paypal'}
               >
                 <span className="pay-tile__paypal-mark" aria-hidden="true">
@@ -161,10 +172,7 @@ export default function PaymentMethodSelector({
               <button
                 type="button"
                 className={`pay-tile pay-tile--payme ${method === 'payme' ? 'is-selected' : ''}`}
-                onClick={() => {
-                  setMethod('payme');
-                  setLocalError(null);
-                }}
+                onClick={() => selectMethod('payme')}
                 aria-pressed={method === 'payme'}
               >
                 <span className="pay-tile__card-icon" aria-hidden="true">
@@ -189,16 +197,12 @@ export default function PaymentMethodSelector({
         </p>
       )}
 
-      {method === 'paypal' && hasPayPalClient && (
+      {method === 'paypal' && hasPayPalClient && policyConsent && (
         <div className="payment-method-selector__paypal" ref={paypalSectionRef}>
           <p className="payment-method-selector__paypal-intro">
             סכום לתשלום ב־PayPal: <strong>₪{totalStr}</strong> ({currencyCode})
           </p>
-          {!policyConsent ? (
-            <p className="payment-method-selector__policy-hint" role="status">
-              סמנו את אישור תנאי השימוש ומדיניות הפרטיות למעלה כדי להמשיך לתשלום.
-            </p>
-          ) : (
+          {!policyConsent ? null : (
             <>
               <p className="payment-method-selector__paypal-hint">
                 השתמשו בכפתור PayPal למטה — זה ממשק התשלום הרשמי של PayPal (חלון מאובטח).
@@ -233,7 +237,7 @@ export default function PaymentMethodSelector({
         </div>
       )}
 
-      {method === 'payme' && hasPayMePath && (
+      {method === 'payme' && hasPayMePath && policyConsent && (
         <div className="payment-method-selector__payme" ref={paymeSectionRef}>
           <p className="payment-method-selector__payme-intro">
             סכום לתשלום בכרטיס אשראי: <strong>₪{totalStr}</strong> ({currencyCode}) — דרך <strong>PayMe</strong>

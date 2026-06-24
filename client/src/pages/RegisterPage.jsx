@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { resendVerification } from '../services/api';
 import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import PasswordInput from '../components/PasswordInput';
 import './AuthPages.css';
 
 import { PASSWORD_RULE, PASSWORD_HINT } from '../utils/passwordPolicy';
@@ -231,30 +232,24 @@ function RegisterPage() {
 
         <div className="auth-field">
           <label htmlFor="reg-password">סיסמה</label>
-          <input
+          <PasswordInput
             id="reg-password"
-            type="password"
-            className="auth-input"
             value={form.password}
             onChange={update('password')}
             required
             autoComplete="new-password"
-            dir="ltr"
+            hint="לפחות 8 תווים, אות גדולה וקטנה, ספרה ותו מיוחד"
           />
-          <span className="auth-hint">לפחות 8 תווים, אות גדולה וקטנה, ספרה ותו מיוחד</span>
         </div>
 
         <div className="auth-field">
           <label htmlFor="reg-confirm">אימות סיסמה</label>
-          <input
+          <PasswordInput
             id="reg-confirm"
-            type="password"
-            className="auth-input"
             value={form.confirm}
             onChange={update('confirm')}
             required
             autoComplete="new-password"
-            dir="ltr"
           />
         </div>
 

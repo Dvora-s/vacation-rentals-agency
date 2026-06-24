@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { resendVerification } from '../services/api';
 import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import PasswordInput from '../components/PasswordInput';
 import './AuthPages.css';
 
 function LoginPage() {
@@ -114,15 +115,12 @@ function LoginPage() {
 
         <div className="auth-field">
           <label htmlFor="login-password">סיסמה</label>
-          <input
+          <PasswordInput
             id="login-password"
-            type="password"
-            className="auth-input"
             value={form.password}
             onChange={update('password')}
             required
             autoComplete="current-password"
-            dir="ltr"
           />
         </div>
 

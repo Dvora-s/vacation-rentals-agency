@@ -198,7 +198,7 @@ function ApartmentDetailPage() {
           <div className="detail-specs">
             <span>{apartment.max_guests} אורחים</span>
             <span>{apartment.bedrooms} חדרי שינה</span>
-            <span>{apartment.bathrooms} חדרי רחצה</span>
+            <span>{apartment.bathrooms} מיטות</span>
           </div>
 
           <div className="detail-tags">

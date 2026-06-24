@@ -144,6 +144,33 @@
   background: #fff;
 }
 
+.apt-cover-hint {
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.apt-thumb.is-cover {
+  border-color: var(--color-gold, #b8860b);
+  box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.35);
+}
+
+.apt-thumb-select {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.apt-thumb-select img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .apt-thumb img {
   width: 100%;
   height: 100%;
