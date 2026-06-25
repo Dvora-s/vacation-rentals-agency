@@ -111,8 +111,10 @@ function ApartmentsTab() {
       {apartments.map((apt) => (
         <article key={apt.id} className={`my-apt-card status-${apt.status}`}>
           <div className="my-apt-thumb">
-            {getApartmentCoverUrl(apt) && (
+            {getApartmentCoverUrl(apt) ? (
               <img src={getApartmentCoverUrl(apt)} alt={apt.title} />
+            ) : (
+              <span className="my-apt-thumb-placeholder">אין תמונה</span>
             )}
           </div>
           <div className="my-apt-body">

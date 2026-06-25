@@ -39,9 +39,8 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
             <img src={coverUrl} alt={apartment.title} className="card-image" loading="lazy" />
           )
         ) : (
-          <div className="card-image-placeholder" aria-hidden="true">
-            <span>📷</span>
-            <span>אין תמונה</span>
+          <div className="card-image-placeholder">
+            אין תמונה
           </div>
         )}
       </div>

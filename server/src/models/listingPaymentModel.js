@@ -1,5 +1,33 @@
 import pool from '../config/db.js';
 
+const LISTING_PROVIDER_NAMES = new Set([
+  'paypal',
+  'payme',
+  'promo_free',
+  'slot_bundle',
+  'manual',
+  'admin_free',
+]);
+
+/** תיקון שורות ישנות שבהן status/provider הוחלפו בטעות (insert legacy לפני תיקון). */
+export function normalizeListingPaymentRow(row) {
+  if (!row) return null;
+  if (LISTING_PROVIDER_NAMES.has(row.status) && ['paid', 'authorized'].includes(row.provider)) {
+    return { ...row, status: row.provider, provider: row.status };
+  }
+  return row;
+}
+
+const SECURED_LISTING_PAYMENT_SQL = `
+  (
+    status IN ('paid', 'authorized')
+    OR (
+      provider IN ('paid', 'authorized')
+      AND status IN ('paypal', 'payme', 'promo_free', 'slot_bundle', 'manual', 'admin_free')
+    )
+  )
+`;
+
 export async function selectApartmentByIdForListing(id) {
   const [rows] = await pool.query('SELECT * FROM apartments WHERE id = ?', [id]);
   return rows[0] || null;
@@ -7,12 +35,24 @@ export async function selectApartmentByIdForListing(id) {
 
 async function insertListingPaymentRowLegacy(params, paymentStatus = 'paid') {
   const paidAtSql = paymentStatus === 'paid' ? 'CURRENT_TIMESTAMP' : 'NULL';
+  const [apartmentId, userId, amount, months, provider, providerReference, periodStart, periodEnd] =
+    params;
   const [result] = await pool.query(
     `INSERT INTO listing_payments
       (apartment_id, user_id, amount, currency, months, status, provider, provider_reference,
        paid_at, period_start, period_end)
      VALUES (?, ?, ?, 'ILS', ?, ?, ?, ?, ${paidAtSql}, ?, ?)`,
-    [...params.slice(0, 5), paymentStatus, ...params.slice(5)],
+    [
+      apartmentId,
+      userId,
+      amount,
+      months,
+      paymentStatus,
+      provider,
+      providerReference,
+      periodStart,
+      periodEnd,
+    ],
   );
   return result.insertId;
 }
@@ -84,7 +124,18 @@ export async function insertSlotBundlePaymentRow({
 
 export async function selectListingPaymentById(id) {
   const [payRows] = await pool.query('SELECT * FROM listing_payments WHERE id = ?', [id]);
-  return payRows[0] || null;
+  return normalizeListingPaymentRow(payRows[0] || null);
+}
+
+/** מתקן במסד שורות תשלום עם status/provider הפוכים (מגרסה ישנה של insert). */
+export async function repairLegacySwappedListingPaymentStatuses() {
+  const [result] = await pool.query(
+    `UPDATE listing_payments
+     SET status = provider, provider = status
+     WHERE provider IN ('paid', 'authorized')
+       AND status IN ('paypal', 'payme', 'promo_free', 'slot_bundle', 'manual', 'admin_free')`,
+  );
+  return result.affectedRows || 0;
 }
 
 export async function selectAvailableSlotPayments(userId, tier = null) {
@@ -133,7 +184,8 @@ export async function selectMineListingPayments(userId) {
 export async function apartmentHasPaidListing(apartmentId) {
   const [rows] = await pool.query(
     `SELECT 1 FROM listing_payments
-     WHERE apartment_id = ? AND status = 'paid'
+     WHERE apartment_id = ?
+       AND (status = 'paid' OR (provider = 'paid' AND status IN ('paypal', 'payme', 'promo_free', 'slot_bundle', 'manual', 'admin_free')))
      LIMIT 1`,
     [apartmentId],
   );
@@ -144,7 +196,7 @@ export async function apartmentHasPaidListing(apartmentId) {
 export async function apartmentHasSecuredListingPayment(apartmentId) {
   const [rows] = await pool.query(
     `SELECT 1 FROM listing_payments
-     WHERE apartment_id = ? AND status IN ('paid', 'authorized')
+     WHERE apartment_id = ? AND ${SECURED_LISTING_PAYMENT_SQL}
      LIMIT 1`,
     [apartmentId],
   );
@@ -156,12 +208,16 @@ export async function selectLatestListingPaymentForApartment(apartmentId, status
   const placeholders = list.map(() => '?').join(',');
   const [rows] = await pool.query(
     `SELECT * FROM listing_payments
-     WHERE apartment_id = ? AND status IN (${placeholders})
+     WHERE apartment_id = ?
+       AND (
+         status IN (${placeholders})
+         OR provider IN (${placeholders})
+       )
      ORDER BY id DESC
      LIMIT 1`,
-    [apartmentId, ...list],
+    [apartmentId, ...list, ...list],
   );
-  return rows[0] || null;
+  return normalizeListingPaymentRow(rows[0] || null);
 }
 
 export async function markListingPaymentCaptured(paymentId, captureReference) {

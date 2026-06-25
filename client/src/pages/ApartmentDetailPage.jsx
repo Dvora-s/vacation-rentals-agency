@@ -7,6 +7,7 @@ import ResubmitApartmentButton from '../components/ResubmitApartmentButton';
 import { getApartmentCategories } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
 import { isApartmentOwner } from '../utils/apartmentOwnership';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import './ApartmentDetailPage.css';
 
 const STATUS_LABELS = {
@@ -81,11 +82,15 @@ function ApartmentDetailPage() {
     );
   }
 
-  const images = apartment.images?.length ? apartment.images : [apartment.image];
+  const rawImages = apartment.images?.length ? apartment.images : [apartment.image];
+  const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
+  const hasGalleryImages = images.length > 0;
 
   async function saveGalleryImage(index, url) {
-    const nextImages = [...images];
-    nextImages[index] = url;
+    const sourceImages = apartment.images?.length ? [...apartment.images] : [apartment.image].filter(Boolean);
+    const nextImages = sourceImages.length ? [...sourceImages] : [''];
+    if (index >= nextImages.length) nextImages.push(url);
+    else nextImages[index] = url;
     const updated = await updateApartment(apartment.id, {
       images: nextImages,
       image_url: nextImages[0],
@@ -162,32 +167,38 @@ function ApartmentDetailPage() {
 
       <div className="detail-layout">
         <div className="detail-gallery">
-          <div className="gallery-main">
-            <EditableImage
-              id={`apt.${apartment.id}.gallery.${activeImage}`}
-              src={images[activeImage]}
-              alt={apartment.title}
-              className="gallery-main-editable"
-              onSave={(url) => saveGalleryImage(activeImage, url)}
-            />
-          </div>
-          <div className="gallery-thumbs">
-            {images.map((img, index) => (
-              <button
-                key={`${img}-${index}`}
-                type="button"
-                className={index === activeImage ? 'thumb active' : 'thumb'}
-                onClick={() => setActiveImage(index)}
-              >
+          {hasGalleryImages ? (
+            <>
+              <div className="gallery-main">
                 <EditableImage
-                  id={`apt.${apartment.id}.gallery.${index}`}
-                  src={img}
-                  alt=""
-                  onSave={(url) => saveGalleryImage(index, url)}
+                  id={`apt.${apartment.id}.gallery.${activeImage}`}
+                  src={images[activeImage]}
+                  alt={apartment.title}
+                  className="gallery-main-editable"
+                  onSave={(url) => saveGalleryImage(activeImage, url)}
                 />
-              </button>
-            ))}
-          </div>
+              </div>
+              <div className="gallery-thumbs">
+                {images.map((img, index) => (
+                  <button
+                    key={`${img}-${index}`}
+                    type="button"
+                    className={index === activeImage ? 'thumb active' : 'thumb'}
+                    onClick={() => setActiveImage(index)}
+                  >
+                    <EditableImage
+                      id={`apt.${apartment.id}.gallery.${index}`}
+                      src={img}
+                      alt=""
+                      onSave={(url) => saveGalleryImage(index, url)}
+                    />
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="detail-gallery-empty">אין תמונה</div>
+          )}
         </div>
 
         <div className="detail-info-card">

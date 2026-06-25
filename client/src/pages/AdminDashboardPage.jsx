@@ -120,9 +120,7 @@ function AdminDashboardPage() {
                 {apt.image ? (
                   <img src={apt.image} alt={apt.title} />
                 ) : (
-                  <span className="my-apt-thumb-placeholder" title="אין תמונת שער">
-                    ללא תמונה
-                  </span>
+                  <span className="my-apt-thumb-placeholder">אין תמונה</span>
                 )}
               </div>
               <div className="my-apt-body">

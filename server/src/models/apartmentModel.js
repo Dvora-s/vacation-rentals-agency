@@ -76,7 +76,14 @@ export async function selectPendingApartments() {
      WHERE a.status = 'pending'
        AND EXISTS (
          SELECT 1 FROM listing_payments lp
-         WHERE lp.apartment_id = a.id AND lp.status IN ('paid', 'authorized')
+         WHERE lp.apartment_id = a.id
+           AND (
+             lp.status IN ('paid', 'authorized')
+             OR (
+               lp.provider IN ('paid', 'authorized')
+               AND lp.status IN ('paypal', 'payme', 'promo_free', 'slot_bundle', 'manual', 'admin_free')
+             )
+           )
        )
      ORDER BY a.created_at ASC`,
   );

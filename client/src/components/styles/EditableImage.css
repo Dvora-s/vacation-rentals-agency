@@ -34,6 +34,19 @@
   object-fit: cover;
 }
 
+.editable-image-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  background: linear-gradient(145deg, #f4f1ea 0%, #e8e2d6 100%);
+}
+
 .navbar-logo .editable-image-wrap,
 .footer-logo .editable-image-wrap {
   display: inline-block;

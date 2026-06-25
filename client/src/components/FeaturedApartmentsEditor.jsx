@@ -194,7 +194,7 @@ function FeaturedApartmentsEditor({ onSaved }) {
                                 {cover ? (
                                   <img src={cover} alt="" />
                                 ) : (
-                                  <span aria-hidden="true">📷</span>
+                                  <span className="featured-editor-thumb-empty">אין תמונה</span>
                                 )}
                               </span>
                               <span className="featured-editor-item-body">

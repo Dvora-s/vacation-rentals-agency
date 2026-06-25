@@ -40,6 +40,7 @@ function EditableImage({
   const [editing, setEditing] = useState(false);
   const [imgSrc, setImgSrc] = useState(resolvedSrc);
   const [draftUrl, setDraftUrl] = useState(resolvedSrc);
+  const [imageBroken, setImageBroken] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -48,6 +49,7 @@ function EditableImage({
 
   useEffect(() => {
     setImgSrc(resolvedSrc);
+    setImageBroken(false);
     if (!editing) setDraftUrl(resolvedSrc);
   }, [resolvedSrc, editing]);
 
@@ -264,6 +266,16 @@ function EditableImage({
     .filter(Boolean)
     .join(' ');
 
+  if (mode === 'img' && (!imgSrc || imageBroken)) {
+    return (
+      <span className={imgClass} style={style}>
+        <span className="editable-image-missing">אין תמונה</span>
+        {editButton}
+        {editorModal}
+      </span>
+    );
+  }
+
   return (
     <span className={imgClass} style={style}>
       <img
@@ -272,7 +284,11 @@ function EditableImage({
         className={imgClassName}
         onError={() => {
           const fallback = resolveMediaUrl(defaultSrc);
-          if (fallback && imgSrc !== fallback) setImgSrc(fallback);
+          if (fallback && imgSrc !== fallback) {
+            setImgSrc(fallback);
+            return;
+          }
+          setImageBroken(true);
         }}
         {...rest}
       />

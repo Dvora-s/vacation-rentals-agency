@@ -16,6 +16,7 @@ import contentRouter from './routes/content.js';
 import paypalOrdersRouter from './routes/paypalOrders.js';
 import { getPayPalEnvStatus, logPayPalStartup } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
+import { ensureListingPaymentsIntegrity } from './bootstrap/ensureListingPayments.js';
 import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
 import { ensurePricingSeed } from './bootstrap/ensurePricing.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
@@ -272,6 +273,11 @@ app.listen(PORT, HOST, () => {
     await ensureAdminUser();
   } catch (err) {
     logger.warn('[Auth] Could not ensure admin user:', err.message);
+  }
+  try {
+    await ensureListingPaymentsIntegrity();
+  } catch (err) {
+    logger.warn('[listing_payments] Could not repair legacy payment rows:', err.message);
   }
   try {
     startListingExpiryJob();
