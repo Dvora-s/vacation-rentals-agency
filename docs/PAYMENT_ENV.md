@@ -6,7 +6,8 @@
 
 | משתנה | למה |
 |--------|-----|
-| `VITE_PAYPAL_CLIENT_ID` | Client ID מ־Sandbox (או Live) — מופיע ב־UI וטוען את SDK של PayPal. חייב להיות **אותו** Client ID כמו בשרת (אותה אפליקציה). |
+| `VITE_PAYPAL_CLIENT_ID` | Client ID מ־Sandbox (או Live) — מופיע ב־UI וטוען את SDK של PayPal. חייב להיות **אותו** Client ID כמו בשרת (אותה אפליקציה). ב־Vercel: גם ב־`client/vercel.json` (build) ו/או במשתני הפרויקט. |
+| `VITE_PAYPAL_MODE` | `sandbox` או `live` — חייב להתאים ל־`PAYPAL_API_BASE` בשרת. |
 | `VITE_USE_MOCK` | רק `true` מפעיל דמו מקומי; בלי זה — נתונים מהשרת. |
 | `VITE_API_BASE` | אופציונלי. ברירת מחדל: `/api` (פרוקסי של Vite ל־`localhost:5000`). אם מצביעים לשרת מרוחק — שם חייבים להיות מוגדרים גם PayPal ו־PayMe. |
 
@@ -44,6 +45,8 @@
    - `paypal.configured` — האם מוגדרים ID + Secret בשרת.  
    - `payme` — סטטוס שדות PayMe (אם מוגדר בקוד).  
 2. **PayPal** — אותו Client ID ב־`client/.env` וב־`server/.env`; אחרי שינוי `.env` — **הפעלה מחדש** של Vite ושל Node.
+3. **Vercel** — `client/vercel.json` מעביר `/api/*` ל־Railway; `VITE_API_URL=/api` (אותו דומיין, בלי בעיות CORS).
+4. **שגיאה "Missing authentication token"** — בדרך כלל לא מ־PayPal אלא מהשרת שלנו: לא מחוברים / פג תוקף התחברות. התנתקו והתחברו מחדש, ואז נסו שוב. ודאו שב־Railway מוגדרים `PAYPAL_CLIENT_ID` + `PAYPAL_CLIENT_SECRET`.
 
 ### קודי שגיאה ל־`POST /api/orders` (PayPal בלבד)
 

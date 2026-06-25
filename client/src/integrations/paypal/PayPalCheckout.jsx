@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { authorizePayPalOrder, capturePayPalOrder, createPayPalOrder } from '../../services/api.js';
+import { authorizePayPalOrder, capturePayPalOrder, createPayPalOrder, getToken } from '../../services/api.js';
 import './PayPalCheckout.css';
 
 const clientId = String(import.meta.env.VITE_PAYPAL_CLIENT_ID ?? '').trim();
@@ -13,26 +13,33 @@ const payPalSdkHost =
 function loadPayPalScript(cid, currency, intent = 'capture') {
   const normalizedIntent = intent === 'authorize' ? 'authorize' : 'capture';
   return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-nofesh-paypal-sdk]');
+    if (existing) {
+      const existingIntent = existing.getAttribute('data-paypal-intent');
+      if (existingIntent !== normalizedIntent) {
+        delete window.paypal;
+        existing.remove();
+      } else if (typeof window !== 'undefined' && window.paypal) {
+        resolve(window.paypal);
+        return;
+      } else {
+        const done = () => {
+          if (window.paypal) resolve(window.paypal);
+          else reject(new Error('PayPal SDK loaded but window.paypal is missing'));
+        };
+        existing.addEventListener('load', done, { once: true });
+        existing.addEventListener('error', () => reject(new Error('PayPal script failed')), { once: true });
+        return;
+      }
+    }
+
     if (typeof window !== 'undefined' && window.paypal) {
       resolve(window.paypal);
       return;
     }
-    const existing = document.querySelector('script[data-nofesh-paypal-sdk]');
-    if (existing) {
-      const done = () => {
-        if (window.paypal) resolve(window.paypal);
-        else reject(new Error('PayPal SDK loaded but window.paypal is missing'));
-      };
-      if (window.paypal) {
-        done();
-        return;
-      }
-      existing.addEventListener('load', done);
-      existing.addEventListener('error', () => reject(new Error('PayPal script failed')));
-      return;
-    }
     const script = document.createElement('script');
     script.setAttribute('data-nofesh-paypal-sdk', '1');
+    script.setAttribute('data-paypal-intent', normalizedIntent);
     script.async = true;
     const params = new URLSearchParams({
       'client-id': cid,
@@ -102,6 +109,11 @@ export default function PayPalCheckout({
           style: { layout: 'vertical', shape: 'rect', label: 'paypal' },
           createOrder: async () => {
             setMessage('');
+            if (!getToken()) {
+              const err = new Error('פג תוקף ההתחברות. התחברו מחדש ואז נסו לשלם שוב.');
+              handleError(err);
+              throw err;
+            }
             const value = Number.parseFloat(amountRef.current);
             if (!Number.isFinite(value) || value <= 0) {
               const err = new Error('סכום לא תקין');

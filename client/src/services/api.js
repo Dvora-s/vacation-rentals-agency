@@ -51,6 +51,14 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const err = new Error(
+        'שגיאת תקשורת עם השרת. ודאו שהתחברתם לאתר ושהשרת פעיל (Railway).',
+      );
+      err.status = res.status;
+      throw err;
+    }
     const message =
       data?.error === 'Missing authentication token'
         ? 'פג תוקף ההתחברות או שלא התחברתם. התחברו מחדש ואז נסו לשלם שוב.'

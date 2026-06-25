@@ -16,7 +16,7 @@ import { PREMIUM_PLANS, STANDARD_PLANS, requiresPremium } from '../data/pricing'
 import './ListApartmentPage.css';
 
 function ListApartmentPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, refresh } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,6 +80,7 @@ function ListApartmentPage() {
 
   useEffect(() => {
     if (step !== 'payment' || !user) return undefined;
+    refresh().catch(() => {});
     let active = true;
     (async () => {
       try {
@@ -92,7 +93,7 @@ function ListApartmentPage() {
     return () => {
       active = false;
     };
-  }, [step, tier, user]);
+  }, [step, tier, user, refresh]);
 
   useEffect(() => {
     const resumeId = searchParams.get('resume');

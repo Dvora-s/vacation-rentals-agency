@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PayPalCheckout from '../integrations/paypal/PayPalCheckout.jsx';
 import PolicyConsentCheckbox from './PolicyConsentCheckbox.jsx';
-import { payForListing } from '../services/api.js';
+import { payForListing, getToken } from '../services/api.js';
 import { createPayment } from '../services/paymentService.js';
 import { PAYME_LISTING_STORAGE_KEY } from '../hooks/usePayMeListingReturn.js';
 import './styles/PaymentMethodSelector.css';
@@ -39,6 +39,7 @@ export default function PaymentMethodSelector({
 }) {
   const hasPayPalClient = Boolean(String(import.meta.env.VITE_PAYPAL_CLIENT_ID ?? '').trim());
   const hasPayMePath = Boolean(paymeReturnPath && String(paymeReturnPath).trim());
+  const hasAuthToken = Boolean(getToken());
 
   const [method, setMethod] = useState(() => {
     if (hasPayPalClient) return 'paypal';
@@ -143,7 +144,13 @@ export default function PaymentMethodSelector({
         </div>
       )}
 
-      {showChooser && (
+      {showChooser && !hasAuthToken && (
+        <div className="auth-error" role="alert">
+          יש להתחבר לאתר לפני התשלום. אם כבר התחברתם — התנתקו והתחברו מחדש, ואז נסו שוב.
+        </div>
+      )}
+
+      {showChooser && hasAuthToken && (
         <>
           <PolicyConsentCheckbox
             id={`policy-consent-${apartmentId}`}
@@ -202,7 +209,7 @@ export default function PaymentMethodSelector({
         </p>
       )}
 
-      {method === 'paypal' && hasPayPalClient && policyConsent && (
+      {method === 'paypal' && hasPayPalClient && policyConsent && hasAuthToken && (
         <div className="payment-method-selector__paypal" ref={paypalSectionRef}>
           <p className="payment-method-selector__paypal-intro">
             סכום לתשלום ב־PayPal: <strong>₪{totalStr}</strong> ({currencyCode})
@@ -248,7 +255,7 @@ export default function PaymentMethodSelector({
         </div>
       )}
 
-      {method === 'payme' && hasPayMePath && policyConsent && (
+      {method === 'payme' && hasPayMePath && policyConsent && hasAuthToken && (
         <div className="payment-method-selector__payme" ref={paymeSectionRef}>
           <p className="payment-method-selector__payme-intro">
             סכום לתשלום בכרטיס אשראי: <strong>₪{totalStr}</strong> ({currencyCode}) — דרך <strong>PayMe</strong>

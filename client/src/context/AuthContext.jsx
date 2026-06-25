@@ -36,6 +36,7 @@ export function AuthProvider({ children }) {
       const token = getToken();
       if (!token || !isStoredTokenUsable(token)) {
         if (token) clearToken();
+        if (!cancelled) setUser(null);
         setLoading(false);
         return;
       }
@@ -44,13 +45,29 @@ export function AuthProvider({ children }) {
         if (!cancelled) setUser(me);
       } catch {
         clearToken();
+        if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
     bootstrap();
+
+    function onStorage(e) {
+      if (e.key !== 'nofesh.token') return;
+      if (!e.newValue) {
+        setUser(null);
+        return;
+      }
+      if (!isStoredTokenUsable(e.newValue)) {
+        clearToken();
+        setUser(null);
+      }
+    }
+    window.addEventListener('storage', onStorage);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('storage', onStorage);
     };
   }, []);
 
