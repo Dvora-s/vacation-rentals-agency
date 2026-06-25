@@ -155,6 +155,10 @@ export async function resubmitApartmentForApproval(id) {
   return apiFetch(`/apartments/${id}/resubmit-for-approval`, { method: 'POST', auth: true });
 }
 
+export async function adminPublishApartmentFree(id) {
+  return apiFetch(`/apartments/${id}/admin-publish-free`, { method: 'POST', auth: true });
+}
+
 // ────────── העלאת תמונות ──────────
 export async function uploadImages(files) {
   const list = Array.from(files || []).filter(Boolean);

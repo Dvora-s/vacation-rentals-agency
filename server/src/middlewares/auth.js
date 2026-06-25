@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { findUserById } from '../models/userModel.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -65,14 +66,16 @@ function readToken(req) {
   return header.slice('Bearer '.length).trim();
 }
 
-// Requires a valid token. Populates req.user = { id, email, role }.
-export function requireAuth(req, res, next) {
+// Requires a valid token. Populates req.user = { id, email, role } (role refreshed from DB).
+export async function requireAuth(req, res, next) {
   const token = readToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Missing authentication token' });
   }
   try {
     req.user = jwt.verify(token, JWT_SECRET);
+    const dbUser = await findUserById(req.user.id);
+    if (dbUser?.role) req.user.role = dbUser.role;
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });

@@ -189,6 +189,27 @@ export async function create(req, res) {
   res.status(201).json(apartment);
 }
 
+/** מנהל מפרסם דירה קיימת (ממתינה לתשלום) ללא תשלום */
+export async function adminPublishFree(req, res) {
+  const apt = await loadOwnedApartment(req, res);
+  if (!apt) return;
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'רק מנהל מערכת יכול לפרסם ללא תשלום' });
+  }
+
+  if (apt.status !== 'awaiting_payment') {
+    return res.status(400).json({
+      error: 'ניתן לפרסם ללא תשלום רק דירה שממתינה לתשלום',
+    });
+  }
+
+  await publishApartmentFreeForAdmin(req.params.id, req.user);
+
+  const row = await selectApartmentById(req.params.id);
+  res.json(await attachImagesToApartment(row));
+}
+
 /** שליחה חוזרת לאישור מנהל (דירה שנדחתה) */
 export async function resubmitForApproval(req, res) {
   const apt = await loadOwnedApartment(req, res);

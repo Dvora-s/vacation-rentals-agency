@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
-import { createApartment, getApartmentById } from '../services/api';
+import { createApartment, getApartmentById, adminPublishApartmentFree } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
 import { useCheckoutPlans } from '../hooks/useCheckoutPlans';
@@ -78,6 +78,13 @@ function ListApartmentPage() {
           setError('הדירה כבר שולמה או אינה ממתינה לתשלום.');
           return;
         }
+        if (isAdmin) {
+          const published = await adminPublishApartmentFree(apt.id);
+          setCreatedApt(published);
+          setAdminPublished(true);
+          setStep('done');
+          return;
+        }
         await resumePaymentForApartment(apt);
       } catch (err) {
         if (!cancelled) setError(err.message);
@@ -86,7 +93,7 @@ function ListApartmentPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, user, resumePaymentForApartment]);
+  }, [searchParams, user, isAdmin, resumePaymentForApartment]);
 
   usePayMeListingReturn({
     validatePending: useCallback((p) => p.flow === 'list_apartment' && Number(p.apartmentId) > 0, []),
