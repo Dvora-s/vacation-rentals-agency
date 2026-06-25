@@ -21,6 +21,7 @@ const emptyPlan = {
   currency: 'ILS',
   category: 'hosts',
   duration_months: '1',
+  listing_slots: '1',
   duration_label: '',
   features_text: '',
   highlight_type: 'none',
@@ -119,6 +120,7 @@ function AdminPricingPage() {
       currency: row.currency || 'ILS',
       category: row.category,
       duration_months: String(row.duration_months),
+      listing_slots: String(row.listing_slots ?? 1),
       duration_label: row.duration_label || '',
       features_text: parseFeaturesFromRow(row),
       highlight_type: row.highlight_type || 'none',
@@ -152,6 +154,7 @@ function AdminPricingPage() {
         price: Number(planForm.price),
         compare_at_price: planForm.compare_at_price === '' ? null : Number(planForm.compare_at_price),
         duration_months: Number(planForm.duration_months),
+        listing_slots: Number(planForm.listing_slots) || 1,
         sort_order: Number(planForm.sort_order),
       };
       if (editingPlanId) {
@@ -306,6 +309,15 @@ function AdminPricingPage() {
                   min="1"
                   value={planForm.duration_months}
                   onChange={(e) => setPlanForm((p) => ({ ...p, duration_months: e.target.value }))}
+                />
+              </label>
+              <label>
+                מספר דירות במסלול
+                <input
+                  type="number"
+                  min="1"
+                  value={planForm.listing_slots}
+                  onChange={(e) => setPlanForm((p) => ({ ...p, listing_slots: e.target.value }))}
                 />
               </label>
               <label>

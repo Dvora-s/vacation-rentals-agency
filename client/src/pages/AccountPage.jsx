@@ -15,7 +15,7 @@ import './AccountPage.css';
 
 const STATUS_LABEL = {
   pending: 'ממתינה לאישור מנהל',
-  awaiting_payment: 'אושרה — ממתינה לתשלום',
+  awaiting_payment: 'אושרה — ממתינה לתשלום ופרסום',
   approved: 'מאושרת ומפורסמת',
   rejected: 'נדחתה',
   expired: 'פג תוקף — הושעתה',
@@ -141,7 +141,7 @@ function ApartmentsTab() {
             <div className="my-apt-actions">
               {apt.status === 'awaiting_payment' && (
                 <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
-                  השלמת תשלום
+                  תשלום ופרסום באתר
                 </Link>
               )}
               {apt.status === 'expired' && (

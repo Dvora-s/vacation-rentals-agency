@@ -240,19 +240,37 @@ export async function getListingFee() {
   return apiFetch('/payments/fee');
 }
 
+export async function getAvailableListingSlots(tier) {
+  const q = tier ? `?tier=${encodeURIComponent(tier)}` : '';
+  return apiFetch(`/payments/available-slots${q}`, { auth: true });
+}
+
 export async function payForListing({
   apartment_id,
   months = 1,
   tier = 'standard',
   provider,
   provider_reference,
+  use_existing_slot = false,
+  listing_payment_id = null,
 }) {
-  if (!provider || !provider_reference) {
-    throw new Error('חסרים פרטי תשלום מהספק');
+  if (!use_existing_slot && !listing_payment_id) {
+    const needsProvider = provider !== 'promo_free';
+    if (needsProvider && (!provider || !provider_reference)) {
+      throw new Error('חסרים פרטי תשלום מהספק');
+    }
   }
   return apiFetch('/payments', {
     method: 'POST',
-    body: { apartment_id, months, tier, provider, provider_reference },
+    body: {
+      apartment_id,
+      months,
+      tier,
+      provider,
+      provider_reference,
+      use_existing_slot,
+      listing_payment_id,
+    },
     auth: true,
   });
 }

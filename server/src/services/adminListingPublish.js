@@ -4,7 +4,7 @@ import { insertListingPaymentRow } from '../models/listingPaymentModel.js';
 const DEFAULT_ADMIN_FREE_MONTHS = 12;
 
 /**
- * מנהל מפרסם דירה מאושרת (ממתינה לתשלום) ללא תשלום — רושם תשלום בסכום 0 ומפרסם באתר.
+ * מנהל מפרסם דירה מאושרת (ממתינה לתשלום) ללא תשלום.
  */
 export async function publishApartmentFreeForAdmin(apartmentId, user) {
   const monthsInt = DEFAULT_ADMIN_FREE_MONTHS;
@@ -12,16 +12,19 @@ export async function publishApartmentFreeForAdmin(apartmentId, user) {
   const periodEnd = new Date(periodStart);
   periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
 
-  await insertListingPaymentRow([
+  await insertListingPaymentRow({
     apartmentId,
-    user.id,
-    0,
-    monthsInt,
-    'admin_free',
-    'admin-bypass',
-    periodStart.toISOString().slice(0, 10),
-    periodEnd.toISOString().slice(0, 10),
-  ]);
+    userId: user.id,
+    amount: 0,
+    months: monthsInt,
+    provider: 'admin_free',
+    providerReference: 'admin-bypass',
+    periodStart: periodStart.toISOString().slice(0, 10),
+    periodEnd: periodEnd.toISOString().slice(0, 10),
+    slotsTotal: 1,
+    slotsUsed: 1,
+    tier: 'standard',
+  });
 
   await updateApartmentExpiryFromPayment({
     apartmentId,

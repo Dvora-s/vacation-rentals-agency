@@ -17,6 +17,7 @@ router.post(
 );
 
 router.post('/', requireAuth, asyncHandler(listingPayments.createListingPayment));
+router.get('/available-slots', requireAuth, asyncHandler(listingPayments.listAvailableSlots));
 router.get('/mine', requireAuth, asyncHandler(listingPayments.listMineListingPayments));
 router.get('/', requireAuth, requireRole('admin'), asyncHandler(listingPayments.listAllListingPaymentsAdmin));
 router.get('/fee', listingPayments.getListingFee);

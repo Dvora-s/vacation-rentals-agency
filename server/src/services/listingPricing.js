@@ -3,6 +3,28 @@ import { getPlanAmount as getStaticPlanAmount } from '../config/pricing.js';
 import { selectActivePlansCatalog, selectActivePromotionsNow } from '../models/pricingModel.js';
 import { bestDiscountedPrice, resolveDisplayOriginal } from './pricingCompute.js';
 
+function parseFeaturesJson(features_json) {
+  if (Array.isArray(features_json)) return features_json;
+  if (typeof features_json === 'string') {
+    try {
+      return JSON.parse(features_json);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function extractListingSlots(planRow) {
+  const explicit = Number(planRow?.listing_slots);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  for (const line of parseFeaturesJson(planRow?.features_json)) {
+    const m = String(line).match(/(\d+)\s*דירות/);
+    if (m) return Math.max(1, Number(m[1]) || 1);
+  }
+  return 1;
+}
+
 const TIER_TO_CATEGORY = {
   standard: 'hosts',
   premium: 'hotels',
@@ -40,6 +62,7 @@ function buildCheckoutPlanDto(planRow, promos, { tier, syntheticId }) {
         : planRow.highlight_type === 'premium'
           ? 'premium'
           : undefined,
+    listingSlots: extractListingSlots(planRow),
     promotion: promotion
       ? {
           id: promotion.id,
@@ -105,6 +128,7 @@ export async function resolveListingAmount(tier = 'standard', months = 1) {
       tier: normalizedTier,
       months: monthsInt,
       planId: plan.id ?? null,
+      listingSlots: extractListingSlots(plan),
     };
   }
 
@@ -115,5 +139,6 @@ export async function resolveListingAmount(tier = 'standard', months = 1) {
     tier: normalizedTier,
     months: monthsInt,
     planId: null,
+    listingSlots: 1,
   };
 }

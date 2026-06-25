@@ -2,16 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ApartmentForm from '../components/ApartmentForm';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
-import { createApartment, getApartmentById, adminPublishApartmentFree } from '../services/api';
+import {
+  createApartment,
+  getApartmentById,
+  adminPublishApartmentFree,
+  getAvailableListingSlots,
+  payForListing,
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
 import { useCheckoutPlans } from '../hooks/useCheckoutPlans';
-import {
-  PREMIUM_PLANS,
-  STANDARD_PLANS,
-  requiresPremium,
-  monthsLabel,
-} from '../data/pricing';
+import { PREMIUM_PLANS, STANDARD_PLANS, requiresPremium } from '../data/pricing';
 import './ListApartmentPage.css';
 
 function ListApartmentPage() {
@@ -30,11 +31,13 @@ function ListApartmentPage() {
   const [planId, setPlanId] = useState(null);
   const [premiumForced, setPremiumForced] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [publishBusy, setPublishBusy] = useState(false);
 
   const confirmPublishedAfterPayment = useCallback(async (apartmentId) => {
     const apt = await getApartmentById(apartmentId);
     if (apt.status !== 'approved') {
-      throw new Error('התשלום התקבל אך המודעה עדיין לא פורסמה. פנו לתמיכה או נסו שוב בעוד דקה.');
+      throw new Error('הפרסום טרם הושלם. נסו שוב בעוד רגע או פנו לתמיכה.');
     }
     setCreatedApt(apt);
     setPaymentComplete(true);
@@ -76,6 +79,22 @@ function ListApartmentPage() {
   }, [checkoutPlans, planId]);
 
   useEffect(() => {
+    if (step !== 'payment' || !user) return undefined;
+    let active = true;
+    (async () => {
+      try {
+        const slots = await getAvailableListingSlots(tier);
+        if (active) setAvailableSlots(Array.isArray(slots) ? slots : []);
+      } catch {
+        if (active) setAvailableSlots([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [step, tier, user]);
+
+  useEffect(() => {
     const resumeId = searchParams.get('resume');
     if (!resumeId || !user) return undefined;
     let cancelled = false;
@@ -106,19 +125,22 @@ function ListApartmentPage() {
 
   usePayMeListingReturn({
     validatePending: useCallback((p) => p.flow === 'list_apartment' && Number(p.apartmentId) > 0, []),
-    onPaid: useCallback(async (pending) => {
-      try {
-        await confirmPublishedAfterPayment(pending.apartmentId);
-      } catch (err) {
-        setError(err.message);
-      }
-    }, [confirmPublishedAfterPayment]),
+    onPaid: useCallback(
+      async (pending) => {
+        try {
+          await confirmPublishedAfterPayment(pending.apartmentId);
+        } catch (err) {
+          setError(err.message);
+        }
+      },
+      [confirmPublishedAfterPayment],
+    ),
     onError: useCallback((msg) => setError(msg), []),
   });
 
   const detailsSubtitle = isAdmin
-    ? 'מנהל מערכת: מלאו את פרטי הדירה והמודעה תישלח לאישור. לאחר האישור ניתן לפרסם ללא תשלום.'
-    : 'מלאו את פרטי הדירה. המודעה תישלח לאישור המנהל, ורק לאחר האישור תוכלו להשלים את התשלום ולפרסם באתר.';
+    ? 'מלאו את פרטי הדירה. המודעה תישלח לאישור המנהל, ולאחר האישור תעלה לאוויר (מנהל — ללא תשלום).'
+    : 'מלאו את פרטי הדירה ושלחו לאישור. לאחר אישור המנהל תבחרו מסלול ותשלמו — רק אז המודעה תעלה לאוויר.';
 
   async function handleCreate(payload) {
     setError(null);
@@ -143,7 +165,47 @@ function ListApartmentPage() {
 
   const planList = checkoutPlans.length > 0 ? checkoutPlans : tier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
   const chosenPlan = planList.find((p) => p.id === planId) || planList[0];
-  const total = chosenPlan?.price ?? 0;
+  const total = Number(chosenPlan?.price ?? 0);
+  const isFreePromo = total <= 0;
+
+  async function handlePublishFree() {
+    if (!chosenPlan || !createdApt?.id) return;
+    setPublishBusy(true);
+    setError(null);
+    try {
+      await payForListing({
+        apartment_id: createdApt.id,
+        months: chosenPlan.months,
+        tier,
+        provider: 'promo_free',
+        provider_reference: 'promo-zero',
+      });
+      await confirmPublishedAfterPayment(createdApt.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPublishBusy(false);
+    }
+  }
+
+  async function handleUseSlot(slotId) {
+    if (!chosenPlan || !createdApt?.id) return;
+    setPublishBusy(true);
+    setError(null);
+    try {
+      await payForListing({
+        apartment_id: createdApt.id,
+        months: chosenPlan.months,
+        tier,
+        listing_payment_id: slotId,
+      });
+      await confirmPublishedAfterPayment(createdApt.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPublishBusy(false);
+    }
+  }
 
   if (step === 'done') {
     return (
@@ -153,8 +215,8 @@ function ListApartmentPage() {
           <h1>{paymentComplete ? 'המודעה עלתה לאתר!' : 'הדירה נשלחה לאישור'}</h1>
           <p>
             {paymentComplete
-              ? 'התשלום התקבל והמודעה פורסמה באתר. תוכלו לצפות בה בעמוד "חיפוש דירה".'
-              : 'המודעה נשמרה ונשלחה לאישור המנהל. לאחר האישור תקבלו הודעה במייל ותוכלו להשלים את התשלום מ"הדירות שלי".'}
+              ? 'המודעה פורסמה באתר וגלויה בחיפוש. תודה!'
+              : 'המודעה נשלחה לאישור המנהל. לאחר האישור תקבלו הודעה במייל — שם תשלמו ותעלו לאוויר.'}
           </p>
           <div className="success-actions">
             <button type="button" className="btn-primary" onClick={() => navigate('/my-apartments')}>
@@ -178,9 +240,10 @@ function ListApartmentPage() {
   if (step === 'payment') {
     return (
       <div className="list-apt-page section-container">
-        <h1 className="page-title">תשלום על פרסום הדירה</h1>
+        <h1 className="page-title">פרסום המודעה באתר</h1>
         <p className="page-subtitle">
-          הדירה <strong>"{createdApt?.title}"</strong> אושרה על ידי המנהל. השלימו את התשלום כדי לפרסם אותה באתר.
+          הדירה <strong>"{createdApt?.title}"</strong> אושרה על ידי המנהל. בחרו מסלול והשלימו תשלום (או השתמשו
+          במסלול קיים) — המודעה תעלה לאוויר מיד לאחר מכן.
         </p>
 
         {error && <div className="auth-error">{error}</div>}
@@ -210,7 +273,10 @@ function ListApartmentPage() {
                   onChange={() => setPlanId(plan.id)}
                 />
                 <span className="plan-option-body">
-                  <span className="plan-option-title">{plan.title}</span>
+                  <span className="plan-option-title">
+                    {plan.title}
+                    {plan.listingSlots > 1 ? ` · עד ${plan.listingSlots} דירות` : ''}
+                  </span>
                   <span className="plan-option-price">
                     {plan.originalPrice != null && (
                       <span className="plan-option-old">₪{plan.originalPrice}</span>
@@ -225,31 +291,69 @@ function ListApartmentPage() {
 
           <div className="payment-row payment-total">
             <span>סך הכל לתשלום</span>
-            <strong>₪{total}</strong>
+            <strong>{isFreePromo ? 'ללא תשלום (מבצע)' : `₪${total}`}</strong>
           </div>
 
-          <p className="payment-note">
-            ⓘ התשלום מתבצע דרך <strong>PayPal</strong> או <strong>PayMe</strong> בלבד; אסמכתא נרשמת אוטומטית מהספק.
-          </p>
+          {availableSlots.length > 0 && (
+            <div className="auth-notice" style={{ marginTop: '1rem' }}>
+              <p style={{ margin: '0 0 0.75rem' }}>
+                יש לכם מסלול פעיל עם מקום פנוי — אפשר לפרסם דירה זו בלי תשלום נוסף:
+              </p>
+              {availableSlots.map((slot) => (
+                <button
+                  key={slot.id}
+                  type="button"
+                  className="btn-outline-gold"
+                  style={{ marginLeft: '0.5rem', marginBottom: '0.5rem' }}
+                  disabled={publishBusy}
+                  onClick={() => handleUseSlot(slot.id)}
+                >
+                  פרסום עם המסלול ({slot.slots_remaining} דירות נותרו)
+                </button>
+              ))}
+            </div>
+          )}
 
-          {chosenPlan && (
-            <PaymentMethodSelector
-              totalIls={total}
-              currencyCode="ILS"
-              apartmentId={createdApt.id}
-              months={chosenPlan.months}
-              tier={tier}
-              paymeReturnPath="/list-apartment"
-              paymeFlow="list_apartment"
-              paymePendingExtra={{ apartmentTitle: createdApt.title }}
-              onSuccess={async () => {
-                try {
-                  await confirmPublishedAfterPayment(createdApt.id);
-                } catch (err) {
-                  setError(err.message);
-                }
-              }}
-            />
+          {isFreePromo ? (
+            <>
+              <p className="payment-note">
+                מבצע פעיל — אין צורך בתשלום. לחצו לפרסום המודעה באתר.
+              </p>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={publishBusy || !chosenPlan}
+                onClick={handlePublishFree}
+              >
+                {publishBusy ? 'מפרסם...' : 'פרסום המודעה באתר'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="payment-note">
+                ⓘ התשלום מתבצע דרך <strong>PayPal</strong> או <strong>PayMe</strong>. לאחר אישור התשלום
+                המודעה תעלה לאוויר מיד.
+              </p>
+              {chosenPlan && (
+                <PaymentMethodSelector
+                  totalIls={total}
+                  currencyCode="ILS"
+                  apartmentId={createdApt.id}
+                  months={chosenPlan.months}
+                  tier={tier}
+                  paymeReturnPath="/list-apartment"
+                  paymeFlow="list_apartment"
+                  paymePendingExtra={{ apartmentTitle: createdApt.title }}
+                  onSuccess={async () => {
+                    try {
+                      await confirmPublishedAfterPayment(createdApt.id);
+                    } catch (err) {
+                      setError(err.message);
+                    }
+                  }}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -263,7 +367,7 @@ function ListApartmentPage() {
 
       {isAdmin && (
         <div className="auth-notice">
-          פרסום מנהל: המודעה תישלח לאישור. לאחר האישור ניתן לפרסם ללא תשלום מ"הדירות שלי".
+          פרסום מנהל: המודעה תישלח לאישור, ולאחר האישור ניתן לפרסם ללא תשלום.
         </div>
       )}
 

@@ -16,9 +16,10 @@ function BrandingBadge() {
       if (e.key === 'Escape') close();
     };
     document.addEventListener('keydown', onKey);
-    // ניסיון הפעלה (נפתח בלחיצת משתמש — מותר עם קול).
+    // הפעלה ללא קול
     const v = videoRef.current;
     if (v) {
+      v.muted = true;
       v.currentTime = 0;
       const p = v.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -53,6 +54,7 @@ function BrandingBadge() {
             className="branding-video"
             src={VIDEO_SRC}
             autoPlay
+            muted
             playsInline
             onEnded={close}
           />

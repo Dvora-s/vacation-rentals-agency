@@ -150,6 +150,7 @@ export async function updatePlan(req, res) {
   }
   if (b.currency != null) set('currency', String(b.currency).trim().slice(0, 8));
   if (b.duration_months != null) set('duration_months', Math.max(1, parseInt(b.duration_months, 10) || 1));
+  if (b.listing_slots != null) set('listing_slots', Math.max(1, parseInt(b.listing_slots, 10) || 1));
   if (b.duration_label !== undefined) set('duration_label', b.duration_label?.trim() || null);
   if (b.features != null || b.features_text != null) {
     const features = parseFeaturesInput(b);

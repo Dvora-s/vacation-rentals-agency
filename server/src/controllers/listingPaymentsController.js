@@ -1,159 +1,58 @@
+import { publishApprovedListing } from '../services/listingPublishService.js';
 import {
-  sendPaymentReceiptEmail,
-  sendListingLiveEmail,
-} from '../utils/mailer.js';
-import { isPremiumApartment } from '../config/pricing.js';
-import { resolveListingAmount } from '../services/listingPricing.js';
-import { verifyListingPaymentProvider } from '../services/listingPaymentVerification.js';
-import {
-  publishApartmentAfterPayment,
-  updateApartmentExpiryFromPayment,
-} from '../models/apartmentModel.js';
-import { attachImagesToApartment, selectApartmentById } from '../models/apartmentModel.js';
-import {
-  insertListingPaymentRow,
   selectAllListingPaymentsAdmin,
-  selectApartmentByIdForListing,
-  selectListingPaymentById,
+  selectAvailableSlotPayments,
   selectMineListingPayments,
 } from '../models/listingPaymentModel.js';
-import { selectUserBillingById } from '../models/userModel.js';
 
 const LISTING_FEE_PER_MONTH = 30;
-const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-
-function formatHebrewDate(date) {
-  try {
-    return new Intl.DateTimeFormat('he-IL', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(date);
-  } catch {
-    return date.toISOString().slice(0, 10);
-  }
-}
 
 export async function createListingPayment(req, res) {
   const {
     apartment_id,
     months = 1,
-    tier: requestedTier = 'standard',
+    tier = 'standard',
     provider,
     provider_reference = null,
+    listing_payment_id = null,
+    use_existing_slot = false,
   } = req.body || {};
 
   if (!apartment_id) {
     return res.status(400).json({ error: 'נדרש מזהה דירה (apartment_id)' });
   }
-  const monthsInt = Math.max(1, Number(months) || 1);
-
-  const apt = await selectApartmentByIdForListing(apartment_id);
-  if (!apt) {
-    return res.status(404).json({ error: 'דירה לא נמצאה' });
-  }
-  const isAdmin = req.user.role === 'admin';
-  if (!isAdmin && apt.owner_id !== req.user.id) {
-    return res.status(403).json({ error: 'אין הרשאה לשלם עבור דירה זו' });
-  }
-
-  if (apt.status !== 'awaiting_payment') {
-    return res.status(400).json({
-      error: 'ניתן לשלם רק עבור דירה שאושרה על ידי המנהל וממתינה לתשלום',
-    });
-  }
-
-  const tier = isPremiumApartment(apt) || requestedTier === 'premium' ? 'premium' : 'standard';
-  const { amount } = await resolveListingAmount(tier, monthsInt);
 
   try {
-    await verifyListingPaymentProvider({
+    const result = await publishApprovedListing({
+      apartmentId: apartment_id,
       userId: req.user.id,
+      months,
+      tier,
       provider,
       providerReference: provider_reference,
-      expectedAmount: amount,
-      currency: 'ILS',
+      listingPaymentId: listing_payment_id,
+      useExistingSlot: Boolean(use_existing_slot),
     });
+    res.status(201).json(result.payment);
   } catch (err) {
-    return res.status(402).json({ error: err.message || 'אימות התשלום נכשל' });
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message || 'פרסום המודעה נכשל' });
   }
+}
 
-  const periodStart = new Date();
-  const periodEnd = new Date(periodStart);
-  periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
-
-  const paymentInsertId = await insertListingPaymentRow([
-    apartment_id,
-    req.user.id,
-    amount,
-    monthsInt,
-    provider,
-    provider_reference,
-    periodStart.toISOString().slice(0, 10),
-    periodEnd.toISOString().slice(0, 10),
-  ]);
-
-  const payment = await selectListingPaymentById(paymentInsertId);
-
-  await updateApartmentExpiryFromPayment({
-    apartmentId: apartment_id,
-    periodEnd,
-  });
-
-  const published = await publishApartmentAfterPayment(apartment_id);
-  if (!published) {
-    return res.status(409).json({ error: 'התשלום נרשם אך לא ניתן לפרסם את הדירה. פנו לתמיכה.' });
-  }
-
-  (async () => {
-    try {
-      const row = await selectApartmentById(apartment_id);
-      const apartment = await attachImagesToApartment(row);
-      const u = await selectUserBillingById(req.user.id);
-      const billingName = apt.owner_name || u?.full_name || '';
-      const billingEmail = u?.email || apt.owner_email || req.user.email;
-      const billingAddress = [apt.address, apt.location].filter(Boolean).join(', ');
-
-      if (billingEmail) {
-        await sendPaymentReceiptEmail({
-          to: billingEmail,
-          order: {
-            number: String(10000 + payment.id),
-            date: formatHebrewDate(periodStart),
-            items: [
-              {
-                name: `מנוי פרסום מודעה${tier === 'premium' ? ' (מתחם אירוח)' : ''} – ${monthsInt} ${monthsInt === 1 ? 'חודש' : 'חודשים'}`,
-                qty: 1,
-                price: amount,
-              },
-            ],
-            total: amount,
-            paymentMethod:
-              provider === 'paypal'
-                ? 'תשלום מאובטח ב־PayPal'
-                : provider === 'payme'
-                  ? 'תשלום מאובטח בכרטיס אשראי (PayMe)'
-                  : 'תשלום מאובטח בכרטיס אשראי',
-            billing: { name: billingName, address: billingAddress, email: billingEmail },
-          },
-        });
-      }
-
-      if (billingEmail && apartment) {
-        await sendListingLiveEmail({
-          to: billingEmail,
-          ownerName: billingName,
-          apartment,
-          listingUrl: `${APP_URL}/apartments/${apartment.id}`,
-          editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
-        });
-      }
-    } catch (err) {
-      console.error('[mailer] מיילים אחרי תשלום נכשלו:', err.message);
-    }
-  })();
-
-  res.status(201).json(payment);
+export async function listAvailableSlots(req, res) {
+  const tier = req.query.tier === 'premium' ? 'premium' : req.query.tier === 'standard' ? 'standard' : null;
+  const rows = await selectAvailableSlotPayments(req.user.id, tier);
+  const slots = rows.map((row) => ({
+    id: row.id,
+    tier: row.tier,
+    slots_total: Number(row.slots_total) || 1,
+    slots_used: Number(row.slots_used) || 0,
+    slots_remaining: Math.max(0, (Number(row.slots_total) || 1) - (Number(row.slots_used) || 0)),
+    period_end: row.period_end,
+    months: row.months,
+  }));
+  res.json(slots);
 }
 
 export async function listMineListingPayments(req, res) {
