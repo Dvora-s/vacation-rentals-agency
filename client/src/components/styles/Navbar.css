@@ -27,6 +27,8 @@
 .navbar-logo img {
   height: 72px;
   width: auto;
+  max-width: 220px;
+  object-fit: contain;
 }
 
 .navbar-nav {

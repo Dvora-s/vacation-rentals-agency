@@ -1,15 +1,26 @@
 import { useContent } from '../context/ContentContext';
-import { SITE_LOGO_CONTENT_KEY, SITE_LOGO_LEGACY_KEYS } from '../constants/siteLogo.js';
+import {
+  DEFAULT_SITE_LOGO,
+  SITE_LOGO_CONTENT_KEY,
+  SITE_LOGO_LEGACY_KEYS,
+  isDeprecatedLogoPath,
+} from '../constants/siteLogo.js';
+
+function resolveLogoOverride(getOverride, key) {
+  const value = getOverride(key)?.text?.trim();
+  if (!value || isDeprecatedLogoPath(value)) return null;
+  return value;
+}
 
 /** מחזיר את כתובת התמונה (דריסה מהשרת או ברירת מחדל). */
 export function useEditableImage(id, defaultSrc) {
   const { getOverride } = useContent();
-  const override = getOverride(id);
-  if (override?.text?.trim()) return override.text.trim();
+  const override = resolveLogoOverride(getOverride, id);
+  if (override) return override;
 
   if (id === SITE_LOGO_CONTENT_KEY) {
     for (const key of SITE_LOGO_LEGACY_KEYS) {
-      const legacy = getOverride(key)?.text?.trim();
+      const legacy = resolveLogoOverride(getOverride, key);
       if (legacy) return legacy;
     }
   }

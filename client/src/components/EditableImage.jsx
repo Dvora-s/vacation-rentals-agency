@@ -35,16 +35,21 @@ function EditableImage({
   const { isAdmin } = useAuth();
   const { saveOverride, resetOverride } = useContent();
   const contentSrc = useEditableImage(id, defaultSrc);
-  // תמונות דירה נשמרות במסד הנתונים — לא דרך site_content
   const resolvedSrc = resolveMediaUrl(onSave ? defaultSrc : contentSrc);
 
   const [editing, setEditing] = useState(false);
+  const [imgSrc, setImgSrc] = useState(resolvedSrc);
   const [draftUrl, setDraftUrl] = useState(resolvedSrc);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    setImgSrc(resolvedSrc);
+    if (!editing) setDraftUrl(resolvedSrc);
+  }, [resolvedSrc, editing]);
 
   useEffect(() => {
     if (!editing) return undefined;
@@ -261,7 +266,16 @@ function EditableImage({
 
   return (
     <span className={imgClass} style={style}>
-      <img src={resolvedSrc} alt={alt} className={imgClassName} {...rest} />
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={imgClassName}
+        onError={() => {
+          const fallback = resolveMediaUrl(defaultSrc);
+          if (fallback && imgSrc !== fallback) setImgSrc(fallback);
+        }}
+        {...rest}
+      />
       {editButton}
       {editorModal}
     </span>
