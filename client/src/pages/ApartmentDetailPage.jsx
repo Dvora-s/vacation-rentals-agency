@@ -10,7 +10,7 @@ import { isApartmentOwner } from '../utils/apartmentOwnership';
 import './ApartmentDetailPage.css';
 
 const STATUS_LABELS = {
-  awaiting_payment: 'אושרה — ממתינה לתשלום',
+  awaiting_payment: 'ממתינה לתשלום',
   pending: 'ממתין לאישור',
   approved: 'מפורסם',
   rejected: 'נדחה',

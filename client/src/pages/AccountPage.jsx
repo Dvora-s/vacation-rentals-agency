@@ -14,8 +14,8 @@ import './MyApartmentsPage.css';
 import './AccountPage.css';
 
 const STATUS_LABEL = {
-  pending: 'ממתינה לאישור מנהל',
-  awaiting_payment: 'אושרה — ממתינה לתשלום ופרסום',
+  pending: 'ממתינה לאישור מנהל (שולם)',
+  awaiting_payment: 'ממתינה לתשלום',
   approved: 'מאושרת ומפורסמת',
   rejected: 'נדחתה',
   expired: 'פג תוקף — הושעתה',
@@ -23,6 +23,7 @@ const STATUS_LABEL = {
 
 const PAYMENT_STATUS = {
   paid: { label: 'שולם', cls: 'ok' },
+  authorized: { label: 'אושר — ממתין לפרסום', cls: 'warn' },
   pending: { label: 'ממתין לתשלום', cls: 'warn' },
   failed: { label: 'נכשל', cls: 'bad' },
   refunded: { label: 'זוכה', cls: 'muted' },
@@ -135,27 +136,20 @@ function ApartmentsTab() {
             )}
             {apt.status === 'expired' && (
               <p className="my-apt-reject">
-                תוקף הפרסום פג והמודעה הושעתה. ניתן לשלוח שוב לאישור המנהל, ולאחר האישור להשלים תשלום.
+                תוקף הפרסום פג והמודעה הושעתה. השלימו תשלום לחידוש — המודעה תישלח לאישור המנהל ותעלה לאתר
+                רק לאחר האישור.
               </p>
             )}
             <div className="my-apt-actions">
               {apt.status === 'awaiting_payment' && (
                 <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
-                  תשלום ופרסום באתר
+                  המשך לתשלום
                 </Link>
               )}
               {apt.status === 'expired' && (
-                <ResubmitApartmentButton
-                  apartment={apt}
-                  className="btn-primary"
-                  onResubmitted={(updated) =>
-                    setApartments((prev) =>
-                      prev.map((a) => (a.id === apt.id ? { ...a, ...updated } : a)),
-                    )
-                  }
-                >
-                  שליחה לאישור מחדש
-                </ResubmitApartmentButton>
+                <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
+                  תשלום ושליחה לאישור
+                </Link>
               )}
               {apt.status === 'rejected' && (
                 <ResubmitApartmentButton

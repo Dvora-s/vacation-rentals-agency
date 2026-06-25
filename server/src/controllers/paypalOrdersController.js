@@ -1,4 +1,8 @@
-import { paypalCreateOrder, paypalCaptureOrder } from '../services/paypalRest.js';
+import {
+  paypalCreateOrder,
+  paypalCaptureOrder,
+  paypalAuthorizeOrder,
+} from '../services/paypalRest.js';
 import { HttpError } from '../utils/HttpError.js';
 
 const ALLOWED_CURRENCIES = new Set(['USD', 'EUR', 'GBP', 'ILS']);
@@ -32,11 +36,13 @@ function rethrowPayPalError(e, fallbackStatus = 502) {
 export async function createOrder(req, res) {
   try {
     const amount = normalizeAmount(req.body || {});
-    const order = await paypalCreateOrder(amount);
+    const intent =
+      String(req.body?.intent || '').toLowerCase() === 'authorize' ? 'AUTHORIZE' : 'CAPTURE';
+    const order = await paypalCreateOrder(amount, { intent });
     if (!order?.id) {
       throw new HttpError(502, 'PayPal לא החזיר מזהה הזמנה', 'PAYPAL_NO_ORDER_ID');
     }
-    res.status(201).json({ id: order.id, orderID: order.id, status: order.status });
+    res.status(201).json({ id: order.id, orderID: order.id, status: order.status, intent });
   } catch (e) {
     rethrowPayPalError(e);
   }
@@ -49,6 +55,19 @@ export async function captureOrder(req, res) {
   }
   try {
     const result = await paypalCaptureOrder(orderID);
+    res.json(result);
+  } catch (e) {
+    rethrowPayPalError(e);
+  }
+}
+
+export async function authorizeOrder(req, res) {
+  const orderID = String(req.params.orderID || '').trim();
+  if (!orderID || orderID.length > 128) {
+    throw new HttpError(400, 'מזהה הזמנה PayPal לא תקין', 'PAYPAL_BAD_ORDER_ID');
+  }
+  try {
+    const result = await paypalAuthorizeOrder(orderID);
     res.json(result);
   } catch (e) {
     rethrowPayPalError(e);

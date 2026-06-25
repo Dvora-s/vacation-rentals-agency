@@ -7,7 +7,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo">
-          <EditableImage id="site.brand-logo" src="/brand-logo.png" alt="דירות נופש" />
+          <EditableImage id="site.brand-logo" src="/logo.svg" alt="דירות נופש" />
         </Link>
         <nav className="footer-legal" aria-label="מסמכים משפטיים">
           <Link to="/privacy" className="footer-legal-link">מדיניות פרטיות</Link>

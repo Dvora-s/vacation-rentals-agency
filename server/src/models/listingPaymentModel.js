@@ -5,13 +5,14 @@ export async function selectApartmentByIdForListing(id) {
   return rows[0] || null;
 }
 
-async function insertListingPaymentRowLegacy(params) {
+async function insertListingPaymentRowLegacy(params, paymentStatus = 'paid') {
+  const paidAtSql = paymentStatus === 'paid' ? 'CURRENT_TIMESTAMP' : 'NULL';
   const [result] = await pool.query(
     `INSERT INTO listing_payments
       (apartment_id, user_id, amount, currency, months, status, provider, provider_reference,
        paid_at, period_start, period_end)
-     VALUES (?, ?, ?, 'ILS', ?, 'paid', ?, ?, CURRENT_TIMESTAMP, ?, ?)`,
-    params,
+     VALUES (?, ?, ?, 'ILS', ?, ?, ?, ?, ${paidAtSql}, ?, ?)`,
+    [...params.slice(0, 5), paymentStatus, ...params.slice(5)],
   );
   return result.insertId;
 }
@@ -28,7 +29,10 @@ export async function insertListingPaymentRow({
   slotsTotal = 1,
   slotsUsed = 1,
   tier = null,
+  paymentStatus = 'paid',
 }) {
+  const status = paymentStatus === 'authorized' ? 'authorized' : 'paid';
+  const paidAtSql = status === 'paid' ? 'CURRENT_TIMESTAMP' : 'NULL';
   const base = [
     apartmentId,
     userId,
@@ -44,13 +48,13 @@ export async function insertListingPaymentRow({
       `INSERT INTO listing_payments
         (apartment_id, user_id, amount, currency, months, status, provider, provider_reference,
          paid_at, period_start, period_end, slots_total, slots_used, tier)
-       VALUES (?, ?, ?, 'ILS', ?, 'paid', ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)`,
-      [...base, slotsTotal, slotsUsed, tier],
+       VALUES (?, ?, ?, 'ILS', ?, ?, ?, ?, ${paidAtSql}, ?, ?, ?, ?, ?)`,
+      [...base.slice(0, 4), status, ...base.slice(4), slotsTotal, slotsUsed, tier],
     );
     return result.insertId;
   } catch (err) {
     if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
-    return insertListingPaymentRowLegacy(base);
+    return insertListingPaymentRowLegacy(base, status);
   }
 }
 
@@ -134,6 +138,46 @@ export async function apartmentHasPaidListing(apartmentId) {
     [apartmentId],
   );
   return rows.length > 0;
+}
+
+/** תשלום שבוצע או אושר (החיוב מושהה עד אישור מנהל) */
+export async function apartmentHasSecuredListingPayment(apartmentId) {
+  const [rows] = await pool.query(
+    `SELECT 1 FROM listing_payments
+     WHERE apartment_id = ? AND status IN ('paid', 'authorized')
+     LIMIT 1`,
+    [apartmentId],
+  );
+  return rows.length > 0;
+}
+
+export async function selectLatestListingPaymentForApartment(apartmentId, statuses = ['authorized', 'paid']) {
+  const list = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['authorized', 'paid'];
+  const placeholders = list.map(() => '?').join(',');
+  const [rows] = await pool.query(
+    `SELECT * FROM listing_payments
+     WHERE apartment_id = ? AND status IN (${placeholders})
+     ORDER BY id DESC
+     LIMIT 1`,
+    [apartmentId, ...list],
+  );
+  return rows[0] || null;
+}
+
+export async function markListingPaymentCaptured(paymentId, captureReference) {
+  await pool.query(
+    `UPDATE listing_payments
+     SET status = 'paid', paid_at = CURRENT_TIMESTAMP, provider_reference = ?
+     WHERE id = ? AND status = 'authorized'`,
+    [captureReference, paymentId],
+  );
+}
+
+export async function markListingPaymentVoided(paymentId) {
+  await pool.query(
+    `UPDATE listing_payments SET status = 'voided' WHERE id = ? AND status = 'authorized'`,
+    [paymentId],
+  );
 }
 
 export async function selectAllListingPaymentsAdmin() {

@@ -20,14 +20,15 @@ import {
 import { verifyApproveToken } from '../middlewares/auth.js';
 import {
   sendListingInquiryEmail,
-  sendListingApprovedAwaitingPaymentEmail,
+  sendListingLiveEmail,
 } from '../utils/mailer.js';
 import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
-import { apartmentHasPaidListing } from '../models/listingPaymentModel.js';
-import { publishApartmentFreeForAdmin } from '../services/adminListingPublish.js';
+import { apartmentHasPaidListing, apartmentHasSecuredListingPayment } from '../models/listingPaymentModel.js';
+import { submitApartmentFreeForAdmin } from '../services/adminListingPublish.js';
+import { captureListingPaymentOnApprove, releaseListingPaymentOnReject } from '../services/listingPaymentCapture.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -193,37 +194,28 @@ export async function create(req, res) {
     await insertApartmentImagesRows(values);
   }
 
-  try {
-    await notifyAdminNewListing(insertId, {
-      userId: req.user.id,
-      userEmail: req.user.email,
-    });
-  } catch (err) {
-    console.error('[mailer] התראת דירה חדשה למנהל נכשלה:', err.message);
-  }
-
   const row = await selectApartmentById(insertId);
   const apartment = await attachImagesToApartment(row);
 
   res.status(201).json(apartment);
 }
 
-/** מנהל מפרסם דירה מאושרת (ממתינה לתשלום) ללא תשלום */
+/** מנהל שולח דירה לאישור ללא תשלום */
 export async function adminPublishFree(req, res) {
   const apt = await loadOwnedApartment(req, res);
   if (!apt) return;
 
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'רק מנהל מערכת יכול לפרסם ללא תשלום' });
+    return res.status(403).json({ error: 'רק מנהל מערכת יכול לשלוח לאישור ללא תשלום' });
   }
 
   if (apt.status !== 'awaiting_payment') {
     return res.status(400).json({
-      error: 'ניתן לפרסם ללא תשלום רק דירה שאושרה וממתינה לתשלום',
+      error: 'ניתן לשלוח לאישור ללא תשלום רק דירה חדשה שטרם שולמה',
     });
   }
 
-  await publishApartmentFreeForAdmin(req.params.id, req.user);
+  await submitApartmentFreeForAdmin(req.params.id, req.user);
 
   const row = await selectApartmentById(req.params.id);
   res.json(await attachImagesToApartment(row));
@@ -237,6 +229,19 @@ export async function resubmitForApproval(req, res) {
   if (apt.status !== 'rejected' && apt.status !== 'expired') {
     return res.status(400).json({
       error: 'ניתן לשלוח שוב לאישור רק דירה שנדחתה או שפג תוקף הפרסום שלה',
+    });
+  }
+
+  if (apt.status === 'expired') {
+    return res.status(400).json({
+      error: 'לחידוש פרסום יש להשלים תשלום תחילה. עברו ל"הדירות שלי" ולחצו על "תשלום ושליחה לאישור".',
+    });
+  }
+
+  const hasPaid = await apartmentHasSecuredListingPayment(req.params.id);
+  if (!hasPaid) {
+    return res.status(400).json({
+      error: 'לא ניתן לשלוח לאישור ללא תשלום שבוצע. השלימו תשלום תחילה.',
     });
   }
 
@@ -354,6 +359,17 @@ async function approveApartmentById(id) {
     return { error: 'ניתן לאשר רק דירות שממתינות לאישור מנהל' };
   }
 
+  const hasPaid = await apartmentHasSecuredListingPayment(id);
+  if (!hasPaid) {
+    return { error: 'לא ניתן לאשר דירה ללא תשלום שבוצע או אושר' };
+  }
+
+  try {
+    await captureListingPaymentOnApprove(id);
+  } catch (err) {
+    return { error: err.message || 'חיוב התשלום נכשל — לא ניתן לאשר את הדירה' };
+  }
+
   const approved = await approveApartmentRow(id);
   if (!approved) {
     return { error: 'לא ניתן לאשר את הדירה' };
@@ -364,17 +380,16 @@ async function approveApartmentById(id) {
 
   (async () => {
     try {
-      const { ownerEmail, ownerName } = await resolveOwnerContact(apartment);
+      const { ownerEmail } = await resolveOwnerContact(apartment);
       if (!ownerEmail) return;
-      await sendListingApprovedAwaitingPaymentEmail({
+      await sendListingLiveEmail({
         to: ownerEmail,
-        ownerName,
         apartment,
-        payUrl: `${APP_URL}/list-apartment?resume=${apartment.id}`,
-        accountUrl: `${APP_URL}/my-apartments`,
+        listingUrl: `${APP_URL}/apartments/${apartment.id}`,
+        editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
       });
     } catch (err) {
-      console.error('[mailer] מייל "הדירה אושרה — נדרש תשלום" נכשל:', err.message);
+      console.error('[mailer] מייל "המודעה באוויר" נכשל:', err.message);
     }
   })();
 
@@ -437,7 +452,7 @@ ${body}</div></body></html>`);
   return renderPage(
     'המודעה אושרה',
     `<h2 style="color:#237804;">✅ המודעה אושרה!</h2>
-       <p>"${safeTitle}" אושרה וממתינה לתשלום מצד הבעלים. לאחר התשלום היא תפורסם באתר.</p>
+       <p>"${safeTitle}" אושרה ופורסמה באתר.</p>
        <a href="${APP_URL}/admin"
           style="display:inline-block;margin-top:8px;padding:12px 26px;background:#b8860b;color:#fff;
                  border-radius:10px;text-decoration:none;font-weight:700;">לפאנל הניהול</a>`,
@@ -453,6 +468,11 @@ export async function reject(req, res) {
     return res.status(400).json({ error: 'נדרשת סיבת דחייה (לפחות 5 תווים)' });
   }
   await rejectApartmentRow(req.params.id, reason);
+  try {
+    await releaseListingPaymentOnReject(req.params.id);
+  } catch (err) {
+    console.error('[payment] ביטול תשלום מושהה אחרי דחייה נכשל:', err.message);
+  }
   const row = await selectApartmentById(req.params.id);
   res.json(await attachImagesToApartment(row));
 }

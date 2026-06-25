@@ -47,7 +47,7 @@ export async function selectApprovedApartments() {
      WHERE a.status = 'approved'
        AND EXISTS (
          SELECT 1 FROM listing_payments lp
-         WHERE lp.apartment_id = a.id AND lp.status = 'paid'
+         WHERE lp.apartment_id = a.id AND lp.status IN ('paid', 'authorized')
        )
      ORDER BY a.id ASC`,
   );
@@ -74,6 +74,10 @@ export async function selectPendingApartments() {
   const [rows] = await pool.query(
     `SELECT a.* FROM apartments a
      WHERE a.status = 'pending'
+       AND EXISTS (
+         SELECT 1 FROM listing_payments lp
+         WHERE lp.apartment_id = a.id AND lp.status IN ('paid', 'authorized')
+       )
      ORDER BY a.created_at ASC`,
   );
   return rows;
@@ -119,7 +123,7 @@ export async function insertApartmentPending({
        price_per_night, bedrooms, bathrooms, max_guests, rating, image_url,
        owner_name, owner_phone, owner_email, contact_via_whatsapp,
        is_available, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_payment')`,
     [
       owner_id,
       title,
@@ -170,23 +174,23 @@ export async function apartmentExists(id) {
   return check.length > 0;
 }
 
-/** מנהל מאשר — הדירה ממתינה לתשלום לפני פרסום */
+/** מנהל מאשר — הדירה עולה לאתר (לאחר תשלום שכבר בוצע) */
 export async function approveApartmentRow(id) {
   const [result] = await pool.query(
     `UPDATE apartments
-     SET status = 'awaiting_payment', rejection_reason = NULL, approved_at = NULL
+     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
      WHERE id = ? AND status = 'pending'`,
     [id],
   );
   return result.affectedRows > 0;
 }
 
-/** אחרי תשלום מוצלח — הדירה עולה לאתר */
-export async function publishApartmentAfterPayment(id) {
+/** אחרי תשלום — מעביר לאישור מנהל (עדיין לא פורסם) */
+export async function markApartmentPendingAfterPayment(id) {
   const [result] = await pool.query(
     `UPDATE apartments
-     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
-     WHERE id = ? AND status = 'awaiting_payment'`,
+     SET status = 'pending', rejection_reason = NULL, approved_at = NULL
+     WHERE id = ? AND status IN ('awaiting_payment', 'expired')`,
     [id],
   );
   return result.affectedRows > 0;

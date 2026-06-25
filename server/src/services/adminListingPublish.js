@@ -1,12 +1,13 @@
-import { publishApartmentAfterPayment, updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
+import { markApartmentPendingAfterPayment, updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
 import { insertListingPaymentRow } from '../models/listingPaymentModel.js';
+import { notifyAdminNewListing } from './listingAdminNotify.js';
 
 const DEFAULT_ADMIN_FREE_MONTHS = 12;
 
 /**
- * מנהל מפרסם דירה מאושרת (ממתינה לתשלום) ללא תשלום.
+ * מנהל שולח דירה חדשה לאישור ללא תשלום (ממתינה לתשלום → pending).
  */
-export async function publishApartmentFreeForAdmin(apartmentId, user) {
+export async function submitApartmentFreeForAdmin(apartmentId, user) {
   const monthsInt = DEFAULT_ADMIN_FREE_MONTHS;
   const periodStart = new Date();
   const periodEnd = new Date(periodStart);
@@ -31,9 +32,18 @@ export async function publishApartmentFreeForAdmin(apartmentId, user) {
     periodEnd,
   });
 
-  const published = await publishApartmentAfterPayment(apartmentId);
-  if (!published) {
-    throw new Error('לא ניתן לפרסם את הדירה ללא תשלום');
+  const submitted = await markApartmentPendingAfterPayment(apartmentId);
+  if (!submitted) {
+    throw new Error('לא ניתן לשלוח את הדירה לאישור');
+  }
+
+  try {
+    await notifyAdminNewListing(apartmentId, {
+      userId: user.id,
+      userEmail: user.email,
+    });
+  } catch (err) {
+    console.error('[mailer] התראת דירה חדשה למנהל (מנהל) נכשלה:', err.message);
   }
 
   return { months: monthsInt, periodEnd };

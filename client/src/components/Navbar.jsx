@@ -24,7 +24,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <EditableImage id="site.navbar-logo" src="/navbar-logo.png" alt="דירות נופש" />
+        <EditableImage id="site.navbar-logo" src="/logo.svg" alt="דירות נופש" />
       </NavLink>
 
       <nav className="navbar-nav">

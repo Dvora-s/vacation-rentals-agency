@@ -405,6 +405,10 @@ export async function createPayPalOrder(body) {
   return apiFetch('/orders', { method: 'POST', body, auth: true });
 }
 
+export async function authorizePayPalOrder(orderID) {
+  return apiFetch(`/orders/${encodeURIComponent(orderID)}/authorize`, { method: 'POST', auth: true });
+}
+
 export async function capturePayPalOrder(orderID) {
   return apiFetch(`/orders/${encodeURIComponent(orderID)}/capture`, { method: 'POST', auth: true });
 }

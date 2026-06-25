@@ -1,4 +1,4 @@
-import { publishApprovedListing } from '../services/listingPublishService.js';
+import { submitListingPaymentForApproval } from '../services/listingPublishService.js';
 import {
   selectAllListingPaymentsAdmin,
   selectAvailableSlotPayments,
@@ -23,9 +23,10 @@ export async function createListingPayment(req, res) {
   }
 
   try {
-    const result = await publishApprovedListing({
+    const result = await submitListingPaymentForApproval({
       apartmentId: apartment_id,
       userId: req.user.id,
+      userEmail: req.user.email,
       months,
       tier,
       provider,

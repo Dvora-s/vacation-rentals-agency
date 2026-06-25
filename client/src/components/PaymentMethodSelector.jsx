@@ -15,6 +15,11 @@ function paypalCaptureRef(result) {
   return cap?.id || result?.id || 'paypal';
 }
 
+function paypalAuthorizeRef(result) {
+  const auth = result?.purchase_units?.[0]?.payments?.authorizations?.[0];
+  return auth?.id ? `auth:${auth.id}` : null;
+}
+
 /**
  * בחירת תשלום: PayPal או PayMe בלבד.
  *
@@ -205,20 +210,22 @@ export default function PaymentMethodSelector({
           {!policyConsent ? null : (
             <>
               <p className="payment-method-selector__paypal-hint">
-                השתמשו בכפתור PayPal למטה — זה ממשק התשלום הרשמי של PayPal (חלון מאובטח).
+                השתמשו בכפתור PayPal למטה. התשלום יאושר עכשיו, והחיוב בפועל יתבצע רק כשהמנהל יאשר את
+                המודעה.
               </p>
               <PayPalCheckout
                 key={`${apartmentId}-${totalStr}-${currencyCode}`}
                 currencyCode={currencyCode}
                 fixedAmount={totalStr}
                 brandedPayPalOnly
+                paymentIntent="authorize"
                 onCaptureSuccess={async (result) => {
                   setLocalError(null);
                   setPaypalWorking(true);
                   try {
-                    const ref = paypalCaptureRef(result);
-                    if (!ref || ref === 'paypal') {
-                      throw new Error('לא התקבלה אסמכתת תשלום מ־PayPal');
+                    const ref = paypalAuthorizeRef(result);
+                    if (!ref) {
+                      throw new Error('לא התקבלה אסמכתא אישור תשלום מ־PayPal');
                     }
                     await payForListing({
                       apartment_id: apartmentId,
@@ -247,7 +254,8 @@ export default function PaymentMethodSelector({
             סכום לתשלום בכרטיס אשראי: <strong>₪{totalStr}</strong> ({currencyCode}) — דרך <strong>PayMe</strong>
           </p>
           <p className="payment-method-selector__payme-hint">
-            תועברו לאתר התשלום של PayMe. לאחר סיום מוצלח, תחזרו לעמוד זה והמערכת תשלים את רישום התשלום אוטומטית.
+            תועברו לאתר התשלום של PayMe. שימו לב: תשלום בכרטיס אשראי מתבצע מיד עם השלמת התשלום (לא
+            מושהה כמו PayPal).
           </p>
           <button
             type="button"

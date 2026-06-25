@@ -245,7 +245,8 @@ async function getAccessToken() {
  * @param {{ currency_code: string, value: string }} purchaseUnitAmount
  * @returns {Promise<object>} PayPal order resource (includes `id`)
  */
-export async function paypalCreateOrder(purchaseUnitAmount) {
+export async function paypalCreateOrder(purchaseUnitAmount, { intent = 'CAPTURE' } = {}) {
+  const normalizedIntent = String(intent).toUpperCase() === 'AUTHORIZE' ? 'AUTHORIZE' : 'CAPTURE';
   try {
     const token = await getAccessToken();
     const base = getApiBase();
@@ -257,7 +258,7 @@ export async function paypalCreateOrder(purchaseUnitAmount) {
         Prefer: 'return=representation',
       },
       body: JSON.stringify({
-        intent: 'CAPTURE',
+        intent: normalizedIntent,
         purchase_units: [
           {
             amount: {
@@ -279,6 +280,35 @@ export async function paypalCreateOrder(purchaseUnitAmount) {
   } catch (e) {
     if (e.statusCode) throw e;
     const err = new Error(`PayPal (יצירת הזמנה): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
+export async function paypalAuthorizeOrder(orderID) {
+  try {
+    const token = await getAccessToken();
+    const base = getApiBase();
+    const id = encodeURIComponent(orderID);
+    const res = await paypalFetch(`${base}/v2/checkout/orders/${id}/authorize`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      const msg = paypalErrorMessage(res.status, text, 'אישור תשלום ב־PayPal נכשל');
+      const err = new Error(msg);
+      err.statusCode = 502;
+      throw err;
+    }
+    return JSON.parse(text);
+  } catch (e) {
+    if (e.statusCode) throw e;
+    const err = new Error(`PayPal (אישור תשלום): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
     err.statusCode = 502;
     throw err;
   }
@@ -340,6 +370,88 @@ export async function paypalGetCapture(captureId) {
   } catch (e) {
     if (e.statusCode) throw e;
     const err = new Error(`PayPal (אימות חיוב): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
+export async function paypalGetAuthorization(authorizationId) {
+  try {
+    const token = await getAccessToken();
+    const base = getApiBase();
+    const id = encodeURIComponent(authorizationId);
+    const res = await paypalFetch(`${base}/v2/payments/authorizations/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      const msg = paypalErrorMessage(res.status, text, 'אימות אישור תשלום PayPal נכשל');
+      const err = new Error(msg);
+      err.statusCode = 502;
+      throw err;
+    }
+    return JSON.parse(text);
+  } catch (e) {
+    if (e.statusCode) throw e;
+    const err = new Error(`PayPal (אימות אישור): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
+export async function paypalCaptureAuthorization(authorizationId) {
+  try {
+    const token = await getAccessToken();
+    const base = getApiBase();
+    const id = encodeURIComponent(authorizationId);
+    const res = await paypalFetch(`${base}/v2/payments/authorizations/${id}/capture`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      const msg = paypalErrorMessage(res.status, text, 'חיוב בפועל ב־PayPal נכשל');
+      const err = new Error(msg);
+      err.statusCode = 502;
+      throw err;
+    }
+    return JSON.parse(text);
+  } catch (e) {
+    if (e.statusCode) throw e;
+    const err = new Error(`PayPal (חיוב בפועל): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
+export async function paypalVoidAuthorization(authorizationId) {
+  try {
+    const token = await getAccessToken();
+    const base = getApiBase();
+    const id = encodeURIComponent(authorizationId);
+    const res = await paypalFetch(`${base}/v2/payments/authorizations/${id}/void`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (res.status === 204) return { voided: true };
+    const text = await res.text();
+    if (!res.ok) {
+      const msg = paypalErrorMessage(res.status, text, 'ביטול אישור תשלום ב־PayPal נכשל');
+      const err = new Error(msg);
+      err.statusCode = 502;
+      throw err;
+    }
+    return text ? JSON.parse(text) : { voided: true };
+  } catch (e) {
+    if (e.statusCode) throw e;
+    const err = new Error(`PayPal (ביטול אישור): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
     err.statusCode = 502;
     throw err;
   }

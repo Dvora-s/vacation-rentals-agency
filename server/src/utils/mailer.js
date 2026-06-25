@@ -22,12 +22,14 @@ let initialized = false;
 // ── לוגו מוטמע (inline) לכותרת המיילים ──
 // מוטמע כקובץ מצורף עם Content-ID כדי שיוצג אמין בכל לקוחות המייל (גם ללא חיבור לאתר).
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'navbar-logo.png');
+const LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'logo.svg');
 const LOGO_CID = 'brandlogo';
 
 function detectImageMime(buf) {
   if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
   if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
+  const head = buf.slice(0, 200).toString('utf8').trimStart();
+  if (head.startsWith('<svg') || head.startsWith('<?xml')) return 'image/svg+xml';
   return 'application/octet-stream';
 }
 
@@ -38,7 +40,7 @@ function getLogoAttachment() {
     const content = fs.readFileSync(LOGO_PATH);
     const mime = detectImageMime(content);
     logoAttachment = {
-      filename: mime === 'image/png' ? 'logo.png' : 'logo.jpg',
+      filename: mime === 'image/png' ? 'logo.png' : mime === 'image/svg+xml' ? 'logo.svg' : 'logo.jpg',
       content,
       cid: LOGO_CID,
       contentType: mime,
@@ -123,7 +125,7 @@ export function isMailerConfigured() {
 
 function htmlForDelivery(html) {
   if (!html || getMailerMode() !== 'resend') return html;
-  return html.replaceAll(`cid:${LOGO_CID}`, `${APP_URL}/navbar-logo.png`);
+  return html.replaceAll(`cid:${LOGO_CID}`, `${APP_URL}/logo.svg`);
 }
 
 async function sendViaResend({ to, subject, text, html, replyTo }) {

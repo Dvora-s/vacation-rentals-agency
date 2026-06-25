@@ -8,6 +8,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.post('/', asyncHandler(paypalOrdersController.createOrder));
+router.post('/:orderID/authorize', asyncHandler(paypalOrdersController.authorizeOrder));
 router.post('/:orderID/capture', asyncHandler(paypalOrdersController.captureOrder));
 
 export default router;

@@ -1,5 +1,5 @@
 import {
-  publishApartmentAfterPayment,
+  markApartmentPendingAfterPayment,
   updateApartmentExpiryFromPayment,
 } from '../models/apartmentModel.js';
 import { attachImagesToApartment, selectApartmentById } from '../models/apartmentModel.js';
@@ -11,11 +11,19 @@ import {
   selectListingPaymentById,
 } from '../models/listingPaymentModel.js';
 import { resolveListingAmount } from './listingPricing.js';
-import { sendListingLiveEmail, sendPaymentReceiptEmail } from '../utils/mailer.js';
+import { sendPaymentReceiptEmail } from '../utils/mailer.js';
+import { notifyAdminNewListing } from './listingAdminNotify.js';
 import { selectUserBillingById } from '../models/userModel.js';
 import { isPremiumApartment } from '../config/pricing.js';
+import { paypalGetAuthorization } from './paypalRest.js';
 
-const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+function extractPayPalAuthorizationId(providerReference) {
+  const ref = String(providerReference || '').trim();
+  if (!ref) return null;
+  if (ref.startsWith('auth:')) return ref.slice(5);
+  if (ref.startsWith('capture:')) return null;
+  return ref;
+}
 
 function formatHebrewDate(date) {
   try {
@@ -29,13 +37,24 @@ function formatHebrewDate(date) {
   }
 }
 
-async function notifyPublished({ apt, apartment, payment, amount, tier, monthsInt, provider, userId }) {
+async function sendReceiptAndNotifyAdmin({
+  apt,
+  apartment,
+  payment,
+  amount,
+  tier,
+  monthsInt,
+  provider,
+  userId,
+  userEmail,
+  sendReceipt = true,
+}) {
   const u = await selectUserBillingById(userId);
   const billingName = apt.owner_name || u?.full_name || '';
-  const billingEmail = u?.email || apt.owner_email || null;
+  const billingEmail = u?.email || apt.owner_email || userEmail || null;
   const billingAddress = [apt.address, apt.location].filter(Boolean).join(', ');
 
-  if (billingEmail && payment && amount > 0) {
+  if (sendReceipt && billingEmail && payment && amount > 0) {
     await sendPaymentReceiptEmail({
       to: billingEmail,
       order: {
@@ -51,7 +70,7 @@ async function notifyPublished({ apt, apartment, payment, amount, tier, monthsIn
         total: amount,
         paymentMethod:
           provider === 'paypal'
-            ? 'תשלום מאובטח ב־PayPal'
+            ? 'תשלום מאובטח ב־PayPal (חיוב עם פרסום המודעה)'
             : provider === 'payme'
               ? 'תשלום מאובטח בכרטיס אשראי (PayMe)'
               : provider === 'promo_free'
@@ -64,21 +83,24 @@ async function notifyPublished({ apt, apartment, payment, amount, tier, monthsIn
     });
   }
 
-  if (billingEmail && apartment) {
-    await sendListingLiveEmail({
-      to: billingEmail,
-      ownerName: billingName,
-      apartment,
-      listingUrl: `${APP_URL}/apartments/${apartment.id}`,
-      editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+  try {
+    await notifyAdminNewListing(apartment.id, {
+      userId,
+      userEmail: userEmail || billingEmail,
     });
+  } catch (err) {
+    console.error('[mailer] התראת דירה חדשה למנהל אחרי תשלום נכשלה:', err.message);
   }
 }
 
-/** פרסום דירה מאושרת — תשלום (או מבצע/מסלול) ואז עלייה לאוויר */
-export async function publishApprovedListing({
+/**
+ * תשלום על פרסום — הדירה עוברת ל-pending (ממתינה לאישור), לא מתפרסמת עדיין.
+ * פרסום באתר רק אחרי אישור מנהל.
+ */
+export async function submitListingPaymentForApproval({
   apartmentId,
   userId,
+  userEmail,
   months,
   tier: requestedTier,
   provider,
@@ -92,8 +114,8 @@ export async function publishApprovedListing({
     err.statusCode = 404;
     throw err;
   }
-  if (apt.status !== 'awaiting_payment') {
-    const err = new Error('ניתן לפרסם רק דירה שאושרה על ידי המנהל וממתינה לתשלום');
+  if (apt.status !== 'awaiting_payment' && apt.status !== 'expired') {
+    const err = new Error('ניתן לשלם רק עבור דירה חדשה או מודעה שפג תוקפה');
     err.statusCode = 400;
     throw err;
   }
@@ -112,50 +134,38 @@ export async function publishApprovedListing({
     bundlePayment = available[0] || null;
   }
 
+  const periodStart = new Date();
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
+
+  let paymentInsertId;
+  let finalProvider = provider;
+  let finalAmount = amount;
+
   if (bundlePayment && Number(bundlePayment.slots_used) < Number(bundlePayment.slots_total)) {
     if (bundlePayment.user_id !== userId) {
       const err = new Error('אין הרשאה להשתמש במסלול זה');
       err.statusCode = 403;
       throw err;
     }
-    const periodEnd = bundlePayment.period_end ? new Date(bundlePayment.period_end) : new Date();
-    const paymentInsertId = await insertSlotBundlePaymentRow({
+    paymentInsertId = await insertSlotBundlePaymentRow({
       apartmentId,
       userId,
       months: monthsInt,
       tier,
       bundleId: bundlePayment.id,
-      periodStart: bundlePayment.period_start,
-      periodEnd: bundlePayment.period_end,
+      periodStart: bundlePayment.period_start || periodStart.toISOString().slice(0, 10),
+      periodEnd: bundlePayment.period_end || periodEnd.toISOString().slice(0, 10),
     });
     await incrementListingPaymentSlotUsed(bundlePayment.id);
-    await updateApartmentExpiryFromPayment({ apartmentId, periodEnd });
-    const published = await publishApartmentAfterPayment(apartmentId);
-    if (!published) {
-      const err = new Error('לא ניתן לפרסם את הדירה');
-      err.statusCode = 409;
-      throw err;
-    }
-    const payment = await selectListingPaymentById(paymentInsertId);
-    const apartment = await attachImagesToApartment(await selectApartmentById(apartmentId));
-    await notifyPublished({
-      apt,
-      apartment,
-      payment,
-      amount: 0,
-      tier,
-      monthsInt,
-      provider: 'slot_bundle',
-      userId,
+    finalProvider = 'slot_bundle';
+    finalAmount = 0;
+    await updateApartmentExpiryFromPayment({
+      apartmentId,
+      periodEnd: bundlePayment.period_end ? new Date(bundlePayment.period_end) : periodEnd,
     });
-    return { payment, apartment, published: true };
-  }
-
-  if (amount <= 0) {
-    const periodStart = new Date();
-    const periodEnd = new Date(periodStart);
-    periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
-    const paymentInsertId = await insertListingPaymentRow({
+  } else if (amount <= 0) {
+    paymentInsertId = await insertListingPaymentRow({
       apartmentId,
       userId,
       amount: 0,
@@ -168,78 +178,83 @@ export async function publishApprovedListing({
       slotsUsed: 1,
       tier,
     });
+    finalProvider = 'promo_free';
+    finalAmount = 0;
     await updateApartmentExpiryFromPayment({ apartmentId, periodEnd });
-    const published = await publishApartmentAfterPayment(apartmentId);
-    if (!published) {
-      const err = new Error('לא ניתן לפרסם את הדירה');
-      err.statusCode = 409;
+  } else {
+    const normalizedProvider = String(provider || '').trim().toLowerCase();
+    if (!['paypal', 'payme'].includes(normalizedProvider)) {
+      const err = new Error('יש לבחור תשלום דרך PayPal או PayMe');
+      err.statusCode = 400;
       throw err;
     }
-    const payment = await selectListingPaymentById(paymentInsertId);
-    const apartment = await attachImagesToApartment(await selectApartmentById(apartmentId));
-    await notifyPublished({
-      apt,
-      apartment,
-      payment,
-      amount: 0,
-      tier,
-      monthsInt,
-      provider: 'promo_free',
+    if (!String(providerReference || '').trim()) {
+      const err = new Error('חסרה אסמכתא תשלום מהספק');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    let paymentStatus = 'paid';
+    let providerRef = String(providerReference).trim();
+
+    if (normalizedProvider === 'paypal') {
+      const authId = extractPayPalAuthorizationId(providerRef);
+      if (!authId) {
+        const err = new Error('אסמכתת PayPal לא תקינה — נדרש אישור תשלום (לא חיוב מיידי)');
+        err.statusCode = 400;
+        throw err;
+      }
+      const auth = await paypalGetAuthorization(authId);
+      const authStatus = String(auth?.status || '').toUpperCase();
+      if (!['CREATED', 'PENDING', 'PARTIALLY_CAPTURED'].includes(authStatus)) {
+        const err = new Error('אישור התשלום ב־PayPal אינו בתוקף');
+        err.statusCode = 400;
+        throw err;
+      }
+      paymentStatus = 'authorized';
+      providerRef = `auth:${authId}`;
+    }
+
+    paymentInsertId = await insertListingPaymentRow({
+      apartmentId,
       userId,
+      amount,
+      months: monthsInt,
+      provider: normalizedProvider,
+      providerReference: providerRef,
+      periodStart: periodStart.toISOString().slice(0, 10),
+      periodEnd: periodEnd.toISOString().slice(0, 10),
+      slotsTotal: listingSlots,
+      slotsUsed: 1,
+      tier,
+      paymentStatus,
     });
-    return { payment, apartment, published: true };
+    finalProvider = normalizedProvider;
+    await updateApartmentExpiryFromPayment({ apartmentId, periodEnd });
   }
 
-  const normalizedProvider = String(provider || '').trim().toLowerCase();
-  if (!['paypal', 'payme'].includes(normalizedProvider)) {
-    const err = new Error('יש לבחור תשלום דרך PayPal או PayMe');
-    err.statusCode = 400;
-    throw err;
-  }
-  if (!String(providerReference || '').trim()) {
-    const err = new Error('חסרה אסמכתא תשלום מהספק');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const periodStart = new Date();
-  const periodEnd = new Date(periodStart);
-  periodEnd.setMonth(periodEnd.getMonth() + monthsInt);
-
-  const paymentInsertId = await insertListingPaymentRow({
-    apartmentId,
-    userId,
-    amount,
-    months: monthsInt,
-    provider: normalizedProvider,
-    providerReference: String(providerReference).trim(),
-    periodStart: periodStart.toISOString().slice(0, 10),
-    periodEnd: periodEnd.toISOString().slice(0, 10),
-    slotsTotal: listingSlots,
-    slotsUsed: 1,
-    tier,
-  });
-
-  await updateApartmentExpiryFromPayment({ apartmentId, periodEnd });
-  const published = await publishApartmentAfterPayment(apartmentId);
-  if (!published) {
-    const err = new Error('התשלום נרשם אך לא ניתן לפרסם את הדירה. פנו לתמיכה.');
+  const moved = await markApartmentPendingAfterPayment(apartmentId);
+  if (!moved) {
+    const err = new Error('התשלום נרשם אך לא ניתן לשלוח את הדירה לאישור. פנו לתמיכה.');
     err.statusCode = 409;
     throw err;
   }
 
   const payment = await selectListingPaymentById(paymentInsertId);
   const apartment = await attachImagesToApartment(await selectApartmentById(apartmentId));
-  await notifyPublished({
+
+  await sendReceiptAndNotifyAdmin({
     apt,
     apartment,
     payment,
-    amount,
+    amount: finalAmount,
     tier,
     monthsInt,
-    provider: normalizedProvider,
+    provider: finalProvider,
     userId,
+    userEmail,
+    sendReceipt: finalProvider !== 'paypal',
   });
 
-  return { payment, apartment, published: true };
+  return { payment, apartment, submitted: true };
 }

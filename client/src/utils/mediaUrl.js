@@ -9,6 +9,8 @@ export function resolveMediaUrl(url) {
   if (!s) return null;
   if (/^https?:\/\//i.test(s)) return s;
   if (s.startsWith('//')) return `https:${s}`;
+  // קבצים סטטיים מהאתר (public/) — לא מהשרת
+  if (s.startsWith('/') && !s.startsWith('/uploads')) return s;
   return `${API_ORIGIN}${s.startsWith('/') ? s : `/${s}`}`;
 }
 
