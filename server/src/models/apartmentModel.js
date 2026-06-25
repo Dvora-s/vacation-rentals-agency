@@ -43,9 +43,13 @@ export async function attachImagesToApartment(row) {
 
 export async function selectApprovedApartments() {
   const [rows] = await pool.query(
-    `SELECT * FROM apartments
-     WHERE status = 'approved'
-     ORDER BY id ASC`,
+    `SELECT a.* FROM apartments a
+     WHERE a.status = 'approved'
+       AND EXISTS (
+         SELECT 1 FROM listing_payments lp
+         WHERE lp.apartment_id = a.id AND lp.status = 'paid'
+       )
+     ORDER BY a.id ASC`,
   );
   return rows;
 }

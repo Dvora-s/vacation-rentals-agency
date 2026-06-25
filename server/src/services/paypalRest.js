@@ -316,3 +316,31 @@ export async function paypalCaptureOrder(orderID) {
     throw err;
   }
 }
+
+/**
+ * @param {string} captureId
+ * @returns {Promise<object>} PayPal capture details
+ */
+export async function paypalGetCapture(captureId) {
+  try {
+    const token = await getAccessToken();
+    const base = getApiBase();
+    const id = encodeURIComponent(captureId);
+    const res = await paypalFetch(`${base}/v2/payments/captures/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      const msg = paypalErrorMessage(res.status, text, 'אימות תשלום PayPal נכשל');
+      const err = new Error(msg);
+      err.statusCode = 502;
+      throw err;
+    }
+    return JSON.parse(text);
+  } catch (e) {
+    if (e.statusCode) throw e;
+    const err = new Error(`PayPal (אימות חיוב): ${e.message}${hintPayPalTlsIfFetchFailed(e.message)}`);
+    err.statusCode = 502;
+    throw err;
+  }
+}

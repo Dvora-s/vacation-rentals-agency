@@ -25,6 +25,15 @@ export async function markPaymentFailed(paymentId, userId) {
   );
 }
 
+export async function selectPaymentByPaymeTransactionId(paymeTransactionId) {
+  const [rows] = await pool.query(
+    `SELECT id, user_id, payme_transaction_id, amount, currency, status, created_at, updated_at
+     FROM payments WHERE payme_transaction_id = ?`,
+    [paymeTransactionId],
+  );
+  return rows[0] || null;
+}
+
 export async function selectPaymentById(paymentId) {
   const [rows] = await pool.query(
     `SELECT id, user_id, payme_transaction_id, amount, currency, status, created_at, updated_at

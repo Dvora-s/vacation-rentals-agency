@@ -4,6 +4,7 @@ import {
 } from '../utils/mailer.js';
 import { isPremiumApartment } from '../config/pricing.js';
 import { resolveListingAmount } from '../services/listingPricing.js';
+import { verifyListingPaymentProvider } from '../services/listingPaymentVerification.js';
 import {
   publishApartmentAfterPayment,
   updateApartmentExpiryFromPayment,
@@ -38,7 +39,7 @@ export async function createListingPayment(req, res) {
     apartment_id,
     months = 1,
     tier: requestedTier = 'standard',
-    provider = 'manual',
+    provider,
     provider_reference = null,
   } = req.body || {};
 
@@ -64,6 +65,19 @@ export async function createListingPayment(req, res) {
 
   const tier = isPremiumApartment(apt) || requestedTier === 'premium' ? 'premium' : 'standard';
   const { amount } = await resolveListingAmount(tier, monthsInt);
+
+  try {
+    await verifyListingPaymentProvider({
+      userId: req.user.id,
+      provider,
+      providerReference: provider_reference,
+      expectedAmount: amount,
+      currency: 'ILS',
+    });
+  } catch (err) {
+    return res.status(402).json({ error: err.message || 'אימות התשלום נכשל' });
+  }
+
   const periodStart = new Date();
   const periodEnd = new Date(periodStart);
   periodEnd.setMonth(periodEnd.getMonth() + monthsInt);

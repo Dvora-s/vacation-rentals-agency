@@ -216,12 +216,16 @@ export default function PaymentMethodSelector({
                   setLocalError(null);
                   setPaypalWorking(true);
                   try {
+                    const ref = paypalCaptureRef(result);
+                    if (!ref || ref === 'paypal') {
+                      throw new Error('לא התקבלה אסמכתת תשלום מ־PayPal');
+                    }
                     await payForListing({
                       apartment_id: apartmentId,
                       months,
                       tier,
                       provider: 'paypal',
-                      provider_reference: paypalCaptureRef(result),
+                      provider_reference: ref,
                     });
                     onSuccess?.();
                   } catch (e) {

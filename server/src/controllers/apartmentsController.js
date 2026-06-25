@@ -26,6 +26,7 @@ import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
+import { apartmentHasPaidListing } from '../models/listingPaymentModel.js';
 import { publishApartmentFreeForAdmin } from '../services/adminListingPublish.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -77,6 +78,13 @@ export async function getById(req, res) {
     if (!isOwner && !isAdmin) {
       return res.status(404).json({ error: 'דירה לא נמצאה' });
     }
+  } else {
+    const hasPaid = await apartmentHasPaidListing(apt.id);
+    const isOwner = req.user && isApartmentOwner(apt, req.user);
+    const isAdmin = req.user && req.user.role === 'admin';
+    if (!hasPaid && !isOwner && !isAdmin) {
+      return res.status(404).json({ error: 'דירה לא נמצאה' });
+    }
   }
 
   const apartment = await attachImagesToApartment(apt);
@@ -111,6 +119,13 @@ export async function postInquiry(req, res) {
   if (apt.status !== 'approved') {
     return res.status(400).json({
       error: 'ניתן לשלוח הודעה רק למודעות שאושרו ופורסמו באתר',
+    });
+  }
+
+  const hasPaid = await apartmentHasPaidListing(aptId);
+  if (!hasPaid) {
+    return res.status(400).json({
+      error: 'ניתן לשלוח הודעה רק למודעות שפורסמו לאחר תשלום',
     });
   }
 

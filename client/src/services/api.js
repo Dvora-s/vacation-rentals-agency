@@ -244,9 +244,12 @@ export async function payForListing({
   apartment_id,
   months = 1,
   tier = 'standard',
-  provider = 'manual',
+  provider,
   provider_reference,
 }) {
+  if (!provider || !provider_reference) {
+    throw new Error('חסרים פרטי תשלום מהספק');
+  }
   return apiFetch('/payments', {
     method: 'POST',
     body: { apartment_id, months, tier, provider, provider_reference },

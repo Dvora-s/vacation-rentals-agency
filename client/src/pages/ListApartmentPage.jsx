@@ -31,6 +31,16 @@ function ListApartmentPage() {
   const [premiumForced, setPremiumForced] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
 
+  const confirmPublishedAfterPayment = useCallback(async (apartmentId) => {
+    const apt = await getApartmentById(apartmentId);
+    if (apt.status !== 'approved') {
+      throw new Error('התשלום התקבל אך המודעה עדיין לא פורסמה. פנו לתמיכה או נסו שוב בעוד דקה.');
+    }
+    setCreatedApt(apt);
+    setPaymentComplete(true);
+    setStep('done');
+  }, []);
+
   const { plans: checkoutPlans, loading: plansLoading } = useCheckoutPlans(tier);
 
   useEffect(() => {
@@ -96,14 +106,13 @@ function ListApartmentPage() {
 
   usePayMeListingReturn({
     validatePending: useCallback((p) => p.flow === 'list_apartment' && Number(p.apartmentId) > 0, []),
-    onPaid: useCallback((pending) => {
-      setCreatedApt((prev) => ({
-        id: pending.apartmentId,
-        title: pending.apartmentTitle || prev?.title || 'המודעה',
-      }));
-      setPaymentComplete(true);
-      setStep('done');
-    }, []),
+    onPaid: useCallback(async (pending) => {
+      try {
+        await confirmPublishedAfterPayment(pending.apartmentId);
+      } catch (err) {
+        setError(err.message);
+      }
+    }, [confirmPublishedAfterPayment]),
     onError: useCallback((msg) => setError(msg), []),
   });
 
@@ -233,9 +242,12 @@ function ListApartmentPage() {
               paymeReturnPath="/list-apartment"
               paymeFlow="list_apartment"
               paymePendingExtra={{ apartmentTitle: createdApt.title }}
-              onSuccess={() => {
-                setPaymentComplete(true);
-                setStep('done');
+              onSuccess={async () => {
+                try {
+                  await confirmPublishedAfterPayment(createdApt.id);
+                } catch (err) {
+                  setError(err.message);
+                }
               }}
             />
           )}

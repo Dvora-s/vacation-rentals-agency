@@ -21,6 +21,16 @@ export async function selectListingPaymentById(id) {
   return payRows[0] || null;
 }
 
+export async function selectListingPaymentByProviderReference(provider, providerReference) {
+  const [rows] = await pool.query(
+    `SELECT id FROM listing_payments
+     WHERE provider = ? AND provider_reference = ?
+     LIMIT 1`,
+    [provider, providerReference],
+  );
+  return rows[0] || null;
+}
+
 export async function selectMineListingPayments(userId) {
   const [rows] = await pool.query(
     `SELECT lp.*, a.title AS apartment_title
