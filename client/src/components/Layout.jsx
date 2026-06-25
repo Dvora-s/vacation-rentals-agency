@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import SiteFavicon from './SiteFavicon';
 import FloatingPublishButton from './FloatingPublishButton';
 import BrandingBadge from './BrandingBadge';
 import DiroBot from './DiroBot';
@@ -9,6 +10,7 @@ import './styles/Layout.css';
 function Layout() {
   return (
     <div className="layout">
+      <SiteFavicon />
       <Navbar />
       <main className="layout-main">
         <Outlet />

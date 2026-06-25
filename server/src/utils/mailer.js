@@ -1,9 +1,7 @@
 import nodemailer from 'nodemailer';
 import dns from 'node:dns';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { getEmailFromAddress, isResendReady, sendEmailViaResend } from './resendMailer.js';
+import { loadSiteLogoForEmail } from './siteLogo.js';
 
 // Railway וספקי ענן רבים חוסמים/לא תומכים ב-IPv6 יוצא — Gmail נפתר לרוב ל-IPv6 ונכשל (ENETUNREACH).
 dns.setDefaultResultOrder('ipv4first');
@@ -19,37 +17,18 @@ function smtpLookup(hostname, options, callback) {
 let transporter = null;
 let initialized = false;
 
-// ── לוגו מוטמע (inline) לכותרת המיילים ──
-// מוטמע כקובץ מצורף עם Content-ID כדי שיוצג אמין בכל לקוחות המייל (גם ללא חיבור לאתר).
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'logo.svg');
+// ── לוגו מוטמע (inline) לכותרת המיילים — נטען מ-site.logo במסד הנתונים ──
 const LOGO_CID = 'brandlogo';
 
-function detectImageMime(buf) {
-  if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
-  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
-  const head = buf.slice(0, 200).toString('utf8').trimStart();
-  if (head.startsWith('<svg') || head.startsWith('<?xml')) return 'image/svg+xml';
-  return 'application/octet-stream';
-}
-
-let logoAttachment;
-function getLogoAttachment() {
-  if (logoAttachment !== undefined) return logoAttachment;
-  try {
-    const content = fs.readFileSync(LOGO_PATH);
-    const mime = detectImageMime(content);
-    logoAttachment = {
-      filename: mime === 'image/png' ? 'logo.png' : mime === 'image/svg+xml' ? 'logo.svg' : 'logo.jpg',
-      content,
-      cid: LOGO_CID,
-      contentType: mime,
-      contentDisposition: 'inline',
-    };
-  } catch {
-    logoAttachment = null;
-  }
-  return logoAttachment;
+function buildLogoAttachment({ content, mime, filename }) {
+  if (!content) return null;
+  return {
+    filename: filename || 'logo.png',
+    content,
+    cid: LOGO_CID,
+    contentType: mime || 'image/png',
+    contentDisposition: 'inline',
+  };
 }
 
 function resolveSmtpHost(hostname) {
@@ -123,17 +102,18 @@ export function isMailerConfigured() {
   return mode === 'resend' || mode === 'smtp';
 }
 
-function htmlForDelivery(html) {
+async function htmlForDelivery(html, logoPublicUrl) {
   if (!html || getMailerMode() !== 'resend') return html;
-  return html.replaceAll(`cid:${LOGO_CID}`, `${APP_URL}/logo.svg`);
+  return html.replaceAll(`cid:${LOGO_CID}`, logoPublicUrl);
 }
 
 async function sendViaResend({ to, subject, text, html, replyTo }) {
+  const logo = html ? await loadSiteLogoForEmail() : null;
   const result = await sendEmailViaResend({
     to,
     subject,
     text,
-    html: html ? htmlForDelivery(html) : undefined,
+    html: html ? await htmlForDelivery(html, logo.publicUrl) : undefined,
     replyTo,
   });
 
@@ -153,7 +133,8 @@ export async function sendMail({ to, subject, text, html, replyTo }) {
   if (!tx) return { skipped: true };
 
   const from = getEmailFromAddress() || process.env.SMTP_USER;
-  const logo = html ? getLogoAttachment() : null;
+  const logo = html ? await loadSiteLogoForEmail() : null;
+  const attachment = logo ? buildLogoAttachment(logo) : null;
 
   try {
     const info = await tx.sendMail({
@@ -163,7 +144,7 @@ export async function sendMail({ to, subject, text, html, replyTo }) {
       text,
       html,
       ...(replyTo ? { replyTo } : {}),
-      ...(logo ? { attachments: [logo] } : {}),
+      ...(attachment ? { attachments: [attachment] } : {}),
     });
     return { skipped: false, messageId: info.messageId };
   } catch (err) {

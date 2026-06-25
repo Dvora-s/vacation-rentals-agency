@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import EditableImage from './EditableImage';
+import SiteLogo from './SiteLogo';
 import './styles/Navbar.css';
 
 const navLinks = [
@@ -24,7 +24,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink to="/" className="navbar-logo">
-        <EditableImage id="site.navbar-logo" src="/logo.svg" alt="דירות נופש" />
+        <SiteLogo />
       </NavLink>
 
       <nav className="navbar-nav">
