@@ -33,14 +33,16 @@ export function clearToken() {
 // ────────── עוטף fetch ──────────
 async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (auth) {
-    const token = getToken();
+  const token = getToken();
+  if (auth === true) {
     if (!token) {
       const err = new Error('יש להתחבר לאתר לפני ביצוע התשלום. התחברו מחדש ונסו שוב.');
       err.status = 401;
       err.needsLogin = true;
       throw err;
     }
+    headers.Authorization = `Bearer ${token}`;
+  } else if (auth === 'optional' && token) {
     headers.Authorization = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
@@ -97,8 +99,8 @@ export async function getApartmentById(id) {
     if (!apartment) throw new Error('Apartment not found');
     return apartment;
   }
-  // auth נשלח אם קיים טוקן — מאפשר לבעלים/מנהל לצפות גם במודעה שאינה מאושרת (pending/expired).
-  return apiFetch(`/apartments/${id}`, { auth: true });
+  // טוקן אופציונלי — אורחים רואים מודעות מאושרות; בעלים/מנהל רואים גם טיוטות.
+  return apiFetch(`/apartments/${id}`, { auth: 'optional' });
 }
 
 // נכסים מומלצים = הנכסים החדשים ביותר שהתווספו (לפי created_at, ובהיעדרו לפי id).

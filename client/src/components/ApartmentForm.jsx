@@ -27,7 +27,7 @@ const EMPTY = {
   images: [],
 };
 
-const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח', COMPLEX_PROPERTY_TYPE];
+const PROPERTY_TYPES = ['דירה', 'וילה', 'צימר', 'בקתה', 'יחידת אירוח', 'מלון', COMPLEX_PROPERTY_TYPE];
 
 // מפרק כתובת מאוחסנת (למשל "הרצל 5") לרחוב ומספר בית, לצורך עריכה.
 function splitAddress(address) {

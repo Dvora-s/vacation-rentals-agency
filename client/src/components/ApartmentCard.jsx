@@ -10,6 +10,7 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
   const { isAdmin } = useAuth();
   const categories = getApartmentCategories(apartment);
   const coverUrl = getApartmentCoverUrl(apartment);
+  const detailUrl = `/apartments/${apartment.id}`;
 
   async function saveCoverImage(url) {
     const images = apartment.images?.length
@@ -21,7 +22,7 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
     onApartmentUpdate?.(updated);
   }
 
-  return (
+  const card = (
     <article className={`apartment-card ${!apartment.is_available ? 'unavailable' : ''}`}>
       <div className="card-image-wrap">
         {coverUrl ? (
@@ -70,12 +71,20 @@ function ApartmentCard({ apartment, onApartmentUpdate }) {
             החל מ-₪{apartment.price_per_night}
             <span className="per-night"> / לילה</span>
           </p>
-          <Link to={`/apartments/${apartment.id}`} className="card-link btn-outline-gold">
-            לפרטים
-          </Link>
+          <span className="card-link btn-outline-gold">לפרטים</span>
         </div>
       </div>
     </article>
+  );
+
+  if (isAdmin) {
+    return card;
+  }
+
+  return (
+    <Link to={detailUrl} className="apartment-card-link" aria-label={`פרטי ${apartment.title}`}>
+      {card}
+    </Link>
   );
 }
 

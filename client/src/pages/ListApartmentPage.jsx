@@ -299,7 +299,7 @@ function ListApartmentPage() {
         )}
 
         <div className="payment-card">
-          <h3>{tier === 'premium' ? 'מסלולי מתחמי אירוח' : 'בחירת מסלול פרסום'}</h3>
+          <h3>{tier === 'premium' ? 'מסלולי מלונות ומתחמי אירוח' : 'בחירת מסלול פרסום'}</h3>
 
           {plansLoading && <p className="loading-text">טוען מחירים...</p>}
 

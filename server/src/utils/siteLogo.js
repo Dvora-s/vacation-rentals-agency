@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { ensureSiteContentTable, selectAllSiteContent } from '../models/siteContentModel.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'logo.svg');
+const DEFAULT_LOGO_PATH = path.join(__dirname, '..', '..', '..', 'client', 'public', 'brand-logo.svg');
 
 const LOGO_KEYS = ['site.logo', 'site.navbar-logo', 'site.brand-logo'];
 
@@ -29,12 +29,12 @@ export async function resolveSiteLogoStoredValue() {
     const value = byKey.get(key);
     if (value) return value;
   }
-  return '/logo.svg';
+  return '/brand-logo.svg';
 }
 
 export function toPublicLogoUrl(stored) {
   const s = String(stored || '').trim();
-  if (!s) return `${APP_URL}/logo.svg`;
+  if (!s) return `${APP_URL}/brand-logo.svg`;
   if (/^https?:\/\//i.test(s)) return s;
   if (s.startsWith('/uploads/')) return `${API_ORIGIN}${s}`;
   if (s.startsWith('/')) return `${APP_URL}${s}`;
@@ -61,11 +61,11 @@ export async function loadSiteLogoForEmail() {
   const stored = await resolveSiteLogoStoredValue();
   const publicUrl = toPublicLogoUrl(stored);
 
-  if (stored === '/logo.svg' || stored.endsWith('/logo.svg')) {
+  if (stored === '/brand-logo.svg' || stored.endsWith('/brand-logo.svg') || stored === '/logo.svg' || stored.endsWith('/logo.svg')) {
     try {
       const content = fs.readFileSync(DEFAULT_LOGO_PATH);
       const mime = detectImageMime(content);
-      return { publicUrl: `${APP_URL}/logo.svg`, content, mime, filename: filenameForMime(mime) };
+      return { publicUrl: `${APP_URL}/brand-logo.svg`, content, mime, filename: filenameForMime(mime) };
     } catch {
       /* fall through to fetch */
     }

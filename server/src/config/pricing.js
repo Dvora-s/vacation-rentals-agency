@@ -1,8 +1,10 @@
 // תמחור פרסום נכס — מקור אמת בצד השרת (אכיפה).
 // tier 'standard' — דירות/יחידות אירוח/צימרים.
-// tier 'premium'  — סוג נכס "מתחמי אירוח".
+// tier 'premium'  — מלונות ומתחמי אירוח.
 
+export const HOTEL_PROPERTY_TYPE = 'מלון';
 export const COMPLEX_PROPERTY_TYPE = 'מתחמי אירוח';
+export const PREMIUM_PROPERTY_TYPES = [HOTEL_PROPERTY_TYPE, COMPLEX_PROPERTY_TYPE];
 
 const STANDARD_TABLE = { 1: 30, 2: 60, 12: 330 };
 const PREMIUM_TABLE = { 1: 80, 12: 550 };
@@ -19,7 +21,7 @@ export function getPlanAmount(tier, months) {
   return perMonth * monthsInt;
 }
 
-// קובע אם נכס מחויב בתעריף פרימיום — לפי סוג הנכס "מתחמי אירוח".
+// קובע אם נכס מחויב בתעריף פרימיום — מלונות ומתחמי אירוח.
 export function isPremiumApartment(apartment) {
-  return apartment?.property_type === COMPLEX_PROPERTY_TYPE;
+  return PREMIUM_PROPERTY_TYPES.includes(apartment?.property_type);
 }

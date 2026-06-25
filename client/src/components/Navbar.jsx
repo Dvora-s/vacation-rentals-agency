@@ -82,6 +82,10 @@ function Navbar() {
       </nav>
 
       <div className="navbar-actions">
+        <NavLink to="/list-apartment" className="navbar-cta nav-link nav-link-highlight">
+          פרסם נכס
+        </NavLink>
+
         {isAuthenticated ? (
           <div className="navbar-user">
             <span className="navbar-user-name" title={user?.email}>
@@ -96,10 +100,6 @@ function Navbar() {
             <span className="nav-link-login-icon">+</span> התחבר
           </NavLink>
         )}
-
-        <NavLink to="/list-apartment" className="navbar-cta nav-link nav-link-highlight">
-          פרסם נכס
-        </NavLink>
       </div>
     </header>
   );

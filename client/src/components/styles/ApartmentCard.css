@@ -1,3 +1,9 @@
+.apartment-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .apartment-card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);

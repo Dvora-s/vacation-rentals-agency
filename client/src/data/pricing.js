@@ -1,9 +1,11 @@
 // מסלולי תמחור לפרסום נכס — מקור אמת יחיד בצד הלקוח.
 // tier 'standard' — דירות/יחידות אירוח/צימרים.
-// tier 'premium'  — סוג נכס "מתחמי אירוח".
+// tier 'premium'  — מלונות ומתחמי אירוח.
 
-// סוג הנכס שמחויב בתעריף פרימיום.
+export const HOTEL_PROPERTY_TYPE = 'מלון';
 export const COMPLEX_PROPERTY_TYPE = 'מתחמי אירוח';
+export const PREMIUM_PROPERTY_TYPES = [HOTEL_PROPERTY_TYPE, COMPLEX_PROPERTY_TYPE];
+
 // מעל כמות מיטות זו — חובה לבחור סוג נכס "מתחמי אירוח".
 export const MAX_GUESTS_NON_COMPLEX = 40;
 
@@ -26,10 +28,10 @@ export const PREMIUM_PLANS = [
   },
 ];
 
-// האם הנכס מחויב בתעריף פרימיום — לפי סוג הנכס "מתחמי אירוח".
+// האם הנכס מחויב בתעריף פרימיום — מלונות ומתחמי אירוח.
 export function requiresPremium(apartment) {
   if (!apartment) return false;
-  return apartment.property_type === COMPLEX_PROPERTY_TYPE;
+  return PREMIUM_PROPERTY_TYPES.includes(apartment.property_type);
 }
 
 // מחזיר את הסכום הכולל למסלול לפי tier ומספר חודשים.

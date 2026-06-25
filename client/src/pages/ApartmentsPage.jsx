@@ -157,6 +157,7 @@ function ApartmentsPage() {
               : 'מצאו את דירת הנופש המושלמת עבורכם'}
           </p>
           <SearchBar
+            variant="card"
             initialCategory={categoryFilter}
             initialLocation={locationFilter}
             initialRegion={regionFilter}
