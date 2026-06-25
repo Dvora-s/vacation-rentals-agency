@@ -1,5 +1,6 @@
 import { sendPaymentReceiptEmail } from '../utils/mailer.js';
-import { getPlanAmount, isPremiumApartment } from '../config/pricing.js';
+import { isPremiumApartment } from '../config/pricing.js';
+import { resolveListingAmount } from '../services/listingPricing.js';
 import { markApartmentPendingForReview, updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
 import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import {
@@ -49,7 +50,7 @@ export async function createListingPayment(req, res) {
   }
 
   const tier = isPremiumApartment(apt) || requestedTier === 'premium' ? 'premium' : 'standard';
-  const amount = getPlanAmount(tier, monthsInt);
+  const { amount } = await resolveListingAmount(tier, monthsInt);
   const periodStart = new Date();
   const periodEnd = new Date(periodStart);
   periodEnd.setMonth(periodEnd.getMonth() + monthsInt);

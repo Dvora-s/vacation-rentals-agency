@@ -5,9 +5,10 @@ import PaymentMethodSelector from '../components/PaymentMethodSelector';
 import { createApartment, getApartmentById } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
+import { useCheckoutPlans } from '../hooks/useCheckoutPlans';
 import {
-  STANDARD_PLANS,
   PREMIUM_PLANS,
+  STANDARD_PLANS,
   getPlanAmount,
   requiresPremium,
   monthsLabel,
@@ -15,21 +16,23 @@ import {
 import './ListApartmentPage.css';
 
 function ListApartmentPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // מסלול שנבחר במחירון (אם הגיעו דרך "בחירת מסלול").
   const selectedPlan = location.state?.plan || null;
 
-  const [step, setStep] = useState('details'); // details → payment → done
+  const [step, setStep] = useState('details');
   const [createdApt, setCreatedApt] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [tier, setTier] = useState(selectedPlan?.tier || 'standard');
   const [planId, setPlanId] = useState(null);
   const [premiumForced, setPremiumForced] = useState(false);
+  const [adminPublished, setAdminPublished] = useState(false);
+
+  const { plans: checkoutPlans, loading: plansLoading } = useCheckoutPlans(tier);
 
   useEffect(() => {
     if (searchParams.get('payme_cancel') === '1') {
@@ -38,21 +41,30 @@ function ListApartmentPage() {
     }
   }, [searchParams, setSearchParams]);
 
-  const resumePaymentForApartment = useCallback(async (apt) => {
-    const mustPremium = requiresPremium(apt);
-    const effectiveTier = mustPremium ? 'premium' : 'standard';
-    const planList = effectiveTier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
-    let initialPlanId = planList[0].id;
-    if (selectedPlan) {
-      const match = planList.find((p) => p.months === selectedPlan.months);
-      if (match) initialPlanId = match.id;
+  const resumePaymentForApartment = useCallback(
+    async (apt) => {
+      const mustPremium = requiresPremium(apt);
+      const effectiveTier = mustPremium ? 'premium' : 'standard';
+      const fallbackList = effectiveTier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
+      let initialPlanId = fallbackList[0].id;
+      if (selectedPlan) {
+        const match = fallbackList.find((p) => p.months === selectedPlan.months);
+        if (match) initialPlanId = match.id;
+      }
+      setCreatedApt(apt);
+      setTier(effectiveTier);
+      setPlanId(initialPlanId);
+      setPremiumForced(mustPremium && (selectedPlan?.tier || 'standard') !== 'premium');
+      setStep('payment');
+    },
+    [selectedPlan],
+  );
+
+  useEffect(() => {
+    if (!planId && checkoutPlans.length > 0) {
+      setPlanId(checkoutPlans[0].id);
     }
-    setCreatedApt(apt);
-    setTier(effectiveTier);
-    setPlanId(initialPlanId);
-    setPremiumForced(mustPremium && (selectedPlan?.tier || 'standard') !== 'premium');
-    setStep('payment');
-  }, [selectedPlan]);
+  }, [checkoutPlans, planId]);
 
   useEffect(() => {
     const resumeId = searchParams.get('resume');
@@ -88,12 +100,14 @@ function ListApartmentPage() {
     onError: useCallback((msg) => setError(msg), []),
   });
 
-  const detailsSubtitle = selectedPlan
-    ? `מלאו את פרטי הדירה. בשלב הבא תועברו לתשלום של ₪${getPlanAmount(
-        selectedPlan.tier,
-        selectedPlan.months,
-      )} ל${monthsLabel(selectedPlan.months)}, ולאחר מכן המנהל יאשר את הפרסום.`
-    : 'מלאו את פרטי הדירה. בשלב הבא תבחרו מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
+  const detailsSubtitle = isAdmin
+    ? 'מנהל מערכת: פרסום ללא תשלום — מלאו את פרטי הדירה והמודעה תישלח ישירות לאישור.'
+    : selectedPlan
+      ? `מלאו את פרטי הדירה. בשלב הבא תועברו לתשלום של ₪${getPlanAmount(
+          selectedPlan.tier,
+          selectedPlan.months,
+        )} ל${monthsLabel(selectedPlan.months)}, ולאחר מכן המנהל יאשר את הפרסום.`
+      : 'מלאו את פרטי הדירה. בשלב הבא תבחרו מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
 
   async function handleCreate(payload) {
     setError(null);
@@ -105,6 +119,14 @@ function ListApartmentPage() {
         owner_email: payload.owner_email || user?.email || null,
         owner_phone: payload.owner_phone || user?.phone || null,
       });
+
+      if (isAdmin || apt.status === 'pending') {
+        setCreatedApt(apt);
+        setAdminPublished(true);
+        setStep('done');
+        return;
+      }
+
       await resumePaymentForApartment(apt);
     } catch (err) {
       setError(err.message);
@@ -113,8 +135,9 @@ function ListApartmentPage() {
     }
   }
 
-  const planList = tier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
+  const planList = checkoutPlans.length > 0 ? checkoutPlans : tier === 'premium' ? PREMIUM_PLANS : STANDARD_PLANS;
   const chosenPlan = planList.find((p) => p.id === planId) || planList[0];
+  const total = chosenPlan?.price ?? 0;
 
   if (step === 'done') {
     return (
@@ -123,14 +146,12 @@ function ListApartmentPage() {
           <div className="success-icon">✓</div>
           <h1>הדירה נשלחה לאישור</h1>
           <p>
-            התשלום התקבל והפרסום ימתין לאישור המנהל. ברגע שהדירה תאושר היא תופיע בעמוד "חיפוש דירה".
+            {adminPublished
+              ? 'המודעה נשמרה ונשלחה לאישור המנהל ללא תשלום. ברגע שהדירה תאושר היא תופיע בעמוד "חיפוש דירה".'
+              : 'התשלום התקבל והפרסום ימתין לאישור המנהל. ברגע שהדירה תאושר היא תופיע בעמוד "חיפוש דירה".'}
           </p>
           <div className="success-actions">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => navigate('/my-apartments')}
-            >
+            <button type="button" className="btn-primary" onClick={() => navigate('/my-apartments')}>
               לדירות שלי
             </button>
           </div>
@@ -140,7 +161,6 @@ function ListApartmentPage() {
   }
 
   if (step === 'payment') {
-    const total = chosenPlan.price;
     return (
       <div className="list-apt-page section-container">
         <h1 className="page-title">תשלום על פרסום הדירה</h1>
@@ -157,9 +177,9 @@ function ListApartmentPage() {
         )}
 
         <div className="payment-card">
-          <h3>
-            {tier === 'premium' ? 'מסלולי מתחמי אירוח' : 'בחירת מסלול פרסום'}
-          </h3>
+          <h3>{tier === 'premium' ? 'מסלולי מתחמי אירוח' : 'בחירת מסלול פרסום'}</h3>
+
+          {plansLoading && <p className="loading-text">טוען מחירים...</p>}
 
           <div className="plan-options">
             {planList.map((plan) => (
@@ -177,7 +197,7 @@ function ListApartmentPage() {
                 <span className="plan-option-body">
                   <span className="plan-option-title">{plan.title}</span>
                   <span className="plan-option-price">
-                    {plan.originalPrice && (
+                    {plan.originalPrice != null && (
                       <span className="plan-option-old">₪{plan.originalPrice}</span>
                     )}
                     ₪{plan.price}
@@ -197,17 +217,19 @@ function ListApartmentPage() {
             ⓘ התשלום מתבצע דרך <strong>PayPal</strong> או <strong>PayMe</strong> בלבד; אסמכתא נרשמת אוטומטית מהספק.
           </p>
 
-          <PaymentMethodSelector
-            totalIls={total}
-            currencyCode="ILS"
-            apartmentId={createdApt.id}
-            months={chosenPlan.months}
-            tier={tier}
-            paymeReturnPath="/list-apartment"
-            paymeFlow="list_apartment"
-            paymePendingExtra={{ apartmentTitle: createdApt.title }}
-            onSuccess={() => setStep('done')}
-          />
+          {chosenPlan && (
+            <PaymentMethodSelector
+              totalIls={total}
+              currencyCode="ILS"
+              apartmentId={createdApt.id}
+              months={chosenPlan.months}
+              tier={tier}
+              paymeReturnPath="/list-apartment"
+              paymeFlow="list_apartment"
+              paymePendingExtra={{ apartmentTitle: createdApt.title }}
+              onSuccess={() => setStep('done')}
+            />
+          )}
         </div>
       </div>
     );
@@ -218,11 +240,17 @@ function ListApartmentPage() {
       <h1 className="page-title">פרסום דירה חדשה</h1>
       <p className="page-subtitle">{detailsSubtitle}</p>
 
+      {isAdmin && (
+        <div className="auth-notice">
+          פרסום מנהל: לא יידרש תשלום PayPal — המודעה תועבר ישירות לתור האישור.
+        </div>
+      )}
+
       <ApartmentForm
         onSubmit={handleCreate}
         submitting={submitting}
         error={error}
-        submitLabel="המשך לתשלום"
+        submitLabel={isAdmin ? 'פרסם ללא תשלום' : 'המשך לתשלום'}
       />
     </div>
   );

@@ -27,6 +27,7 @@ import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
 import { apartmentHasPaidListing } from '../models/listingPaymentModel.js';
+import { publishApartmentFreeForAdmin } from '../services/adminListingPublish.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -176,6 +177,10 @@ export async function create(req, res) {
   if (images.length > 0) {
     const values = images.map((url, idx) => [insertId, url, idx]);
     await insertApartmentImagesRows(values);
+  }
+
+  if (req.user.role === 'admin') {
+    await publishApartmentFreeForAdmin(insertId, req.user);
   }
 
   const row = await selectApartmentById(insertId);

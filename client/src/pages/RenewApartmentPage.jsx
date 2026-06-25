@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { getApartmentById, getListingFee } from '../services/api';
+import { getApartmentById } from '../services/api';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
 import { usePayMeListingReturn } from '../hooks/usePayMeListingReturn';
+import { useCheckoutPlans } from '../hooks/useCheckoutPlans';
 import { requiresPremium } from '../data/pricing';
 import './ListApartmentPage.css';
 
@@ -13,22 +14,30 @@ function RenewApartmentPage() {
 
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [fee, setFee] = useState({ amount_per_month: 30, currency: 'ILS' });
-  const [months, setMonths] = useState(1);
+  const [planId, setPlanId] = useState(null);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
+  const renewTier = apartment && requiresPremium(apartment) ? 'premium' : 'standard';
+  const { plans: checkoutPlans, loading: plansLoading } = useCheckoutPlans(renewTier);
+
   useEffect(() => {
-    Promise.all([getApartmentById(id), getListingFee()])
-      .then(([apt, f]) => {
+    getApartmentById(id)
+      .then((apt) => {
+        if (apt.status !== 'expired') {
+          throw new Error('ניתן לחדש רק מודעות שפג תוקפן.');
+        }
         setApartment(apt);
-        if (f) setFee(f);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const renewTier = apartment && requiresPremium(apartment) ? 'premium' : 'standard';
+  useEffect(() => {
+    if (!planId && checkoutPlans.length > 0) {
+      setPlanId(checkoutPlans[0].id);
+    }
+  }, [checkoutPlans, planId]);
 
   useEffect(() => {
     if (searchParams.get('payme_cancel') === '1') {
@@ -65,7 +74,8 @@ function RenewApartmentPage() {
     );
   }
 
-  const total = fee.amount_per_month * months;
+  const chosenPlan = checkoutPlans.find((p) => p.id === planId) || checkoutPlans[0];
+  const total = chosenPlan?.price ?? 0;
 
   return (
     <div className="list-apt-page section-container">
@@ -77,24 +87,35 @@ function RenewApartmentPage() {
       {error && <div className="auth-error">{error}</div>}
 
       <div className="payment-card">
-        <h3>פירוט החיוב</h3>
-        <div className="payment-row">
-          <span>עלות פרסום לחודש</span>
-          <strong>₪{fee.amount_per_month}</strong>
-        </div>
+        <h3>בחירת מסלול חידוש</h3>
 
-        <div className="payment-row">
-          <label htmlFor="months">מספר חודשים</label>
-          <input
-            id="months"
-            type="number"
-            min="1"
-            max="24"
-            className="auth-input"
-            value={months}
-            onChange={(e) => setMonths(Math.max(1, Number(e.target.value) || 1))}
-            style={{ width: '90px' }}
-          />
+        {plansLoading && <p className="loading-text">טוען מחירים...</p>}
+
+        <div className="plan-options">
+          {checkoutPlans.map((plan) => (
+            <label
+              key={plan.id}
+              className={`plan-option ${planId === plan.id ? 'selected' : ''}`}
+            >
+              <input
+                type="radio"
+                name="renew-plan"
+                value={plan.id}
+                checked={planId === plan.id}
+                onChange={() => setPlanId(plan.id)}
+              />
+              <span className="plan-option-body">
+                <span className="plan-option-title">{plan.title}</span>
+                <span className="plan-option-price">
+                  {plan.originalPrice != null && (
+                    <span className="plan-option-old">₪{plan.originalPrice}</span>
+                  )}
+                  ₪{plan.price}
+                </span>
+              </span>
+              {plan.badge && <span className="plan-option-badge">{plan.badge}</span>}
+            </label>
+          ))}
         </div>
 
         <div className="payment-row payment-total">
@@ -106,16 +127,18 @@ function RenewApartmentPage() {
           ⓘ התשלום מתבצע דרך <strong>PayPal</strong> או <strong>PayMe</strong> בלבד; אסמכתא נרשמת אוטומטית מהספק.
         </p>
 
-        <PaymentMethodSelector
-          totalIls={total}
-          currencyCode="ILS"
-          apartmentId={Number(id)}
-          months={months}
-          tier={renewTier}
-          paymeReturnPath={`/my-apartments/${id}/renew`}
-          paymeFlow="renew_apartment"
-          onSuccess={() => setDone(true)}
-        />
+        {chosenPlan && (
+          <PaymentMethodSelector
+            totalIls={total}
+            currencyCode="ILS"
+            apartmentId={Number(id)}
+            months={chosenPlan.months}
+            tier={renewTier}
+            paymeReturnPath={`/my-apartments/${id}/renew`}
+            paymeFlow="renew_apartment"
+            onSuccess={() => setDone(true)}
+          />
+        )}
       </div>
     </div>
   );

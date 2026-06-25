@@ -8,7 +8,7 @@ export default function ResubmitApartmentButton({
   apartment,
   onResubmitted,
   className = 'btn-primary',
-  children = 'שליחה לאישור מחדש',
+  children = 'שליחה מחדש',
 }) {
   const [busy, setBusy] = useState(false);
 

@@ -12,7 +12,8 @@
     "setup-faq": "node scripts/run-faq-sql.mjs",
     "migrate": "node scripts/migrate.mjs",
     "setup-payments": "node scripts/run-payments-sql.mjs",
-    "copy-to-railway": "node scripts/copy-to-railway.mjs"
+    "copy-to-railway": "node scripts/copy-to-railway.mjs",
+    "test": "node --test src/**/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

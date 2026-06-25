@@ -259,6 +259,16 @@ export async function getPricingCatalog() {
   return apiFetch('/pricing/catalog');
 }
 
+export async function getCheckoutPlans(tier = 'standard') {
+  return apiFetch(`/pricing/checkout-plans?tier=${encodeURIComponent(tier)}`);
+}
+
+export async function getPricingQuote(tier = 'standard', months = 1) {
+  return apiFetch(
+    `/pricing/quote?tier=${encodeURIComponent(tier)}&months=${encodeURIComponent(months)}`,
+  );
+}
+
 // ────────── מחירון — ניהול מנהל ──────────
 export async function adminListPricingPlans() {
   return apiFetch('/admin/pricing/plans', { auth: true });
