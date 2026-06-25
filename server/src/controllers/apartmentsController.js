@@ -29,6 +29,7 @@ import { selectUserContactById } from '../models/userModel.js';
 import { apartmentHasPaidListing, apartmentHasSecuredListingPayment } from '../models/listingPaymentModel.js';
 import { submitApartmentFreeForAdmin } from '../services/adminListingPublish.js';
 import { captureListingPaymentOnApprove, releaseListingPaymentOnReject } from '../services/listingPaymentCapture.js';
+import { mapFeaturedApartmentsForResponse } from '../services/featuredApartments.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -48,6 +49,12 @@ async function resolveOwnerContact(apt) {
 export async function listPublic(_req, res) {
   const rows = await selectApprovedApartments();
   const apartments = await attachImagesToApartments(rows);
+  res.json(apartments);
+}
+
+export async function listFeatured(req, res) {
+  const limit = Math.min(12, Math.max(1, Number(req.query.limit) || 4));
+  const apartments = await mapFeaturedApartmentsForResponse(limit);
   res.json(apartments);
 }
 

@@ -103,18 +103,23 @@ export async function getApartmentById(id) {
   return apiFetch(`/apartments/${id}`, { auth: 'optional' });
 }
 
-// נכסים מומלצים = הנכסים החדשים ביותר שהתווספו (לפי created_at, ובהיעדרו לפי id).
-export async function getFeaturedApartments(limit = 3) {
-  const apartments = await getApartments();
-  return [...apartments]
-    .filter((a) => a.is_available)
-    .sort((a, b) => {
-      const ta = new Date(a.created_at || 0).getTime();
-      const tb = new Date(b.created_at || 0).getTime();
-      if (tb !== ta) return tb - ta;
-      return (Number(b.id) || 0) - (Number(a.id) || 0);
-    })
-    .slice(0, limit);
+// נכסים מומלצים — לפי בחירת מנהל (או החדשים ביותר אם לא הוגדרו).
+export async function getFeaturedApartments(limit = 4) {
+  if (USE_MOCK) {
+    const { mockApartments } = await import('../data/mockApartments.js');
+    await mockDelay();
+    return [...mockApartments]
+      .filter((a) => a.is_available)
+      .sort((a, b) => {
+        const ta = new Date(a.created_at || 0).getTime();
+        const tb = new Date(b.created_at || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        return (Number(b.id) || 0) - (Number(a.id) || 0);
+      })
+      .slice(0, limit);
+  }
+  const q = new URLSearchParams({ limit: String(limit) });
+  return apiFetch(`/apartments/featured?${q}`);
 }
 
 export async function createApartment(payload) {

@@ -3,30 +3,46 @@
   margin: 0 auto;
 }
 
-/* ── סרגל אופקי (עמוד הבית) ── */
+/* ── סרגל אופקי (עמוד הבית) — גדול ורחב כמו בעיצוב המקורי ── */
 .search-bar--inline {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 0;
-  max-width: 720px;
+  width: 100%;
+  min-height: 74px;
   background: #fff;
-  border-radius: 999px;
-  box-shadow: 0 16px 48px -20px rgba(8, 24, 40, 0.45);
-  padding: 0.35rem 0.35rem 0.35rem 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 22px;
+  box-shadow:
+    0 22px 50px -18px rgba(8, 24, 40, 0.38),
+    0 8px 20px -12px rgba(8, 24, 40, 0.2);
+  padding: 0.45rem 0.55rem 0.45rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.92);
 }
 
 .search-inline-fields {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
+  min-height: 62px;
 }
 
 .search-inline-field {
   flex: 1;
   min-width: 0;
-  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1.35rem;
+}
+
+.search-inline-field--location {
+  flex: 1.35;
+}
+
+.search-inline-field--category {
+  flex: 1;
+  position: relative;
+  justify-content: center;
 }
 
 .search-inline-field select {
@@ -35,11 +51,13 @@
   outline: none;
   background: transparent;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: clamp(1rem, 1.35vw, 1.12rem);
   font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
-  text-align: right;
+  text-align: center;
+  appearance: none;
+  padding: 0 1.25rem;
 }
 
 .search-inline-field select:valid,
@@ -47,28 +65,48 @@
   color: var(--color-text);
 }
 
+.search-inline-field .search-combobox {
+  width: 100%;
+}
+
 .search-inline-field .search-combobox .combobox-input {
   border: none;
   outline: none;
   background: transparent;
-  padding: 0;
-  font-size: 0.95rem;
+  padding: 0.15rem 0;
+  min-height: 1.75rem;
+  font-size: clamp(1rem, 1.35vw, 1.12rem);
   font-weight: 500;
   color: var(--color-text);
   box-shadow: none;
+  text-align: right;
 }
 
 .search-inline-field .search-combobox .combobox-input::placeholder {
-  color: var(--color-text-muted);
+  color: #a8b0b8;
   font-weight: 400;
+}
+
+.search-inline-field .search-combobox .combobox-arrow {
+  font-size: 0.72rem;
+  color: #b8c0c8;
 }
 
 .search-inline-divider {
   width: 1px;
   align-self: stretch;
-  margin: 0.5rem 0;
-  background: var(--color-border-soft);
+  margin: 0.85rem 0;
+  background: #e2e6ea;
   flex-shrink: 0;
+}
+
+.search-inline-caret {
+  flex-shrink: 0;
+  color: #b8c0c8;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0 0.35rem 0 0.15rem;
+  user-select: none;
 }
 
 .search-inline-submit {
@@ -76,20 +114,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 62px;
+  height: 62px;
   border: none;
   border-radius: 50%;
   background: linear-gradient(145deg, #1a6b7a 0%, #145a66 100%);
   color: #fff;
   cursor: pointer;
   transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-  box-shadow: 0 8px 20px -8px rgba(20, 90, 102, 0.65);
+  box-shadow: 0 10px 24px -10px rgba(20, 90, 102, 0.7);
 }
 
 .search-inline-submit:hover {
   transform: scale(1.04);
-  box-shadow: 0 12px 28px -10px rgba(20, 90, 102, 0.75);
+  box-shadow: 0 14px 30px -12px rgba(20, 90, 102, 0.8);
 }
 
 /* ── כרטיס חיפוש (דף דירות) ── */
@@ -185,17 +223,44 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 900px) {
+  .search-bar--inline {
+    min-height: 68px;
+    border-radius: 18px;
+  }
+
+  .search-inline-field {
+    padding: 0.75rem 1rem;
+  }
+
+  .search-inline-submit {
+    width: 56px;
+    height: 56px;
+  }
+}
+
 @media (max-width: 640px) {
   .search-bar--inline {
     flex-direction: column;
+    align-items: stretch;
     border-radius: var(--radius-xl);
-    padding: 0.75rem;
-    gap: 0.5rem;
+    padding: 0.85rem;
+    gap: 0.55rem;
+    min-height: 0;
   }
 
   .search-inline-fields {
     flex-direction: column;
     width: 100%;
+    min-height: 0;
+  }
+
+  .search-inline-field {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .search-inline-field select {
+    text-align: right;
   }
 
   .search-inline-divider {
@@ -204,9 +269,13 @@
     margin: 0;
   }
 
+  .search-inline-caret {
+    display: none;
+  }
+
   .search-inline-submit {
     width: 100%;
-    height: 48px;
+    height: 52px;
     border-radius: var(--radius-lg);
   }
 }

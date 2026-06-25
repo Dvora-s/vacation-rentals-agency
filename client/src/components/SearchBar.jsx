@@ -64,8 +64,11 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
             </select>
           </div>
         </div>
+        <span className="search-inline-caret" aria-hidden="true">
+          ▾
+        </span>
         <button type="submit" className="search-inline-submit" aria-label="חיפוש">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.2" />
             <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
           </svg>

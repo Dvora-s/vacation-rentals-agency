@@ -31,8 +31,9 @@
 }
 
 .hero-content .search-bar--inline {
-  margin-top: 1.25rem;
-  width: min(100%, 720px);
+  margin-top: 1.75rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .hero-subtitle {
@@ -48,6 +49,10 @@
 
 .featured {
   padding: 4.5rem 1.5rem 5rem;
+}
+
+.featured .section-title {
+  margin-bottom: 0;
 }
 
 .section-container {

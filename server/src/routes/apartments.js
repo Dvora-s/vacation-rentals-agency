@@ -10,6 +10,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 const router = Router();
 
 router.get('/', optionalAuth, asyncHandler(apartments.listPublic));
+router.get('/featured', optionalAuth, asyncHandler(apartments.listFeatured));
 router.get('/mine', requireAuth, asyncHandler(apartments.listMine));
 router.get('/pending', requireAuth, requireRole('admin'), asyncHandler(apartments.listPending));
 router.get(

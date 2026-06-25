@@ -41,6 +41,10 @@
 }
 
 /* עמוד "מצא דירה" ועמוד הבית מכילים את סרגל החיפוש — אותו גובה אך גמיש כדי לא לחתוך */
+.page-hero.hero .page-hero-inner {
+  max-width: 1120px;
+}
+
 .page-hero.apartments-hero,
 .page-hero.hero {
   height: auto;

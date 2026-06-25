@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ApartmentCard from '../components/ApartmentCard';
 import SearchBar from '../components/SearchBar';
 import EditableText from '../components/EditableText';
 import EditableImage from '../components/EditableImage';
+import FeaturedApartmentsEditor from '../components/FeaturedApartmentsEditor';
 import CategoriesShowcase from '../components/CategoriesShowcase';
 import HowToFind from '../components/HowToFind';
 import { getFeaturedApartments } from '../services/api';
@@ -14,12 +15,22 @@ const HERO_IMAGE = '/hero.png';
 function HomePage() {
   const [apartments, setApartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [featuredRefreshKey, setFeaturedRefreshKey] = useState(0);
 
-  useEffect(() => {
+  const loadFeatured = useCallback(() => {
+    setLoading(true);
     getFeaturedApartments(4)
       .then(setApartments)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadFeatured();
+  }, [loadFeatured, featuredRefreshKey]);
+
+  function handleFeaturedSaved() {
+    setFeaturedRefreshKey((k) => k + 1);
+  }
 
   function handleApartmentImageUpdate(updated) {
     if (!updated?.id) return;
@@ -52,13 +63,20 @@ function HomePage() {
       <CategoriesShowcase />
 
       <section className="featured section-container">
-        <EditableText as="h2" id="home.featured.title" className="section-title">
-          נכסים מומלצים
-        </EditableText>
+        <div className="featured-section-head">
+          <EditableText as="h2" id="home.featured.title" className="section-title">
+            נכסים מומלצים
+          </EditableText>
+          <FeaturedApartmentsEditor onSaved={handleFeaturedSaved} />
+        </div>
 
         {loading && <p className="loading-text">טוען דירות...</p>}
 
-        {!loading && (
+        {!loading && apartments.length === 0 && (
+          <p className="loading-text">אין כרגע נכסים מומלצים להצגה.</p>
+        )}
+
+        {!loading && apartments.length > 0 && (
           <div className="apartments-grid">
             {apartments.map((apartment) => (
               <ApartmentCard
