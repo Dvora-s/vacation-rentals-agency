@@ -14,8 +14,8 @@ import './MyApartmentsPage.css';
 import './AccountPage.css';
 
 const STATUS_LABEL = {
-  awaiting_payment: 'ממתינה לתשלום',
   pending: 'ממתינה לאישור מנהל',
+  awaiting_payment: 'אושרה — ממתינה לתשלום',
   approved: 'מאושרת ומפורסמת',
   rejected: 'נדחתה',
   expired: 'פג תוקף — הושעתה',
@@ -134,18 +134,28 @@ function ApartmentsTab() {
               />
             )}
             {apt.status === 'expired' && (
-              <p className="my-apt-reject">תוקף הפרסום פג והמודעה הושעתה. ניתן לחדש את הפרסום בתשלום.</p>
+              <p className="my-apt-reject">
+                תוקף הפרסום פג והמודעה הושעתה. ניתן לשלוח שוב לאישור המנהל, ולאחר האישור להשלים תשלום.
+              </p>
             )}
             <div className="my-apt-actions">
               {apt.status === 'awaiting_payment' && (
                 <Link to={`/list-apartment?resume=${apt.id}`} className="btn-primary">
-                  המשך לתשלום
+                  השלמת תשלום
                 </Link>
               )}
               {apt.status === 'expired' && (
-                <Link to={`/my-apartments/${apt.id}/renew`} className="btn-primary">
-                  חידוש פרסום
-                </Link>
+                <ResubmitApartmentButton
+                  apartment={apt}
+                  className="btn-primary"
+                  onResubmitted={(updated) =>
+                    setApartments((prev) =>
+                      prev.map((a) => (a.id === apt.id ? { ...a, ...updated } : a)),
+                    )
+                  }
+                >
+                  שליחה לאישור מחדש
+                </ResubmitApartmentButton>
               )}
               {apt.status === 'rejected' && (
                 <ResubmitApartmentButton

@@ -4,7 +4,7 @@
 
 export const USER_ROLES = ['owner', 'admin'];
 
-export const APARTMENT_STATUSES = ['pending', 'approved', 'rejected', 'expired'];
+export const APARTMENT_STATUSES = ['pending', 'awaiting_payment', 'approved', 'rejected', 'expired'];
 
 export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
 

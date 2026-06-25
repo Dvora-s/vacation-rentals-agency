@@ -9,7 +9,6 @@ import { useCheckoutPlans } from '../hooks/useCheckoutPlans';
 import {
   PREMIUM_PLANS,
   STANDARD_PLANS,
-  getPlanAmount,
   requiresPremium,
   monthsLabel,
 } from '../data/pricing';
@@ -30,7 +29,7 @@ function ListApartmentPage() {
   const [tier, setTier] = useState(selectedPlan?.tier || 'standard');
   const [planId, setPlanId] = useState(null);
   const [premiumForced, setPremiumForced] = useState(false);
-  const [adminPublished, setAdminPublished] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   const { plans: checkoutPlans, loading: plansLoading } = useCheckoutPlans(tier);
 
@@ -75,13 +74,13 @@ function ListApartmentPage() {
         const apt = await getApartmentById(resumeId);
         if (cancelled) return;
         if (apt.status !== 'awaiting_payment') {
-          setError('הדירה כבר שולמה או אינה ממתינה לתשלום.');
+          setError('הדירה אינה ממתינה לתשלום. בדקו את הסטטוס ב"הדירות שלי".');
           return;
         }
         if (isAdmin) {
           const published = await adminPublishApartmentFree(apt.id);
           setCreatedApt(published);
-          setAdminPublished(true);
+          setPaymentComplete(true);
           setStep('done');
           return;
         }
@@ -102,19 +101,15 @@ function ListApartmentPage() {
         id: pending.apartmentId,
         title: pending.apartmentTitle || prev?.title || 'המודעה',
       }));
+      setPaymentComplete(true);
       setStep('done');
     }, []),
     onError: useCallback((msg) => setError(msg), []),
   });
 
   const detailsSubtitle = isAdmin
-    ? 'מנהל מערכת: פרסום ללא תשלום — מלאו את פרטי הדירה והמודעה תישלח ישירות לאישור.'
-    : selectedPlan
-      ? `מלאו את פרטי הדירה. בשלב הבא תועברו לתשלום של ₪${getPlanAmount(
-          selectedPlan.tier,
-          selectedPlan.months,
-        )} ל${monthsLabel(selectedPlan.months)}, ולאחר מכן המנהל יאשר את הפרסום.`
-      : 'מלאו את פרטי הדירה. בשלב הבא תבחרו מסלול תשלום, ולאחר מכן המנהל יאשר את הפרסום.';
+    ? 'מנהל מערכת: מלאו את פרטי הדירה והמודעה תישלח לאישור. לאחר האישור ניתן לפרסם ללא תשלום.'
+    : 'מלאו את פרטי הדירה. המודעה תישלח לאישור המנהל, ורק לאחר האישור תוכלו להשלים את התשלום ולפרסם באתר.';
 
   async function handleCreate(payload) {
     setError(null);
@@ -127,14 +122,9 @@ function ListApartmentPage() {
         owner_phone: payload.owner_phone || user?.phone || null,
       });
 
-      if (isAdmin || apt.status === 'pending') {
-        setCreatedApt(apt);
-        setAdminPublished(true);
-        setStep('done');
-        return;
-      }
-
-      await resumePaymentForApartment(apt);
+      setCreatedApt(apt);
+      setPaymentComplete(false);
+      setStep('done');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -151,16 +141,25 @@ function ListApartmentPage() {
       <div className="list-apt-page section-container">
         <div className="success-card">
           <div className="success-icon">✓</div>
-          <h1>הדירה נשלחה לאישור</h1>
+          <h1>{paymentComplete ? 'המודעה עלתה לאתר!' : 'הדירה נשלחה לאישור'}</h1>
           <p>
-            {adminPublished
-              ? 'המודעה נשמרה ונשלחה לאישור המנהל ללא תשלום. ברגע שהדירה תאושר היא תופיע בעמוד "חיפוש דירה".'
-              : 'התשלום התקבל והפרסום ימתין לאישור המנהל. ברגע שהדירה תאושר היא תופיע בעמוד "חיפוש דירה".'}
+            {paymentComplete
+              ? 'התשלום התקבל והמודעה פורסמה באתר. תוכלו לצפות בה בעמוד "חיפוש דירה".'
+              : 'המודעה נשמרה ונשלחה לאישור המנהל. לאחר האישור תקבלו הודעה במייל ותוכלו להשלים את התשלום מ"הדירות שלי".'}
           </p>
           <div className="success-actions">
             <button type="button" className="btn-primary" onClick={() => navigate('/my-apartments')}>
               לדירות שלי
             </button>
+            {paymentComplete && createdApt?.id && (
+              <button
+                type="button"
+                className="btn-outline-gold"
+                onClick={() => navigate(`/apartments/${createdApt.id}`)}
+              >
+                צפייה במודעה
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -172,7 +171,7 @@ function ListApartmentPage() {
       <div className="list-apt-page section-container">
         <h1 className="page-title">תשלום על פרסום הדירה</h1>
         <p className="page-subtitle">
-          הדירה <strong>"{createdApt?.title}"</strong> נשמרה. בחרו מסלול פרסום כדי להעביר אותה לאישור המנהל.
+          הדירה <strong>"{createdApt?.title}"</strong> אושרה על ידי המנהל. השלימו את התשלום כדי לפרסם אותה באתר.
         </p>
 
         {error && <div className="auth-error">{error}</div>}
@@ -234,7 +233,10 @@ function ListApartmentPage() {
               paymeReturnPath="/list-apartment"
               paymeFlow="list_apartment"
               paymePendingExtra={{ apartmentTitle: createdApt.title }}
-              onSuccess={() => setStep('done')}
+              onSuccess={() => {
+                setPaymentComplete(true);
+                setStep('done');
+              }}
             />
           )}
         </div>
@@ -249,7 +251,7 @@ function ListApartmentPage() {
 
       {isAdmin && (
         <div className="auth-notice">
-          פרסום מנהל: לא יידרש תשלום PayPal — המודעה תועבר ישירות לתור האישור.
+          פרסום מנהל: המודעה תישלח לאישור. לאחר האישור ניתן לפרסם ללא תשלום מ"הדירות שלי".
         </div>
       )}
 
@@ -257,7 +259,7 @@ function ListApartmentPage() {
         onSubmit={handleCreate}
         submitting={submitting}
         error={error}
-        submitLabel={isAdmin ? 'פרסם ללא תשלום' : 'המשך לתשלום'}
+        submitLabel="שליחה לאישור"
       />
     </div>
   );

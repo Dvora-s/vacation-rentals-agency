@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { resubmitApartmentForApproval } from '../services/api';
 
 /**
- * כפתור שליחה חוזרת לאישור — לדירה בסטטוס rejected בלבד.
+ * כפתור שליחה חוזרת לאישור — לדירה שנדחתה או שפג תוקפה.
  */
 export default function ResubmitApartmentButton({
   apartment,
@@ -13,11 +13,13 @@ export default function ResubmitApartmentButton({
   const [busy, setBusy] = useState(false);
 
   if (!apartment) return null;
-  const isRejected = String(apartment.status || '').toLowerCase() === 'rejected';
-  if (!isRejected) return null;
+  const status = String(apartment.status || '').toLowerCase();
+  const canResubmit = status === 'rejected' || status === 'expired';
+  if (!canResubmit) return null;
 
   async function handleClick() {
-    if (!confirm('לשלוח את הדירה שוב לאישור המנהל?')) return;
+    const label = status === 'expired' ? 'לשלוח את הדירה שוב לאישור המנהל?' : 'לשלוח את הדירה שוב לאישור המנהל?';
+    if (!confirm(label)) return;
     setBusy(true);
     try {
       const updated = await resubmitApartmentForApproval(apartment.id);

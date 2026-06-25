@@ -1,8 +1,14 @@
-import { sendPaymentReceiptEmail } from '../utils/mailer.js';
+import {
+  sendPaymentReceiptEmail,
+  sendListingLiveEmail,
+} from '../utils/mailer.js';
 import { isPremiumApartment } from '../config/pricing.js';
 import { resolveListingAmount } from '../services/listingPricing.js';
-import { markApartmentPendingForReview, updateApartmentExpiryFromPayment } from '../models/apartmentModel.js';
-import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
+import {
+  publishApartmentAfterPayment,
+  updateApartmentExpiryFromPayment,
+} from '../models/apartmentModel.js';
+import { attachImagesToApartment, selectApartmentById } from '../models/apartmentModel.js';
 import {
   insertListingPaymentRow,
   selectAllListingPaymentsAdmin,
@@ -13,6 +19,7 @@ import {
 import { selectUserBillingById } from '../models/userModel.js';
 
 const LISTING_FEE_PER_MONTH = 30;
+const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 function formatHebrewDate(date) {
   try {
@@ -49,6 +56,12 @@ export async function createListingPayment(req, res) {
     return res.status(403).json({ error: 'אין הרשאה לשלם עבור דירה זו' });
   }
 
+  if (apt.status !== 'awaiting_payment') {
+    return res.status(400).json({
+      error: 'ניתן לשלם רק עבור דירה שאושרה על ידי המנהל וממתינה לתשלום',
+    });
+  }
+
   const tier = isPremiumApartment(apt) || requestedTier === 'premium' ? 'premium' : 'standard';
   const { amount } = await resolveListingAmount(tier, monthsInt);
   const periodStart = new Date();
@@ -71,55 +84,58 @@ export async function createListingPayment(req, res) {
   await updateApartmentExpiryFromPayment({
     apartmentId: apartment_id,
     periodEnd,
-    wasExpired: apt.status === 'expired',
   });
 
-  if (apt.status === 'awaiting_payment') {
-    const moved = await markApartmentPendingForReview(apartment_id);
-    if (moved) {
-      try {
-        await notifyAdminNewListing(apartment_id, {
-          userId: req.user.id,
-          userEmail: req.user.email,
-        });
-      } catch (err) {
-        console.error('[mailer] התראת דירה חדשה למנהל אחרי תשלום נכשלה:', err.message);
-      }
-    }
+  const published = await publishApartmentAfterPayment(apartment_id);
+  if (!published) {
+    return res.status(409).json({ error: 'התשלום נרשם אך לא ניתן לפרסם את הדירה. פנו לתמיכה.' });
   }
 
   (async () => {
     try {
+      const row = await selectApartmentById(apartment_id);
+      const apartment = await attachImagesToApartment(row);
       const u = await selectUserBillingById(req.user.id);
       const billingName = apt.owner_name || u?.full_name || '';
       const billingEmail = u?.email || apt.owner_email || req.user.email;
       const billingAddress = [apt.address, apt.location].filter(Boolean).join(', ');
-      if (!billingEmail) return;
 
-      await sendPaymentReceiptEmail({
-        to: billingEmail,
-        order: {
-          number: String(10000 + payment.id),
-          date: formatHebrewDate(periodStart),
-          items: [
-            {
-              name: `מנוי פרסום מודעה${tier === 'premium' ? ' (מתחם אירוח)' : ''} – ${monthsInt} ${monthsInt === 1 ? 'חודש' : 'חודשים'}`,
-              qty: 1,
-              price: amount,
-            },
-          ],
-          total: amount,
-          paymentMethod:
-            provider === 'paypal'
-              ? 'תשלום מאובטח ב־PayPal'
-              : provider === 'payme'
-                ? 'תשלום מאובטח בכרטיס אשראי (PayMe)'
-                : 'תשלום מאובטח בכרטיס אשראי',
-          billing: { name: billingName, address: billingAddress, email: billingEmail },
-        },
-      });
+      if (billingEmail) {
+        await sendPaymentReceiptEmail({
+          to: billingEmail,
+          order: {
+            number: String(10000 + payment.id),
+            date: formatHebrewDate(periodStart),
+            items: [
+              {
+                name: `מנוי פרסום מודעה${tier === 'premium' ? ' (מתחם אירוח)' : ''} – ${monthsInt} ${monthsInt === 1 ? 'חודש' : 'חודשים'}`,
+                qty: 1,
+                price: amount,
+              },
+            ],
+            total: amount,
+            paymentMethod:
+              provider === 'paypal'
+                ? 'תשלום מאובטח ב־PayPal'
+                : provider === 'payme'
+                  ? 'תשלום מאובטח בכרטיס אשראי (PayMe)'
+                  : 'תשלום מאובטח בכרטיס אשראי',
+            billing: { name: billingName, address: billingAddress, email: billingEmail },
+          },
+        });
+      }
+
+      if (billingEmail && apartment) {
+        await sendListingLiveEmail({
+          to: billingEmail,
+          ownerName: billingName,
+          apartment,
+          listingUrl: `${APP_URL}/apartments/${apartment.id}`,
+          editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+        });
+      }
     } catch (err) {
-      console.error('[mailer] מייל אישור תשלום נכשל:', err.message);
+      console.error('[mailer] מיילים אחרי תשלום נכשלו:', err.message);
     }
   })();
 

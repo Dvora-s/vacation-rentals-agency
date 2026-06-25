@@ -39,7 +39,7 @@ async function sendReminderFor(apt, stageValue) {
         to: owner.email,
         fullName: owner.name,
         apartment: apt,
-        renewUrl: `${APP_URL}/my-apartments/${apt.id}/renew`,
+        renewUrl: `${APP_URL}/my-apartments`,
         expiryDate: formatHebrewDate(apt.expires_at),
         daysLeft: daysUntil(apt.expires_at),
       });

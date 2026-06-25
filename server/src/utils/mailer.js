@@ -408,7 +408,48 @@ ${BRAND} – ${TAGLINE}`;
   return sendMail({ to, subject, text, html });
 }
 
-// ───────────────────────── 4. המודעה פורסמה ("גלויה לכולם") ─────────────────────────
+// ───────────────────────── 4ב. הדירה אושרה — נדרש תשלום ─────────────────────────
+export async function sendListingApprovedAwaitingPaymentEmail({
+  to,
+  ownerName,
+  apartment,
+  payUrl,
+  accountUrl,
+}) {
+  const name = firstName(ownerName);
+  const title = apartment?.title || 'הדירה שלך';
+  const subject = 'המודעה שלך אושרה! נותר להשלים את התשלום 💳';
+  const text = `היי${name ? ' ' + name : ''},
+
+חדשות טובות! המודעה "${title}" אושרה על ידי צוות ${BRAND}.
+
+כדי שהמודעה תעלה לאתר ותהיה גלויה לכולם, יש להשלים את תשלום הפרסום:
+${payUrl}
+
+ניתן גם להיכנס לאזור האישי ולהמשיך משם:
+${accountUrl}
+
+לאחר השלמת התשלום המודעה תפורסם באתר באופן אוטומטי.
+
+בברכה,
+צוות ${BRAND}
+${TAGLINE}`;
+
+  const html = layout(`
+    <h2 style="margin:0 0 12px;color:${NAVY};">המודעה שלך אושרה! 🎉</h2>
+    <p style="margin:0 0 10px;">היי${name ? ' ' + escapeHtml(name) : ''}, המודעה
+    <strong>"${escapeHtml(title)}"</strong> אושרה על ידי צוות ${BRAND}.</p>
+    <p style="margin:0 0 10px;">כדי שהמודעה תעלה לאתר ותהיה גלויה לכולם, יש להשלים את תשלום הפרסום:</p>
+    ${button(payUrl, 'המשך לתשלום')}
+    <p style="margin:12px 0 4px;">או דרך האזור האישי:</p>
+    ${button(accountUrl, 'לאזור האישי שלי')}
+    <p style="margin:14px 0 0;font-size:14px;color:#555;">לאחר השלמת התשלום המודעה תפורסם באתר באופן אוטומטי.</p>
+  `);
+
+  return sendMail({ to, subject, text, html });
+}
+
+// ───────────────────────── 4ג. המודעה פורסמה ("גלויה לכולם") ─────────────────────────
 export async function sendListingLiveEmail({ to, apartment, listingUrl, editUrl }) {
   const title = apartment?.title || 'הדירה שלך';
   const subject = 'המודעה שלך באתר דירות נופש! ✨';
@@ -656,7 +697,7 @@ export async function sendNewListingToAdmin({
 אימייל: ${userEmail}
 פרטי הפנייה / תיאור הנכס: ${description}
 
-${approveUrl ? `לאישור ופרסום בקליק: ${approveUrl}\n` : ''}${adminPanelUrl ? `למעבר לפאנל הניהול: ${adminPanelUrl}\n` : ''}
+${approveUrl ? `לאישור המודעה בקליק: ${approveUrl}\n` : ''}${adminPanelUrl ? `למעבר לפאנל הניהול: ${adminPanelUrl}\n` : ''}
 ${BRAND}
 מרוויחים כשהבית פנוי`;
 
@@ -676,7 +717,7 @@ ${BRAND}
 
   const ctaHtml =
     approveUrl && adminPanelUrl
-      ? buttonPair(approveUrl, 'לאישור ופרסום בקליק', adminPanelUrl, 'למעבר לפאנל הניהול')
+      ? buttonPair(approveUrl, 'לאישור המודעה בקליק', adminPanelUrl, 'למעבר לפאנל הניהול')
       : adminPanelUrl
         ? button(adminPanelUrl, 'למעבר לפאנל הניהול')
         : '';

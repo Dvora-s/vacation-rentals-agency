@@ -70,10 +70,6 @@ export async function selectPendingApartments() {
   const [rows] = await pool.query(
     `SELECT a.* FROM apartments a
      WHERE a.status = 'pending'
-       AND EXISTS (
-         SELECT 1 FROM listing_payments lp
-         WHERE lp.apartment_id = a.id AND lp.status = 'paid'
-       )
      ORDER BY a.created_at ASC`,
   );
   return rows;
@@ -119,7 +115,7 @@ export async function insertApartmentPending({
        price_per_night, bedrooms, bathrooms, max_guests, rating, image_url,
        owner_name, owner_phone, owner_email, contact_via_whatsapp,
        is_available, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_payment')`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
       owner_id,
       title,
@@ -170,13 +166,26 @@ export async function apartmentExists(id) {
   return check.length > 0;
 }
 
+/** מנהל מאשר — הדירה ממתינה לתשלום לפני פרסום */
 export async function approveApartmentRow(id) {
-  await pool.query(
+  const [result] = await pool.query(
     `UPDATE apartments
-     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
-     WHERE id = ?`,
+     SET status = 'awaiting_payment', rejection_reason = NULL, approved_at = NULL
+     WHERE id = ? AND status = 'pending'`,
     [id],
   );
+  return result.affectedRows > 0;
+}
+
+/** אחרי תשלום מוצלח — הדירה עולה לאתר */
+export async function publishApartmentAfterPayment(id) {
+  const [result] = await pool.query(
+    `UPDATE apartments
+     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
+     WHERE id = ? AND status = 'awaiting_payment'`,
+    [id],
+  );
+  return result.affectedRows > 0;
 }
 
 export async function rejectApartmentRow(id, reason) {
@@ -188,31 +197,22 @@ export async function rejectApartmentRow(id, reason) {
   );
 }
 
-/** אחרי תשלום ראשון או שליחה חוזרת מבעלים — מעביר לאישור מנהל */
+/** שליחה חוזרת מבעלים (נדחתה / פג תוקף) — מעביר לאישור מנהל */
 export async function markApartmentPendingForReview(id) {
   const [result] = await pool.query(
     `UPDATE apartments
      SET status = 'pending', rejection_reason = NULL, approved_at = NULL
-     WHERE id = ? AND status IN ('awaiting_payment', 'rejected')`,
+     WHERE id = ? AND status IN ('rejected', 'expired')`,
     [id],
   );
   return result.affectedRows > 0;
 }
 
-export async function updateApartmentExpiryFromPayment({ apartmentId, periodEnd, wasExpired }) {
-  if (wasExpired) {
-    await pool.query(
-      `UPDATE apartments
-       SET expires_at = ?, expiry_reminder_sent = 0, status = 'approved', approved_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [periodEnd, apartmentId],
-    );
-  } else {
-    await pool.query('UPDATE apartments SET expires_at = ?, expiry_reminder_sent = 0 WHERE id = ?', [
-      periodEnd,
-      apartmentId,
-    ]);
-  }
+export async function updateApartmentExpiryFromPayment({ apartmentId, periodEnd }) {
+  await pool.query('UPDATE apartments SET expires_at = ?, expiry_reminder_sent = 0 WHERE id = ?', [
+    periodEnd,
+    apartmentId,
+  ]);
 }
 
 /** תזכורות תוקף — שליפת מודעות לפי שלב וטווח ימים */

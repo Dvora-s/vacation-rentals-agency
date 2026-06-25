@@ -19,14 +19,13 @@ import {
 } from '../models/apartmentModel.js';
 import { verifyApproveToken } from '../middlewares/auth.js';
 import {
-  sendListingLiveEmail,
   sendListingInquiryEmail,
+  sendListingApprovedAwaitingPaymentEmail,
 } from '../utils/mailer.js';
 import { notifyAdminNewListing } from '../services/listingAdminNotify.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
-import { apartmentHasPaidListing } from '../models/listingPaymentModel.js';
 import { publishApartmentFreeForAdmin } from '../services/adminListingPublish.js';
 
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -179,8 +178,13 @@ export async function create(req, res) {
     await insertApartmentImagesRows(values);
   }
 
-  if (req.user.role === 'admin') {
-    await publishApartmentFreeForAdmin(insertId, req.user);
+  try {
+    await notifyAdminNewListing(insertId, {
+      userId: req.user.id,
+      userEmail: req.user.email,
+    });
+  } catch (err) {
+    console.error('[mailer] התראת דירה חדשה למנהל נכשלה:', err.message);
   }
 
   const row = await selectApartmentById(insertId);
@@ -189,7 +193,7 @@ export async function create(req, res) {
   res.status(201).json(apartment);
 }
 
-/** מנהל מפרסם דירה קיימת (ממתינה לתשלום) ללא תשלום */
+/** מנהל מפרסם דירה מאושרת (ממתינה לתשלום) ללא תשלום */
 export async function adminPublishFree(req, res) {
   const apt = await loadOwnedApartment(req, res);
   if (!apt) return;
@@ -200,7 +204,7 @@ export async function adminPublishFree(req, res) {
 
   if (apt.status !== 'awaiting_payment') {
     return res.status(400).json({
-      error: 'ניתן לפרסם ללא תשלום רק דירה שממתינה לתשלום',
+      error: 'ניתן לפרסם ללא תשלום רק דירה שאושרה וממתינה לתשלום',
     });
   }
 
@@ -210,21 +214,14 @@ export async function adminPublishFree(req, res) {
   res.json(await attachImagesToApartment(row));
 }
 
-/** שליחה חוזרת לאישור מנהל (דירה שנדחתה) */
+/** שליחה חוזרת לאישור מנהל (דירה שנדחתה או שפג תוקפה) */
 export async function resubmitForApproval(req, res) {
   const apt = await loadOwnedApartment(req, res);
   if (!apt) return;
 
-  if (apt.status !== 'rejected') {
+  if (apt.status !== 'rejected' && apt.status !== 'expired') {
     return res.status(400).json({
-      error: 'ניתן לשלוח שוב לאישור רק דירה שנדחתה על ידי המנהל',
-    });
-  }
-
-  const hasPaid = await apartmentHasPaidListing(req.params.id);
-  if (!hasPaid) {
-    return res.status(400).json({
-      error: 'לא ניתן לשלוח לאישור לפני השלמת תשלום על הפרסום. המשיכו לתשלום מ"הדירות שלי".',
+      error: 'ניתן לשלוח שוב לאישור רק דירה שנדחתה או שפג תוקף הפרסום שלה',
     });
   }
 
@@ -301,12 +298,6 @@ export async function update(req, res) {
 
   let shouldNotifyAdmin = false;
   if (req.user.role !== 'admin' && apt.status === 'approved' && updates.length > 0) {
-    const hasPaid = await apartmentHasPaidListing(req.params.id);
-    if (!hasPaid) {
-      return res.status(400).json({
-        error: 'לא ניתן לשלוח לאישור לפני השלמת תשלום על הפרסום.',
-      });
-    }
     updates.push('status = ?');
     values.push('pending');
     updates.push('approved_at = NULL');
@@ -341,10 +332,18 @@ export async function remove(req, res) {
 }
 
 async function approveApartmentById(id) {
-  const exists = await apartmentExists(id);
-  if (!exists) return null;
+  const apt = await selectApartmentById(id);
+  if (!apt) return null;
 
-  await approveApartmentRow(id);
+  if (apt.status !== 'pending') {
+    return { error: 'ניתן לאשר רק דירות שממתינות לאישור מנהל' };
+  }
+
+  const approved = await approveApartmentRow(id);
+  if (!approved) {
+    return { error: 'לא ניתן לאשר את הדירה' };
+  }
+
   const row = await selectApartmentById(id);
   const apartment = await attachImagesToApartment(row);
 
@@ -352,15 +351,15 @@ async function approveApartmentById(id) {
     try {
       const { ownerEmail, ownerName } = await resolveOwnerContact(apartment);
       if (!ownerEmail) return;
-      await sendListingLiveEmail({
+      await sendListingApprovedAwaitingPaymentEmail({
         to: ownerEmail,
         ownerName,
         apartment,
-        listingUrl: `${APP_URL}/apartments/${apartment.id}`,
-        editUrl: `${APP_URL}/my-apartments/${apartment.id}/edit`,
+        payUrl: `${APP_URL}/list-apartment?resume=${apartment.id}`,
+        accountUrl: `${APP_URL}/my-apartments`,
       });
     } catch (err) {
-      console.error('[mailer] מייל "המודעה פורסמה" נכשל:', err.message);
+      console.error('[mailer] מייל "הדירה אושרה — נדרש תשלום" נכשל:', err.message);
     }
   })();
 
@@ -368,11 +367,14 @@ async function approveApartmentById(id) {
 }
 
 export async function approve(req, res) {
-  const apartment = await approveApartmentById(req.params.id);
-  if (!apartment) {
+  const result = await approveApartmentById(req.params.id);
+  if (!result) {
     return res.status(404).json({ error: 'דירה לא נמצאה' });
   }
-  res.json(apartment);
+  if (result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+  res.json(result);
 }
 
 export async function emailApprove(req, res) {
@@ -408,16 +410,22 @@ ${body}</div></body></html>`);
   if (!apartment) {
     return renderPage('המודעה לא נמצאה', `<h2>המודעה לא נמצאה</h2>`);
   }
+  if (apartment.error) {
+    return renderPage(
+      'לא ניתן לאשר',
+      `<h2 style="color:#b8860b;">${escapeHtml(apartment.error)}</h2>
+       <a href="${APP_URL}/admin" style="color:#1a2b4a;font-weight:700;">למעבר לפאנל הניהול</a>`,
+    );
+  }
 
   const safeTitle = escapeHtml(apartment.title);
   return renderPage(
     'המודעה אושרה',
-    `<h2 style="color:#237804;">✅ המודעה אושרה ופורסמה!</h2>
-       <p>"${safeTitle}" גלויה כעת לכולם.</p>
-       <a href="${APP_URL}/apartments/${Number(apartment.id)}"
+    `<h2 style="color:#237804;">✅ המודעה אושרה!</h2>
+       <p>"${safeTitle}" אושרה וממתינה לתשלום מצד הבעלים. לאחר התשלום היא תפורסם באתר.</p>
+       <a href="${APP_URL}/admin"
           style="display:inline-block;margin-top:8px;padding:12px 26px;background:#b8860b;color:#fff;
-                 border-radius:10px;text-decoration:none;font-weight:700;">צפייה במודעה</a>
-       <p style="margin-top:14px;"><a href="${APP_URL}/admin" style="color:#1a2b4a;">לפאנל הניהול</a></p>`,
+                 border-radius:10px;text-decoration:none;font-weight:700;">לפאנל הניהול</a>`,
   );
 }
 
