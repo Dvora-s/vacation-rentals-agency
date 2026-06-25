@@ -32,8 +32,8 @@
 
 .hero-content .search-bar--inline {
   margin-top: 1.75rem;
-  width: 100%;
-  max-width: 100%;
+  width: min(100%, 920px);
+  max-width: 920px;
 }
 
 .hero-subtitle {
