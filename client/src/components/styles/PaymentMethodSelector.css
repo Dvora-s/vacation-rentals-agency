@@ -159,4 +159,6 @@
 .payment-method-selector__payme-btn {
   width: 100%;
   max-width: 420px;
+  margin-inline: auto;
+  display: block;
 }

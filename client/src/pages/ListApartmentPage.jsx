@@ -140,7 +140,7 @@ function ListApartmentPage() {
   });
 
   const detailsSubtitle = isAdmin
-    ? 'מלאו את פרטי הדירה. לאחר מילוי תעברו לתשלום (או שליחה לאישור ללא תשלום), ורק אחרי אישור המנהל המודעה תעלה לאתר.'
+    ? 'מלאו את פרטי הדירה ושלחו — המודעה תעלה לאתר מיד, ללא תשלום וללא המתנה לאישור.'
     : 'מלאו את פרטי הדירה, שלמו, ואז המודעה תישלח לאישור המנהל. רק לאחר האישור היא תעלה לאתר.';
 
   async function handleCreate(payload) {
@@ -153,6 +153,13 @@ function ListApartmentPage() {
         owner_email: payload.owner_email || user?.email || null,
         owner_phone: payload.owner_phone || user?.phone || null,
       });
+
+      if (isAdmin && apt.status === 'approved') {
+        setCreatedApt(apt);
+        setPaymentComplete(true);
+        setStep('done');
+        return;
+      }
 
       const mustPremium = requiresPremium(apt);
       const effectiveTier = mustPremium ? 'premium' : 'standard';
@@ -238,17 +245,29 @@ function ListApartmentPage() {
   }
 
   if (step === 'done') {
+    const adminPublished = isAdmin && createdApt?.status === 'approved';
     return (
       <div className="list-apt-page section-container">
         <div className="success-card">
           <div className="success-icon">✓</div>
-          <h1>הדירה נשלחה לאישור</h1>
+          <h1>{adminPublished ? 'הדירה פורסמה באתר' : 'הדירה נשלחה לאישור'}</h1>
           <p>
-            {paymentComplete
-              ? 'שילמתם והמודעה נשלחה לאישור המנהל. לאחר האישור היא תעלה לאתר ותקבלו הודעה במייל.'
-              : 'המודעה נשלחה לאישור המנהל.'}
+            {adminPublished
+              ? 'המודעה פעילה באתר וניתן לצפות בה מיד.'
+              : paymentComplete
+                ? 'שילמתם והמודעה נשלחה לאישור המנהל. לאחר האישור היא תעלה לאתר ותקבלו הודעה במייל.'
+                : 'המודעה נשלחה לאישור המנהל.'}
           </p>
           <div className="success-actions">
+            {adminPublished && createdApt?.id && (
+              <button
+                type="button"
+                className="btn-outline-gold"
+                onClick={() => navigate(`/apartments/${createdApt.id}`)}
+              >
+                צפייה בדירה
+              </button>
+            )}
             <button type="button" className="btn-primary" onClick={() => navigate('/my-apartments')}>
               לדירות שלי
             </button>
@@ -260,7 +279,7 @@ function ListApartmentPage() {
 
   if (step === 'payment') {
     return (
-      <div className="list-apt-page section-container">
+      <div className="list-apt-page list-apt-page--payment section-container">
         <h1 className="page-title">{isRenewal ? 'חידוש פרסום — תשלום' : 'תשלום ושליחה לאישור'}</h1>
         <p className="page-subtitle">
           {isRenewal ? (
@@ -284,16 +303,16 @@ function ListApartmentPage() {
           </div>
         )}
 
-        {isAdmin && !isRenewal && (
+        {isAdmin && !isRenewal && createdApt?.status === 'awaiting_payment' && (
           <div className="auth-notice" style={{ marginBottom: '1rem' }}>
-            <p style={{ margin: '0 0 0.75rem' }}>מנהל: ניתן לשלוח לאישור ללא תשלום.</p>
+            <p style={{ margin: '0 0 0.75rem' }}>מנהל: ניתן לפרסם את הדירה מיד ללא תשלום.</p>
             <button
               type="button"
               className="btn-outline-gold"
               disabled={publishBusy}
               onClick={handleAdminSubmitFree}
             >
-              {publishBusy ? 'שולח...' : 'שליחה לאישור ללא תשלום'}
+              {publishBusy ? 'מפרסם...' : 'פרסום מיידי באתר'}
             </button>
           </div>
         )}

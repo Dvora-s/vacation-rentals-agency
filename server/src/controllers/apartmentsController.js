@@ -27,7 +27,7 @@ import { escapeHtml } from '../utils/escapeHtml.js';
 import { isApartmentOwner } from '../utils/apartmentOwnership.js';
 import { selectUserContactById } from '../models/userModel.js';
 import { apartmentHasPaidListing, apartmentHasSecuredListingPayment } from '../models/listingPaymentModel.js';
-import { submitApartmentFreeForAdmin } from '../services/adminListingPublish.js';
+import { publishApartmentInstantlyForAdmin } from '../services/adminListingPublish.js';
 import { captureListingPaymentOnApprove, releaseListingPaymentOnReject } from '../services/listingPaymentCapture.js';
 import { mapFeaturedApartmentsForResponse } from '../services/featuredApartments.js';
 
@@ -202,30 +202,33 @@ export async function create(req, res) {
   }
 
   const row = await selectApartmentById(insertId);
-  const apartment = await attachImagesToApartment(row);
+  let apartment = await attachImagesToApartment(row);
+
+  if (req.user.role === 'admin') {
+    const published = await publishApartmentInstantlyForAdmin(insertId, req.user);
+    apartment = published.apartment;
+  }
 
   res.status(201).json(apartment);
 }
 
-/** מנהל שולח דירה לאישור ללא תשלום */
+/** מנהל מפרסם דירה מיד ללא תשלום */
 export async function adminPublishFree(req, res) {
   const apt = await loadOwnedApartment(req, res);
   if (!apt) return;
 
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'רק מנהל מערכת יכול לשלוח לאישור ללא תשלום' });
+    return res.status(403).json({ error: 'רק מנהל מערכת יכול לפרסם ללא תשלום' });
   }
 
-  if (apt.status !== 'awaiting_payment') {
+  if (apt.status !== 'awaiting_payment' && apt.status !== 'pending') {
     return res.status(400).json({
-      error: 'ניתן לשלוח לאישור ללא תשלום רק דירה חדשה שטרם שולמה',
+      error: 'ניתן לפרסם ללא תשלום רק דירה שטרם פורסמה',
     });
   }
 
-  await submitApartmentFreeForAdmin(req.params.id, req.user);
-
-  const row = await selectApartmentById(req.params.id);
-  res.json(await attachImagesToApartment(row));
+  const { apartment } = await publishApartmentInstantlyForAdmin(req.params.id, req.user);
+  res.json(apartment);
 }
 
 /** שליחה חוזרת לאישור מנהל (דירה שנדחתה או שפג תוקפה) */

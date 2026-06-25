@@ -185,6 +185,17 @@ export async function approveApartmentRow(id) {
   return result.affectedRows > 0;
 }
 
+/** פרסום ישיר על ידי מנהל — ללא תשלום וללא המתנה לאישור */
+export async function approveApartmentRowDirect(id) {
+  const [result] = await pool.query(
+    `UPDATE apartments
+     SET status = 'approved', approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
+     WHERE id = ? AND status IN ('pending', 'awaiting_payment')`,
+    [id],
+  );
+  return result.affectedRows > 0;
+}
+
 /** אחרי תשלום — מעביר לאישור מנהל (עדיין לא פורסם) */
 export async function markApartmentPendingAfterPayment(id) {
   const [result] = await pool.query(
