@@ -5,12 +5,6 @@ import './AboutPage.css';
 
 const ABOUT_HERO = '/about-hero.png';
 
-const VALUES = [
-  { icon: '🤝', title: 'חיבור אישי', text: 'אירוח טוב מתחיל בחיבור נכון בין שוכר למשכיר' },
-  { icon: '✨', title: 'פשטות', text: 'ממשק נגיש וברור — בלי סיבוכים מיותרים' },
-  { icon: '🛡️', title: 'אמינות', text: 'ליווי מקצועי ושקיפות לאורך כל הדרך' },
-];
-
 function AboutPage() {
   return (
     <div className="about-page">
@@ -36,104 +30,62 @@ function AboutPage() {
       </EditableImage>
 
       <section className="about-body">
-        <div className="about-container">
-          {/* כותרת ראשית */}
-          <header className="about-intro">
-            <span className="about-intro-line" aria-hidden="true" />
-            <EditableText as="span" id="about.story.label" className="about-intro-label">
-              הסיפור שלנו
+        <article className="about-prose">
+          <header className="about-prose-header">
+            <EditableText as="span" id="about.story.label" className="about-prose-label">
+              אודות
             </EditableText>
-            <EditableText as="h2" id="about.story.title" className="about-intro-title">
-              אודות דירות נופש: המומחיות שלנו, השקט שלכם
+            <EditableText as="h2" id="about.story.title" className="about-prose-title">
+              דירות נופש: המומחיות שלנו, השקט שלכם
             </EditableText>
           </header>
 
-          {/* פתיחה אישית */}
-          <div className="about-founder-block">
-            <div className="about-founder-accent" aria-hidden="true" />
-            <div className="about-founder-content">
-              <EditableText as="h3" id="about.block1.title" className="about-section-title">
-                איך הכל התחיל?
-              </EditableText>
-              <EditableText as="p" id="about.block1.lead" className="about-founder-name">
-                נעים מאוד, שמי פנינה שון.
-              </EditableText>
-              <p className="about-text">
-                כמי שעוסקת בייעוץ וליווי רוכשים בנדל&quot;ן, מצאתי את עצמי פעם אחר פעם
-                הכתובת אליה פונים חברים, משפחה ומכרים כשהם זקוקים לעזרה במציאת דירה
-                איכותית לשבת, לחופשה או לאירוע מיוחד. הם חיפשו מקום שיענה על הצרכים
-                הייחודיים שלהם, בלי לבזבז זמן יקר על חיפושים מתישים.
-              </p>
-              <p className="about-text">
-                במקביל, במסגרת עבודתי עם בעלי נכסים, זיהיתי צורך מרתק: לא משנה מהו
-                העיסוק שלכם, כולנו היינו שמחים להכנסה נוספת מהצד – כזו שאינה דורשת זמן
-                יקר או מאמץ מיוחד. ראיתי בתים שעומדים ריקים בסופי שבוע ובחגים, וחשבתי –
-                למה שהנכס לא יעבוד עבורכם בזמן שאתם ממילא לא שם?
-              </p>
-            </div>
-          </div>
+          <EditableText as="p" id="about.block1.lead" className="about-text">
+            פלטפורמת דירות נופש הוקמה כדי לחבר בין שתי הזדמנויות: משפחות המחפשות מקום
+            אירוח איכותי ומדויק לשבתות וחגים, ובעלי נכסים שיכולים להפיק הכנסה נוספת מהבית
+            שלהם בימים שבהם הם ממילא מחוץ לעיר.
+          </EditableText>
 
-          {/* מסע האתר */}
-          <article className="about-journey-card">
-            <EditableText as="h3" id="about.block2.title" className="about-section-title">
-              מהקטלוג הדיגיטלי ועד לאתר שלפניכם
-            </EditableText>
-            <p className="about-text about-journey-lead">
-              מה שהתחיל כקטלוג דיגיטלי פשוט שנועד לעשות סדר, צמח והתפתח לאתר שאתם רואים
-              היום. דירות נופש הוקם מתוך מטרה כפולה:
-            </p>
+          <p className="about-text">
+            האתר נולד מתוך זיהוי הקושי של משפחות ונופשים בחיפוש המתיש אחר דירה איכותית,
+            נקייה ומותאמת בדיוק לצרכים הייחודיים של שבת או אירוע מיוחד, לצד הרצון של בעלי
+            נכסים למקסם את פוטנציאל הנכס שברשותם בראש שקט. הפלטפורמה מחברת בין שני הצרכים
+            הללו בצורה חלקה, מקצועית ומדויקת.
+          </p>
 
-            <div className="about-mission-grid">
-              <div className="about-mission-card about-mission-renters">
-                <span className="about-mission-icon" aria-hidden="true">🏡</span>
-                <span className="about-mission-tag">לשוכרים</span>
-                <p>
-                  פלטפורמה קלה, נגישה ומדויקת למציאת דירת הנופש הבאה שלכם – במינימום
-                  מאמץ ומקסימום התאמה לצרכים האישיים.
-                </p>
-              </div>
-              <div className="about-mission-card about-mission-hosts">
-                <span className="about-mission-icon" aria-hidden="true">💰</span>
-                <span className="about-mission-tag">למשכירים</span>
-                <p>
-                  ייצור הכנסה חכמה מהנכס הקיים שלכם, בראש שקט ובליווי מקצועי לאורך כל
-                  הדרך.
-                </p>
-              </div>
-            </div>
-          </article>
+          <EditableText as="h3" id="about.block2.title" className="about-subheading">
+            מה אנחנו מציעים?
+          </EditableText>
 
-          {/* ערכים */}
-          <div className="about-values">
-            <EditableText as="h3" id="about.block3.title" className="about-values-heading">
-              הערך המוסף שלנו
-            </EditableText>
-            <p className="about-text about-values-lead">
-              אנחנו מאמינים שאירוח טוב מתחיל בחיבור נכון. האתר נבנה מתוך מחשבה על
-              הפרטים הקטנים שחשובים לכם כשוכרים, ועל הפשטות והיעילות שדרושה לכם
-              כמשכירים.
-            </p>
-            <ul className="about-values-grid">
-              {VALUES.map((v) => (
-                <li key={v.title} className="about-value-item">
-                  <span className="about-value-icon" aria-hidden="true">{v.icon}</span>
-                  <strong>{v.title}</strong>
-                  <span>{v.text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="about-text">
+            <strong>למשכירים – הבית פנוי? הוא מרוויח.</strong>{' '}
+            פתרון חכם ופשוט שמאפשר לכם לנצל את הימים שבהם אתם ממילא מחוץ לבית, ולייצר
+            מהם הכנסה מהצד בליווי מקצועי, בביטחון מלא ובשליטה מוחלטת שלכם על לוח הזמנים.
+          </p>
 
-          {/* הזמנה */}
-          <blockquote className="about-cta">
-            <span className="about-cta-quote" aria-hidden="true">&ldquo;</span>
-            <p>
-              אני מזמינה אתכם להצטרף לקהילה שלנו – בין אם אתם מחפשים את המקום המושלם
-              לשבת הבאה, ובין אם אתם רוצים להפוך את הבית שלכם לנכס מניב.
-            </p>
-            <footer className="about-cta-signature">— פנינה שון, מייסדת דירות נופש</footer>
-          </blockquote>
-        </div>
+          <p className="about-text">
+            <strong>לשוכרים – להגיע לחופשה בראש שקט.</strong>{' '}
+            חוויית חיפוש קלה ומהירה של דירות נופש מובחרות. בלי לבזבז זמן יקר על סינונים
+            מתישים, עם ביטחון מלא שהמקום שתקבלו יתאים בדיוק למה שחיפשתם.
+          </p>
+
+          <EditableText as="h3" id="about.block3.title" className="about-subheading">
+            החזון שלנו
+          </EditableText>
+
+          <p className="about-text">
+            אנו מאמינים שאירוח מושלם מתחיל בחיבור נכון ובפשטות תפעולית. המטרה שלנו היא
+            לאפשר לבעלי נכסים ליהנות מהנכס שלהם גם כשהם לא נמצאים בו, ולהעניק לנופשים את
+            החופשה הרגועה והמדויקת ביותר.
+          </p>
+
+          <p className="about-text">
+            הנכם מוזמנים להצטרף לקהילה שלנו – בין אם כדי למצוא את המקום המושלם לשבת
+            הקרובה, ובין אם כדי להתחיל להרוויח מהנכס שלכם כשהוא פנוי.
+          </p>
+
+          <p className="about-signature">צוות &quot;דירות נופש&quot;</p>
+        </article>
       </section>
     </div>
   );
