@@ -1,5 +1,37 @@
 import pool from '../config/db.js';
 
+let pricingPlanHasListingSlots = null;
+
+/** בודק/יוצר עמודת listing_slots — נדרש לעדכון מסלולים מעמוד הניהול. */
+export async function ensurePricingPlanColumns() {
+  try {
+    const [cols] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pricing_plans' AND COLUMN_NAME = 'listing_slots'`,
+    );
+    if (cols.length === 0) {
+      await pool.query(
+        'ALTER TABLE pricing_plans ADD COLUMN listing_slots INT NOT NULL DEFAULT 1',
+      );
+      console.log('[pricing] נוספה עמודת listing_slots ל-pricing_plans');
+      pricingPlanHasListingSlots = true;
+      return;
+    }
+    pricingPlanHasListingSlots = true;
+  } catch (e) {
+    if (e.code === 'ER_NO_SUCH_TABLE') {
+      pricingPlanHasListingSlots = false;
+      return;
+    }
+    console.warn('[pricing] ensurePricingPlanColumns:', e.message);
+    pricingPlanHasListingSlots = false;
+  }
+}
+
+export function pricingPlanSupportsListingSlots() {
+  return pricingPlanHasListingSlots === true;
+}
+
 export async function selectAllPricingPlansOrdered() {
   const [rows] = await pool.query(
     `SELECT * FROM pricing_plans ORDER BY category ASC, sort_order ASC, id ASC`,
@@ -7,7 +39,17 @@ export async function selectAllPricingPlansOrdered() {
   return rows;
 }
 
-export async function insertPricingPlan(params) {
+export async function insertPricingPlan(params, { withListingSlots = true } = {}) {
+  if (withListingSlots) {
+    await pool.query(
+      `INSERT INTO pricing_plans
+       (slug, category, name, description, price, compare_at_price, currency, duration_months, listing_slots, duration_label,
+        features_json, highlight_type, badge_text, sort_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)`,
+      params,
+    );
+    return;
+  }
   await pool.query(
     `INSERT INTO pricing_plans
      (slug, category, name, description, price, compare_at_price, currency, duration_months, duration_label,

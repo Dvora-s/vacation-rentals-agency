@@ -15,10 +15,6 @@
     radial-gradient(circle at 85% 100%, rgba(31, 94, 128, 0.35), transparent 50%);
 }
 
-.apartments-hero-inner .search-bar {
-  margin-top: 0.25rem;
-}
-
 .apartments-content {
   padding: 2.75rem 1.5rem 5rem;
 }

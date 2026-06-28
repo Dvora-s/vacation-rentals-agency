@@ -148,13 +148,13 @@ function AdminPricingPage() {
     setSaving(true);
     setError(null);
     try {
+      const { listing_slots: _slots, ...planFields } = planForm;
       const body = {
-        ...planForm,
+        ...planFields,
         features_text: planForm.features_text,
         price: Number(planForm.price),
         compare_at_price: planForm.compare_at_price === '' ? null : Number(planForm.compare_at_price),
         duration_months: Number(planForm.duration_months),
-        listing_slots: Number(planForm.listing_slots) || 1,
         sort_order: Number(planForm.sort_order),
       };
       if (editingPlanId) {

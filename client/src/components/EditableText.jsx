@@ -70,6 +70,8 @@ function EditableText({ id, domId, as = 'span', children, className = '', style,
         color: draftColor || null,
       });
       setEditing(false);
+    } catch (err) {
+      window.alert(err?.message || 'שמירת הטקסט נכשלה');
     } finally {
       setSaving(false);
     }
@@ -80,6 +82,8 @@ function EditableText({ id, domId, as = 'span', children, className = '', style,
     try {
       await resetOverride(id);
       setEditing(false);
+    } catch (err) {
+      window.alert(err?.message || 'איפוס הטקסט נכשל');
     } finally {
       setSaving(false);
     }

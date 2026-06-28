@@ -6,7 +6,7 @@ import { useRegionResolver } from '../hooks/useRegionResolver';
 import Combobox from './Combobox';
 import './styles/SearchBar.css';
 
-function SearchBar({ initialCategory = '', initialLocation = '', initialRegion = '', variant = 'hero' }) {
+function SearchBar({ initialCategory = '', initialLocation = '', initialRegion = '' }) {
   const navigate = useNavigate();
   const resolver = useRegionResolver();
   const [category, setCategory] = useState(initialCategory);
@@ -40,69 +40,10 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
     navigate(`/apartments?${params.toString()}`);
   }
 
-  const isInline = variant === 'inline';
-
-  if (isInline) {
-    return (
-      <form className="search-bar search-bar--inline" onSubmit={handleSearch}>
-        <div className="search-inline-fields">
-          <div className="search-inline-field search-inline-field--category">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              aria-label="קטגוריה"
-            >
-              <option value="">בחרו קטגוריה</option>
-              {SEARCH_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="search-inline-divider" aria-hidden="true" />
-          <div className="search-inline-field search-inline-field--region">
-            <select
-              value={region}
-              onChange={(e) => handleRegionChange(e.target.value)}
-              aria-label="אזור"
-            >
-              <option value="">בחרו אזור</option>
-              {REGIONS.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="search-inline-divider" aria-hidden="true" />
-          <div className="search-inline-field search-inline-field--location">
-            <Combobox
-              className="search-combobox"
-              value={location}
-              onChange={setLocation}
-              options={cityOptions}
-              placeholder={region ? 'בחרו עיר באזור' : 'בחרו עיר'}
-              emptyText="לא נמצאה עיר תואמת"
-            />
-          </div>
-        </div>
-        <button type="submit" className="search-inline-submit" aria-label="חיפוש">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.2" />
-            <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </button>
-      </form>
-    );
-  }
-
   return (
-    <form className="search-bar search-bar--card" onSubmit={handleSearch}>
-      <p className="search-label">חיפוש מהיר</p>
-      <div className="search-fields">
-        <div className="search-field">
-          <span className="field-icon">🏷️</span>
+    <form className="search-bar search-bar--inline" onSubmit={handleSearch}>
+      <div className="search-inline-fields">
+        <div className="search-inline-field search-inline-field--category">
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -116,9 +57,8 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
             ))}
           </select>
         </div>
-        <div className="search-divider" />
-        <div className="search-field">
-          <span className="field-icon">🧭</span>
+        <div className="search-inline-divider" aria-hidden="true" />
+        <div className="search-inline-field search-inline-field--region">
           <select
             value={region}
             onChange={(e) => handleRegionChange(e.target.value)}
@@ -132,9 +72,8 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
             ))}
           </select>
         </div>
-        <div className="search-divider" />
-        <div className="search-field">
-          <span className="field-icon">📍</span>
+        <div className="search-inline-divider" aria-hidden="true" />
+        <div className="search-inline-field search-inline-field--location">
           <Combobox
             className="search-combobox"
             value={location}
@@ -144,13 +83,13 @@ function SearchBar({ initialCategory = '', initialLocation = '', initialRegion =
             emptyText="לא נמצאה עיר תואמת"
           />
         </div>
-        <button type="submit" className="search-btn btn-primary">
-          חיפוש
-        </button>
       </div>
-      <p className="search-note">
-        ⓘ בלי תאריכים — תאמי ישירות עם בעל הדירה את הזמינות.
-      </p>
+      <button type="submit" className="search-inline-submit" aria-label="חיפוש">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.2" />
+          <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </button>
     </form>
   );
 }

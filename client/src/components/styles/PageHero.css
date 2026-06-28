@@ -88,6 +88,12 @@
   margin: 0;
 }
 
+.page-hero-inner .search-bar--inline {
+  margin-top: 1.75rem;
+  width: min(100%, 920px);
+  max-width: 920px;
+}
+
 @media (max-width: 768px) {
   .page-hero {
     height: auto;

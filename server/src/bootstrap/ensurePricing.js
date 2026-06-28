@@ -1,6 +1,7 @@
 import fs from 'fs';
 import pool from '../config/db.js';
 import { PRICING_SEED_ROWS } from '../data/pricingSeed.js';
+import { ensurePricingPlanColumns } from '../models/pricingModel.js';
 import { executeBootstrapSql, resolveDbFile } from '../utils/resolveDbFile.js';
 
 export async function ensurePricingSeed() {
@@ -10,6 +11,8 @@ export async function ensurePricingSeed() {
   } else {
     console.warn('[pricing] pricing_tables.sql not found — skipping DDL (will seed if table exists)');
   }
+
+  await ensurePricingPlanColumns();
 
   let count = 0;
   try {

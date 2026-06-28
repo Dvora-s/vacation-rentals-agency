@@ -56,7 +56,7 @@ function HomePage() {
           <EditableText as="p" id="home.hero.subtitle" className="page-hero-subtitle hero-subtitle">
             כל המידע שאתם צריכים במקום אחד. בוחרים נכס, יוצרים קשר ישיר עם המארח, ויוצאים לחופשה.
           </EditableText>
-          <SearchBar variant="inline" />
+          <SearchBar />
         </div>
       </EditableImage>
 

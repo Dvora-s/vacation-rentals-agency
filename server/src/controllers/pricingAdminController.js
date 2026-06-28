@@ -3,6 +3,7 @@ import {
   deletePromotionById,
   insertPricingPlan,
   insertPromotion,
+  pricingPlanSupportsListingSlots,
   selectAllPricingPlansOrdered,
   selectPlanById,
   selectPlanBySlug,
@@ -63,6 +64,7 @@ export async function createPlan(req, res) {
   if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'מחיר לא תקין' });
   const category = coerceEnum(b.category, PRICING_CATEGORIES, 'hosts');
   const durationMonths = Math.max(1, parseInt(b.duration_months, 10) || 1);
+  const listingSlots = Math.max(1, parseInt(b.listing_slots, 10) || 1);
   const features = parseFeaturesInput(b);
   if (features.length === 0) return res.status(400).json({ error: 'נא להוסיף לפחות תכונה אחת' });
 
@@ -77,7 +79,7 @@ export async function createPlan(req, res) {
   const highlight = coerceEnum(b.highlight_type, PRICING_HIGHLIGHTS, 'none');
 
   try {
-    await insertPricingPlan([
+    const insertParams = [
       slug,
       category,
       b.name.trim(),
@@ -92,7 +94,13 @@ export async function createPlan(req, res) {
       b.badge_text?.trim() || null,
       Number(b.sort_order) || 0,
       b.is_active === false ? 0 : 1,
-    ]);
+    ];
+    if (pricingPlanSupportsListingSlots()) {
+      insertParams.splice(8, 0, listingSlots);
+      await insertPricingPlan(insertParams, { withListingSlots: true });
+    } else {
+      await insertPricingPlan(insertParams, { withListingSlots: false });
+    }
     const row = await selectPlanBySlug(slug);
     res.status(201).json(row);
   } catch (e) {
@@ -150,7 +158,9 @@ export async function updatePlan(req, res) {
   }
   if (b.currency != null) set('currency', String(b.currency).trim().slice(0, 8));
   if (b.duration_months != null) set('duration_months', Math.max(1, parseInt(b.duration_months, 10) || 1));
-  if (b.listing_slots != null) set('listing_slots', Math.max(1, parseInt(b.listing_slots, 10) || 1));
+  if (b.listing_slots != null && pricingPlanSupportsListingSlots()) {
+    set('listing_slots', Math.max(1, parseInt(b.listing_slots, 10) || 1));
+  }
   if (b.duration_label !== undefined) set('duration_label', b.duration_label?.trim() || null);
   if (b.features != null || b.features_text != null) {
     const features = parseFeaturesInput(b);
@@ -168,7 +178,19 @@ export async function updatePlan(req, res) {
 
   if (fields.length === 0) return res.status(400).json({ error: 'אין שדות לעדכון' });
   vals.push(id);
-  await updatePricingPlanDynamic(fields.join(', '), vals);
+  try {
+    await updatePricingPlanDynamic(fields.join(', '), vals);
+  } catch (e) {
+    if (e.code === 'ER_BAD_FIELD_ERROR' && String(e.message || '').includes('listing_slots')) {
+      throw new HttpError(
+        503,
+        'מסד הנתונים דורש עדכון (עמודת listing_slots). הפעילו מחדש את השרת לאחר פריסה, או הריצו db/migrations/add_listing_slots.sql',
+        'PRICING_SCHEMA_OUTDATED',
+      );
+    }
+    mapPricingNoTable(e);
+    throw e;
+  }
   const row = await selectPlanById(id);
   res.json(row);
 }

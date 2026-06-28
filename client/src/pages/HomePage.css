@@ -30,12 +30,6 @@
   max-width: 880px;
 }
 
-.hero-content .search-bar--inline {
-  margin-top: 1.75rem;
-  width: min(100%, 920px);
-  max-width: 920px;
-}
-
 .hero-subtitle {
   color: rgba(255, 255, 255, 0.92);
   text-align: center;

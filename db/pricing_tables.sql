@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS pricing_plans (
   compare_at_price DECIMAL(10, 2) NULL,
   currency VARCHAR(8) NOT NULL DEFAULT 'ILS',
   duration_months INT NOT NULL DEFAULT 1,
+  listing_slots INT NOT NULL DEFAULT 1,
   duration_label VARCHAR(255) NULL,
   features_json JSON NOT NULL,
   highlight_type VARCHAR(20) NOT NULL DEFAULT 'none',
