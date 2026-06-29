@@ -129,6 +129,9 @@ function ApartmentForm({
       const urls = await uploadImages(files);
       setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
     } catch (err) {
+      if (err.partialUrls?.length) {
+        setForm((prev) => ({ ...prev, images: [...prev.images, ...err.partialUrls] }));
+      }
       setUploadError(err.message);
     } finally {
       setUploading(false);
@@ -389,7 +392,7 @@ function ApartmentForm({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/bmp,image/tiff,.heic,.heif"
                 multiple
                 hidden
                 onChange={handleFileInput}
@@ -398,7 +401,9 @@ function ApartmentForm({
               <p className="apt-dropzone-text">
                 גררו לכאן תמונות מהמחשב, או לחצו לבחירת קבצים
               </p>
-              <span className="auth-hint">jpg, png, webp, gif · עד 8MB לתמונה</span>
+              <span className="auth-hint">
+                jpg, png, webp, heic (אייפון), gif · עד 15MB לתמונה · ניתן לבחור כמה תמונות בבת אחת
+              </span>
               {uploading && <p className="apt-dropzone-status">מעלה תמונות...</p>}
             </div>
             {uploadError && <span className="auth-error">{uploadError}</span>}

@@ -1,5 +1,6 @@
 import { FAQ_FALLBACK } from '../data/faqFallback.js';
-import { getApiBase } from '../config/apiBase.js';
+import { getApiBase, getUploadApiBase } from '../config/apiBase.js';
+import { partitionImageFiles } from '../utils/imageUpload.js';
 
 // מצב mock רק כשמגדירים במפורש VITE_USE_MOCK=true (ברירת מחדל: נתונים מהשרת).
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
@@ -175,17 +176,15 @@ export async function adminPublishApartmentFree(id) {
 }
 
 // ────────── העלאת תמונות ──────────
-export async function uploadImages(files) {
-  const list = Array.from(files || []).filter(Boolean);
-  if (list.length === 0) return [];
+async function uploadImagesBatch(files) {
   const formData = new FormData();
-  for (const file of list) formData.append('images', file);
+  for (const file of files) formData.append('images', file);
 
   const headers = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/uploads`, {
+  const res = await fetch(`${getUploadApiBase()}/uploads`, {
     method: 'POST',
     headers,
     body: formData,
@@ -195,6 +194,37 @@ export async function uploadImages(files) {
     throw new Error(data?.error || `שגיאה ${res.status}`);
   }
   return data.urls || [];
+}
+
+/** מעלה תמונות אחת-אחת כדי לעקוף מגבלת גודל של פרוקסי Vercel ולתמוך בהעלאה חלקית. */
+export async function uploadImages(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (list.length === 0) return [];
+
+  const { accepted, rejected } = partitionImageFiles(list);
+  const urls = [];
+  const errors = rejected.map((item) => item.reason);
+
+  for (const file of accepted) {
+    try {
+      const uploaded = await uploadImagesBatch([file]);
+      urls.push(...uploaded);
+    } catch (err) {
+      errors.push(`${file.name}: ${err.message || 'העלאה נכשלה'}`);
+    }
+  }
+
+  if (urls.length === 0) {
+    throw new Error(errors.join('\n') || 'העלאת התמונות נכשלה');
+  }
+  if (errors.length > 0) {
+    const err = new Error(
+      `הועלו ${urls.length} מתוך ${list.length} תמונות.\n${errors.join('\n')}`,
+    );
+    err.partialUrls = urls;
+    throw err;
+  }
+  return urls;
 }
 
 // ────────── אוטנטיקציה ──────────

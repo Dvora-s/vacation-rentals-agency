@@ -18,11 +18,47 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'];
+const ALLOWED_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.avif',
+  '.heic',
+  '.heif',
+  '.bmp',
+  '.tif',
+  '.tiff',
+];
+
+const ALLOWED_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+  'image/bmp',
+  'image/tiff',
+]);
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
+const MAX_FILES_PER_REQUEST = 30;
 
 function extensionAllowed(originalName) {
   const ext = path.extname(originalName || '').toLowerCase();
   return ALLOWED_EXTENSIONS.includes(ext);
+}
+
+function mimeAllowed(mimetype) {
+  const mime = String(mimetype || '').toLowerCase();
+  return ALLOWED_MIMES.has(mime);
+}
+
+function isAllowedImage(file) {
+  return extensionAllowed(file?.originalname) || mimeAllowed(file?.mimetype);
 }
 
 const diskStorage = multer.diskStorage({
@@ -40,12 +76,14 @@ function createUploader() {
   const useCloudinary = isCloudinaryConfigured();
   return multer({
     storage: useCloudinary ? memoryStorage : diskStorage,
-    limits: { fileSize: 8 * 1024 * 1024, files: 20 },
+    limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PER_REQUEST },
     fileFilter: (_req, file, cb) => {
-      if (extensionAllowed(file.originalname)) cb(null, true);
+      if (isAllowedImage(file)) cb(null, true);
       else {
         cb(
-          new Error('סוג קובץ לא נתמך. ניתן להעלות תמונות בלבד (jpg, png, webp, gif).'),
+          new Error(
+            'סוג קובץ לא נתמך. ניתן להעלות תמונות בלבד (jpg, png, webp, heic, gif ועוד).',
+          ),
         );
       }
     },
@@ -60,8 +98,18 @@ function localUrls(req, files) {
 export async function postImages(req, res) {
   const upload = createUploader();
 
-  upload.array('images', 20)(req, res, async (err) => {
+  upload.array('images', MAX_FILES_PER_REQUEST)(req, res, async (err) => {
     if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          error: `הקובץ גדול מדי. גודל מקסימלי: ${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB`,
+        });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({
+          error: `ניתן להעלות עד ${MAX_FILES_PER_REQUEST} תמונות בבקשה אחת`,
+        });
+      }
       return res.status(400).json({ error: err.message });
     }
 

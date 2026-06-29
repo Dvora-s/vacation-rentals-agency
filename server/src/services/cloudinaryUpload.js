@@ -1,20 +1,26 @@
 import { Readable } from 'node:stream';
+import path from 'path';
 import {
   cloudinary,
   getCloudinaryFolder,
   isCloudinaryConfigured,
 } from '../config/cloudinary.js';
 
-function uploadBuffer(buffer) {
+function uploadBuffer(buffer, originalname = '') {
   const folder = getCloudinaryFolder();
+  const ext = path.extname(originalname).toLowerCase();
+  const options = {
+    folder,
+    resource_type: 'image',
+    unique_filename: true,
+  };
+  if (ext === '.heic' || ext === '.heif') {
+    options.format = 'jpg';
+  }
 
   return new Promise((resolve, reject) => {
     const upload = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: 'image',
-        unique_filename: true,
-      },
+      options,
       (err, result) => {
         if (err) reject(err);
         else resolve(result);
@@ -35,7 +41,7 @@ export async function uploadFilesToCloudinary(files) {
   }
 
   const results = await Promise.all(
-    (files || []).map((file) => uploadBuffer(file.buffer)),
+    (files || []).map((file) => uploadBuffer(file.buffer, file.originalname)),
   );
 
   return results.map((r) => r.secure_url).filter(Boolean);

@@ -87,6 +87,7 @@ function EditableImage({
       const urls = await uploadImages(files);
       if (urls[0]) setDraftUrl(urls[0]);
     } catch (err) {
+      if (err.partialUrls?.[0]) setDraftUrl(err.partialUrls[0]);
       setError(err.message || 'העלאת התמונה נכשלה');
     } finally {
       setUploading(false);
@@ -180,7 +181,7 @@ function EditableImage({
             <input
               ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/bmp,image/tiff,.heic,.heif"
               onChange={(e) => handleFiles(e.target.files)}
             />
             <span>{uploading ? 'מעלה...' : 'גרור תמונה לכאן או לחץ לבחירה'}</span>
