@@ -14,7 +14,7 @@ import faqAdminRouter from './routes/faqAdmin.js';
 import locationsRouter from './routes/locations.js';
 import contentRouter from './routes/content.js';
 import paypalOrdersRouter from './routes/paypalOrders.js';
-import { getPayPalEnvStatus, logPayPalStartup } from './services/paypalRest.js';
+import { getPayPalEnvStatus, logPayPalStartup, verifyPayPalOnStartup } from './services/paypalRest.js';
 import { ensureAdminUser } from './bootstrap/ensureAdmin.js';
 import { ensureListingPaymentsIntegrity } from './bootstrap/ensureListingPayments.js';
 import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
@@ -245,6 +245,12 @@ app.listen(PORT, HOST, () => {
   logger.info(`Server running on http://${HOST}:${PORT}`);
   void (async () => {
   logPayPalStartup();
+  try {
+    await verifyPayPalOnStartup();
+    logPayPalStartup();
+  } catch (err) {
+    logger.warn('[PayPal] verify:', err.message);
+  }
   const pm = getPayMeEnvStatus();
   if (!pm.configured) {
     logger.warn(

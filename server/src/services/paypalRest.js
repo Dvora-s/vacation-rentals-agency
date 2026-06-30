@@ -27,6 +27,61 @@ function readEnvTrimmedKey(canonicalName) {
   return looseKey ? cleanEnvValue(process.env[looseKey]) : '';
 }
 
+const PAYPAL_SECRET_KEYS = ['PAYPAL_CLIENT_SECRET', 'PAYPAL_SECRET'];
+
+function cleanPayPalClientId(v) {
+  let s = cleanEnvValue(v);
+  if (s.toLowerCase().startsWith('paypal_client_id=')) {
+    s = s.slice('paypal_client_id='.length).trim();
+  }
+  return s.replace(/\s+/g, '');
+}
+
+function cleanPayPalSecret(v) {
+  let s = cleanEnvValue(v);
+  if (s.toLowerCase().startsWith('paypal_client_secret=')) {
+    s = s.slice('paypal_client_secret='.length).trim();
+  }
+  if (s.toLowerCase().startsWith('paypal_secret=')) {
+    s = s.slice('paypal_secret='.length).trim();
+  }
+  // שורות חדשות מועתקות בטעות מדשבורד PayPal / Railway
+  return s.replace(/\s+/g, '');
+}
+
+function readPayPalCredentials() {
+  let id = cleanPayPalClientId(readEnvTrimmedKey('PAYPAL_CLIENT_ID'));
+  let secret = '';
+  for (const key of PAYPAL_SECRET_KEYS) {
+    secret = cleanPayPalSecret(readEnvTrimmedKey(key));
+    if (secret) break;
+  }
+
+  const combined = readEnvTrimmedKey('PAYPAL_CREDENTIALS');
+  if (combined) {
+    const sep = combined.includes('|') ? '|' : combined.includes(':') ? ':' : null;
+    if (sep) {
+      const [left, ...rest] = combined.split(sep);
+      if (!id && left) id = cleanPayPalClientId(left);
+      if (!secret && rest.length) secret = cleanPayPalSecret(rest.join(sep));
+    }
+  }
+
+  const url = readEnvTrimmedKey('PAYPAL_URL');
+  if (url) {
+    const match = url.match(/^https?:\/\/([^:]+):([^@]+)@/i);
+    if (match) {
+      if (!id) id = cleanPayPalClientId(decodeURIComponent(match[1]));
+      if (!secret) secret = cleanPayPalSecret(decodeURIComponent(match[2]));
+    }
+  }
+
+  return { id, secret };
+}
+
+/** @type {{ ok: boolean | null, error: string | null, checkedAt: number | null }} */
+let lastPayPalVerify = { ok: null, error: null, checkedAt: null };
+
 /** האם רצים על פלטפורמת ענן ידועה (שם אסור לעקוף TLS גם אם מישהו הגדיר דגל בטעות) */
 function runningOnKnownCloudHost() {
   return Boolean(
@@ -141,8 +196,7 @@ function getApiBase() {
 
 /** לבדיקת `/api/health` — בלי חשיפת ערכים */
 export function getPayPalEnvStatus() {
-  const id = readEnvTrimmedKey('PAYPAL_CLIENT_ID');
-  const secret = readEnvTrimmedKey('PAYPAL_CLIENT_SECRET');
+  const { id, secret } = readPayPalCredentials();
   const mode = resolvePayPalMode();
   const configured = Boolean(id && secret);
   const missing = [];
@@ -153,31 +207,74 @@ export function getPayPalEnvStatus() {
     configured,
     hasClientId: Boolean(id),
     hasClientSecret: Boolean(secret),
+    clientIdSuffix: id ? id.slice(-8) : null,
+    secretLength: secret ? secret.length : 0,
     mode,
     apiBase: getApiBase(),
+    authVerified: lastPayPalVerify.ok,
+    authError: lastPayPalVerify.ok === false ? lastPayPalVerify.error : null,
     /** true רק בפיתוח כש־PAYPAL_TLS_INSECURE מופעל */
     tlsInsecureDev: payPalTlsInsecureEnabled(),
     missing,
     setupHint: configured
-      ? null
+      ? lastPayPalVerify.ok === false
+        ? 'PayPal דחה Client ID/Secret — העתיקו מחדש מ-Sandbox באותה אפליקציה (Railway + Vercel).'
+        : null
       : 'Railway: הוסיפו PAYPAL_CLIENT_ID ו-PAYPAL_CLIENT_SECRET (אותה אפליקציה כמו VITE_PAYPAL_CLIENT_ID ב-Vercel).',
   };
 }
 
+/** בדיקת אימות מול PayPal בזמן עליית השרת */
+export async function verifyPayPalOnStartup() {
+  const { id, secret } = readPayPalCredentials();
+  if (!id || !secret) {
+    lastPayPalVerify = {
+      ok: false,
+      error: 'חסרים PAYPAL_CLIENT_ID או PAYPAL_CLIENT_SECRET',
+      checkedAt: Date.now(),
+    };
+    return lastPayPalVerify;
+  }
+
+  try {
+    await getAccessToken();
+    lastPayPalVerify = { ok: true, error: null, checkedAt: Date.now() };
+    return lastPayPalVerify;
+  } catch (e) {
+    lastPayPalVerify = {
+      ok: false,
+      error: e?.message || String(e),
+      checkedAt: Date.now(),
+    };
+    return lastPayPalVerify;
+  }
+}
+
 export function logPayPalStartup() {
   const s = getPayPalEnvStatus();
-  if (s.configured) {
-    console.info(`[PayPal] מוכן (${s.mode}) → ${s.apiBase}`);
+  if (!s.configured) {
+    console.warn(
+      `[PayPal] לא מוגדר: חסרים ${s.missing.join(', ') || 'משתני סביבה'}. ${s.setupHint} GET /api/health → paypal.`,
+    );
     return;
   }
-  console.warn(
-    `[PayPal] לא מוגדר: חסרים ${s.missing.join(', ') || 'משתני סביבה'}. ${s.setupHint} GET /api/health → paypal.`,
+  if (s.authVerified === true) {
+    console.info(
+      `[PayPal] מוכן (${s.mode}) → ${s.apiBase} | Client ID מסתיים ב־…${s.clientIdSuffix}`,
+    );
+    return;
+  }
+  if (s.authVerified === false) {
+    console.error(`[PayPal] אימות נכשל (${s.mode}): ${s.authError}`);
+    return;
+  }
+  console.info(
+    `[PayPal] משתנים קיימים (${s.mode}) → ${s.apiBase} | Client ID מסתיים ב־…${s.clientIdSuffix} — ממתין לאימות…`,
   );
 }
 
 function requireCredentials() {
-  const id = readEnvTrimmedKey('PAYPAL_CLIENT_ID');
-  const secret = readEnvTrimmedKey('PAYPAL_CLIENT_SECRET');
+  const { id, secret } = readPayPalCredentials();
   if (!id || !secret) {
     const err = new Error(
       'PayPal לא מוגדר בשרת: הגדירו PAYPAL_CLIENT_ID ו־PAYPAL_CLIENT_SECRET ב־server/.env והפעילו מחדש את השרת.',
@@ -195,7 +292,9 @@ function paypalErrorMessage(status, bodyText, context) {
     const code = j.error;
     const desc = j.error_description || '';
     if (status === 401 && (code === 'invalid_client' || desc.includes('Client Authentication'))) {
-      return `${context}: PayPal דחה את האימות (Client ID / Secret). ודאו ששניהם מאותה אפליקציה בדיוק (בדרך כלל Sandbox), בלי רווח אחרי =, בלי מירכאות מיותרות, שה־Secret עודכן מ־"Show" בדשבורד, והפעילו מחדש את שרת Node.`;
+      const { id } = readPayPalCredentials();
+      const suffix = id ? id.slice(-8) : '?';
+      return `${context}: PayPal דחה את האימות (Client ID / Secret). ודאו ששניהם מאותה אפליקציה Sandbox (לא Live), שה־Client ID בשרת מסתיים ב־…${suffix} ותואם ל־VITE_PAYPAL_CLIENT_ID ב-Vercel, שה־Secret הועתק מחדש מלחצן "Show" בדשבורד, בלי רווחים או מירכאות, ואז הפעילו מחדש את Railway.`;
     }
     if (code === 'invalid_request') {
       return `${context}: ${desc || detail}`;
@@ -216,6 +315,7 @@ async function getAccessToken() {
       headers: {
         Authorization: `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
       },
       body: 'grant_type=client_credentials',
     });

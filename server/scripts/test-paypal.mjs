@@ -16,13 +16,22 @@ try {
   /* ignore */
 }
 
-const { getPayPalEnvStatus, paypalCreateOrder } = await import('../src/services/paypalRest.js');
+const { getPayPalEnvStatus, paypalCreateOrder, verifyPayPalOnStartup } = await import('../src/services/paypalRest.js');
 
 const status = getPayPalEnvStatus();
 console.log('PayPal env:', JSON.stringify(status, null, 2));
 
 if (!status.configured) {
   console.error('\n❌ PayPal לא מוגדר. הוסיפו PAYPAL_CLIENT_ID + PAYPAL_CLIENT_SECRET ל-server/.env');
+  process.exit(1);
+}
+
+const verify = await verifyPayPalOnStartup();
+if (!verify.ok) {
+  console.error('\n❌ אימות PayPal נכשל:', verify.error);
+  console.error(
+    `   Client ID בשרת מסתיים ב־…${status.clientIdSuffix} — ודאי שתואם ל-VITE_PAYPAL_CLIENT_ID ב-client/.env`,
+  );
   process.exit(1);
 }
 

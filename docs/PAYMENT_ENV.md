@@ -54,4 +54,20 @@
 |-----|--------|
 | **503** | השרת לא רואה `PAYPAL_CLIENT_ID` או `PAYPAL_CLIENT_SECRET` (`server/.env`, restart ל־Node, או `server/.env.local` שדורס). |
 | **502** | חיבור/תשובה מ־PayPal — ב־Response שדה `error` (למשל `fetch failed` / TLS, או דחיית Client ID/Secret). |
+| **401 / invalid_client** | `PAYPAL_CLIENT_ID` ו־`PAYPAL_CLIENT_SECRET` לא מאותה אפליקציה, או Sandbox מול Live. ראו למטה. |
 | **400** | גוף הבקשה: מטבע לא נתמך או סכום לא חוקי. |
+
+## תיקון: "PayPal דחה את האימות (Client ID / Secret)"
+
+1. היכנסי ל־[PayPal Developer](https://developer.paypal.com/dashboard/applications/sandbox) → **Sandbox** (לא Live).
+2. בחרי את האפליקציה → העתיקי **Client ID** (חייב להסתיים באותם 8 תווים כמו ב־`VITE_PAYPAL_CLIENT_ID` ב־Vercel — כרגע `…RZG3tEm`).
+3. לחצי **Show** ליד **Secret** → העתיקי את כל ה־Secret (בלי רווחים לפני/אחרי).
+4. **Railway** (שרת): עדכני:
+   - `PAYPAL_CLIENT_ID` = אותו Client ID
+   - `PAYPAL_CLIENT_SECRET` = ה־Secret החדש
+   - `PAYPAL_MODE` = `sandbox`
+5. **Vercel** (אתר): `VITE_PAYPAL_CLIENT_ID` = **אותו** Client ID, `VITE_PAYPAL_MODE` = `sandbox`.
+6. Redeploy ל־Railway ו־Vercel.
+7. בדקי: `GET https://vacation-rentals-agency-production.up.railway.app/api/health` → `paypal.authVerified` חייב להיות `true`.
+
+אימות מקומי: `cd server && node scripts/test-paypal.mjs`
