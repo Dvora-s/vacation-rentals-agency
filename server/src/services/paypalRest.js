@@ -79,6 +79,10 @@ function readPayPalCredentials() {
   return { id, secret };
 }
 
+/** סיומת Client ID שמוגדרת ב-Vercel (client/.env + vercel.json) — לאבחון אי-התאמה מול Railway */
+const EXPECTED_FRONTEND_CLIENT_ID_SUFFIX = 'RZG3tEm';
+const PAYPAL_VERIFY_TTL_MS = 60_000;
+
 /** @type {{ ok: boolean | null, error: string | null, checkedAt: number | null }} */
 let lastPayPalVerify = { ok: null, error: null, checkedAt: null };
 
@@ -208,6 +212,8 @@ export function getPayPalEnvStatus() {
     hasClientId: Boolean(id),
     hasClientSecret: Boolean(secret),
     clientIdSuffix: id ? id.slice(-8) : null,
+    expectedClientIdSuffix: EXPECTED_FRONTEND_CLIENT_ID_SUFFIX,
+    clientIdMatchesFrontend: id ? id.endsWith(EXPECTED_FRONTEND_CLIENT_ID_SUFFIX) : false,
     secretLength: secret ? secret.length : 0,
     mode,
     apiBase: getApiBase(),
@@ -216,16 +222,31 @@ export function getPayPalEnvStatus() {
     /** true רק בפיתוח כש־PAYPAL_TLS_INSECURE מופעל */
     tlsInsecureDev: payPalTlsInsecureEnabled(),
     missing,
-    setupHint: configured
-      ? lastPayPalVerify.ok === false
-        ? 'PayPal דחה Client ID/Secret — העתיקו מחדש מ-Sandbox באותה אפליקציה (Railway + Vercel).'
-        : null
-      : 'Railway: הוסיפו PAYPAL_CLIENT_ID ו-PAYPAL_CLIENT_SECRET (אותה אפליקציה כמו VITE_PAYPAL_CLIENT_ID ב-Vercel).',
+    setupHint: (() => {
+      if (!configured) {
+        return 'Railway: הוסיפו PAYPAL_CLIENT_ID ו-PAYPAL_CLIENT_SECRET (אותה אפליקציה כמו VITE_PAYPAL_CLIENT_ID ב-Vercel).';
+      }
+      if (id && !id.endsWith(EXPECTED_FRONTEND_CLIENT_ID_SUFFIX)) {
+        return `Client ID בשרת (…${id.slice(-8)}) לא תואם ל-Vercel (…${EXPECTED_FRONTEND_CLIENT_ID_SUFFIX}). עדכנו את שניהם מאותה אפליקציית Sandbox.`;
+      }
+      if (lastPayPalVerify.ok === false) {
+        return 'Secret שגוי או ישן — ב-PayPal Developer לחצי Show והעתיקי Secret חדש ל-RAILWAY → PAYPAL_CLIENT_SECRET, ואז Redeploy.';
+      }
+      return null;
+    })(),
   };
 }
 
-/** בדיקת אימות מול PayPal בזמן עליית השרת */
-export async function verifyPayPalOnStartup() {
+/** בדיקת אימות מול PayPal (מטמון 60 שנ׳) */
+export async function verifyPayPalOnStartup({ force = false } = {}) {
+  if (
+    !force &&
+    lastPayPalVerify.checkedAt &&
+    Date.now() - lastPayPalVerify.checkedAt < PAYPAL_VERIFY_TTL_MS
+  ) {
+    return lastPayPalVerify;
+  }
+
   const { id, secret } = readPayPalCredentials();
   if (!id || !secret) {
     lastPayPalVerify = {
@@ -294,7 +315,11 @@ function paypalErrorMessage(status, bodyText, context) {
     if (status === 401 && (code === 'invalid_client' || desc.includes('Client Authentication'))) {
       const { id } = readPayPalCredentials();
       const suffix = id ? id.slice(-8) : '?';
-      return `${context}: PayPal דחה את האימות (Client ID / Secret). ודאו ששניהם מאותה אפליקציה Sandbox (לא Live), שה־Client ID בשרת מסתיים ב־…${suffix} ותואם ל־VITE_PAYPAL_CLIENT_ID ב-Vercel, שה־Secret הועתק מחדש מלחצן "Show" בדשבורד, בלי רווחים או מירכאות, ואז הפעילו מחדש את Railway.`;
+      const matchesFrontend = id ? id.endsWith(EXPECTED_FRONTEND_CLIENT_ID_SUFFIX) : false;
+      const mismatch = matchesFrontend
+        ? ''
+        : ` Client ID בשרת (…${suffix}) לא תואם ל-Vercel (…${EXPECTED_FRONTEND_CLIENT_ID_SUFFIX}).`;
+      return `${context}: PayPal דחה את האימות — ה-Secret ב-Railway שגוי או לא מאותה אפליקציה Sandbox.${mismatch} פתחי PayPal Developer → Sandbox → Show Secret → העתיקי ל-RAILWAY → PAYPAL_CLIENT_SECRET → Redeploy.`;
     }
     if (code === 'invalid_request') {
       return `${context}: ${desc || detail}`;

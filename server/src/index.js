@@ -202,6 +202,7 @@ app.use('/api/orders', paypalOrdersRouter);
 app.get('/api/health', async (_req, res) => {
   try {
     const dbStatus = await testConnection();
+    await verifyPayPalOnStartup();
     const paypal = getPayPalEnvStatus();
     const payme = getPayMeEnvStatus();
     res.json({
