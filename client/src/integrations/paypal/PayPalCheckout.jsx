@@ -9,6 +9,8 @@ const payPalSdkHost =
     ? 'https://www.paypal.com'
     : 'https://www.sandbox.paypal.com';
 
+const isSandboxMode = payPalMode !== 'live' && payPalMode !== 'production';
+
 /** Load official PayPal JS SDK from CDN (no extra npm package — avoids registry TLS issues). */
 function loadPayPalScript(cid, currency, intent = 'capture') {
   const normalizedIntent = intent === 'authorize' ? 'authorize' : 'capture';
@@ -45,9 +47,10 @@ function loadPayPalScript(cid, currency, intent = 'capture') {
       'client-id': cid,
       currency,
       intent: normalizedIntent,
-      locale: 'he_IL',
-      'buyer-country': 'IL',
+      // Sandbox: en_US מונע לולאות רענון אזוריות ידועות; Live: עברית.
+      locale: isSandboxMode ? 'en_US' : 'he_IL',
       components: 'buttons',
+      'disable-funding': 'card,credit,paylater,venmo',
     });
     script.src = `${payPalSdkHost}/sdk/js?${params.toString()}`;
     script.onload = () => {
@@ -81,15 +84,19 @@ export default function PayPalCheckout({
   amountRef.current = locked ? Number.parseFloat(String(fixedAmount)).toFixed(2) : amount;
 
   const buttonsHostRef = useRef(null);
+  const onCaptureSuccessRef = useRef(onCaptureSuccess);
+  const onErrorRef = useRef(onError);
 
-  const handleError = useCallback(
-    (err) => {
-      const text = err?.message || String(err);
-      setMessage(text);
-      onError?.(err);
-    },
-    [onError],
-  );
+  useEffect(() => {
+    onCaptureSuccessRef.current = onCaptureSuccess;
+    onErrorRef.current = onError;
+  }, [onCaptureSuccess, onError]);
+
+  const reportError = useCallback((err) => {
+    const text = err?.message || String(err);
+    setMessage(text);
+    onErrorRef.current?.(err);
+  }, []);
 
   useEffect(() => {
     if (!clientId || !buttonsHostRef.current) return undefined;
@@ -111,13 +118,13 @@ export default function PayPalCheckout({
             setMessage('');
             if (!getToken()) {
               const err = new Error('פג תוקף ההתחברות. התחברו מחדש ואז נסו לשלם שוב.');
-              handleError(err);
+              reportError(err);
               throw err;
             }
             const value = Number.parseFloat(amountRef.current);
             if (!Number.isFinite(value) || value <= 0) {
               const err = new Error('סכום לא תקין');
-              handleError(err);
+              reportError(err);
               throw err;
             }
             const data = await createPayPalOrder({
@@ -127,7 +134,7 @@ export default function PayPalCheckout({
             });
             if (!data?.id && !data?.orderID) {
               const err = new Error('השרת לא החזיר מזהה הזמנה מ־PayPal');
-              handleError(err);
+              reportError(err);
               throw err;
             }
             return data.id || data.orderID;
@@ -137,17 +144,22 @@ export default function PayPalCheckout({
               const result = useAuthorize
                 ? await authorizePayPalOrder(data.orderID)
                 : await capturePayPalOrder(data.orderID);
-              setMessage(
-                useAuthorize
-                  ? 'אישור התשלום הושלם — החיוב יתבצע עם פרסום המודעה.'
-                  : 'התשלום הושלם בהצלחה.',
-              );
-              onCaptureSuccess?.(result);
+              if (!cancelled) {
+                setMessage(
+                  useAuthorize
+                    ? 'אישור התשלום הושלם — החיוב יתבצע עם פרסום המודעה.'
+                    : 'התשלום הושלם בהצלחה.',
+                );
+              }
+              await onCaptureSuccessRef.current?.(result);
             } catch (e) {
-              handleError(e);
+              reportError(e);
             }
           },
-          onError: (err) => handleError(err),
+          onError: (err) => reportError(err),
+          onCancel: () => {
+            if (!cancelled) setMessage('התשלום בוטל.');
+          },
         };
 
         if (brandedPayPalOnly && paypal.FUNDING?.PAYPAL !== undefined) {
@@ -155,9 +167,13 @@ export default function PayPalCheckout({
         }
 
         buttonsInstance = paypal.Buttons(buttonOptions);
+        if (!buttonsInstance.isEligible()) {
+          reportError(new Error('PayPal לא זמין בדפדפן הזה. נסו דפדפן אחר או כרטיס אשראי (PayMe).'));
+          return;
+        }
         await buttonsInstance.render(buttonsHostRef.current);
       } catch (e) {
-        if (!cancelled) handleError(e);
+        if (!cancelled) reportError(e);
       }
     })();
 
@@ -170,7 +186,7 @@ export default function PayPalCheckout({
       }
       if (buttonsHostRef.current) buttonsHostRef.current.innerHTML = '';
     };
-  }, [clientId, currencyCode, handleError, onCaptureSuccess, locked, fixedAmount, brandedPayPalOnly, paymentIntent]);
+  }, [clientId, currencyCode, reportError, locked, fixedAmount, brandedPayPalOnly, paymentIntent]);
 
   if (!clientId) {
     return (
