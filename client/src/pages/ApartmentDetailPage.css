@@ -74,6 +74,23 @@
 .gallery-main {
   height: 400px;
   overflow: hidden;
+  background: #0a1628;
+  cursor: zoom-in;
+  position: relative;
+}
+
+.gallery-main::after {
+  content: 'לחיצה כפולה להגדלה';
+  position: absolute;
+  bottom: 0.65rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 .detail-gallery-empty {
@@ -90,12 +107,13 @@
 .gallery-main img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #0a1628;
   transition: transform 0.6s var(--ease);
 }
 
 .gallery-main:hover img {
-  transform: scale(1.03);
+  transform: scale(1.02);
 }
 
 .gallery-thumbs {
@@ -160,6 +178,7 @@
   color: var(--color-text);
   margin-bottom: 1.25rem;
   font-size: 1rem;
+  white-space: pre-line;
 }
 
 .detail-address {

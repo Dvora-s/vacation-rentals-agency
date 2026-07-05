@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getApartmentById, sendListingInquiry, updateApartment, deleteApartment } from '../services/api';
 import EditableImage from '../components/EditableImage';
+import ImageLightbox from '../components/ImageLightbox';
 import RejectedListingActions from '../components/RejectedListingActions';
 import ResubmitApartmentButton from '../components/ResubmitApartmentButton';
 import { getApartmentCategories } from '../data/categories';
@@ -26,6 +27,7 @@ function ApartmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
 
   // טופס "שלח הודעה" לבעל הנכס
@@ -60,6 +62,7 @@ function ApartmentDetailPage() {
       .then((data) => {
         setApartment(data);
         setActiveImage(0);
+        setLightboxOpen(false);
         setShowInquiry(false);
         setInquirySent(false);
         setInquiryError(null);
@@ -67,6 +70,36 @@ function ApartmentDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const rawImages = apartment?.images?.length ? apartment.images : apartment ? [apartment.image] : [];
+  const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
+
+  const goPrevImage = useCallback(() => {
+    if (images.length <= 1) return;
+    setActiveImage((i) => (i - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  const goNextImage = useCallback(() => {
+    if (images.length <= 1) return;
+    setActiveImage((i) => (i + 1) % images.length);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (lightboxOpen || images.length === 0) return undefined;
+    const onKey = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrevImage();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNextImage();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [goNextImage, goPrevImage, images.length, lightboxOpen]);
 
   if (loading) {
     return <p className="loading-text section-container">טוען פרטי דירה...</p>;
@@ -82,8 +115,6 @@ function ApartmentDetailPage() {
     );
   }
 
-  const rawImages = apartment.images?.length ? apartment.images : [apartment.image];
-  const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
   const hasGalleryImages = images.length > 0;
 
   async function saveGalleryImage(index, url) {
@@ -169,7 +200,19 @@ function ApartmentDetailPage() {
         <div className="detail-gallery">
           {hasGalleryImages ? (
             <>
-              <div className="gallery-main">
+              <div
+                className="gallery-main"
+                onDoubleClick={() => setLightboxOpen(true)}
+                role="button"
+                tabIndex={0}
+                aria-label="הגדלת תמונה — לחיצה כפולה"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setLightboxOpen(true);
+                  }
+                }}
+              >
                 <EditableImage
                   id={`apt.${apartment.id}.gallery.${activeImage}`}
                   src={images[activeImage]}
@@ -195,6 +238,15 @@ function ApartmentDetailPage() {
                   </button>
                 ))}
               </div>
+              {lightboxOpen && (
+                <ImageLightbox
+                  images={images}
+                  index={activeImage}
+                  onIndexChange={setActiveImage}
+                  onClose={() => setLightboxOpen(false)}
+                  alt={apartment.title}
+                />
+              )}
             </>
           ) : (
             <div className="detail-gallery-empty">אין תמונה</div>
@@ -203,7 +255,9 @@ function ApartmentDetailPage() {
 
         <div className="detail-info-card">
           <h1>{apartment.title}</h1>
-          <p className="detail-description">{apartment.description}</p>
+          {apartment.description ? (
+            <p className="detail-description">{apartment.description}</p>
+          ) : null}
           <p className="detail-address">📍 {apartment.address || apartment.location}</p>
 
           <div className="detail-specs">

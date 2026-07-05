@@ -1,0 +1,132 @@
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(8, 18, 32, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 4.5rem 2.5rem;
+  cursor: zoom-out;
+}
+
+.image-lightbox__toolbar {
+  position: absolute;
+  top: 0.85rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.image-lightbox__counter {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.image-lightbox__close {
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  pointer-events: auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.image-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.image-lightbox__stage {
+  max-width: min(96vw, 1400px);
+  max-height: min(88vh, 900px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.image-lightbox__img {
+  max-width: 100%;
+  max-height: min(88vh, 900px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+.image-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.image-lightbox__nav:hover {
+  background: rgba(255, 255, 255, 0.26);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.image-lightbox__nav--prev {
+  right: 1rem;
+}
+
+.image-lightbox__nav--next {
+  left: 1rem;
+}
+
+.image-lightbox__hint {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 640px) {
+  .image-lightbox {
+    padding: 3rem 0.5rem 2rem;
+  }
+
+  .image-lightbox__nav {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.6rem;
+  }
+
+  .image-lightbox__nav--prev {
+    right: 0.35rem;
+  }
+
+  .image-lightbox__nav--next {
+    left: 0.35rem;
+  }
+}

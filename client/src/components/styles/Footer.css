@@ -37,11 +37,10 @@
 }
 
 .footer-logo img {
-  height: 52px;
+  height: 56px;
   width: auto;
-  max-width: 200px;
+  max-width: 220px;
   object-fit: contain;
-  filter: brightness(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 
 .footer-legal {

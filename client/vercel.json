@@ -13,8 +13,8 @@
   "build": {
     "env": {
       "VITE_API_URL": "/api",
-      "VITE_PAYPAL_CLIENT_ID": "Abkuo4QGQA6E99RDxPMgSWDc04Wgaov1tfCI6DxMmV-CL_E_r1EOiJuQBsaEjoZzppnmxNA38RZG3tEm",
-      "VITE_PAYPAL_MODE": "sandbox"
+      "VITE_PAYPAL_CLIENT_ID": "AQU-qcKfm9iHr_0KvhilZ9nHvvF-VjVosTMz9odFEH-SKLuGIBISrcPMJeSevlOrDeD9TeDD3MVGuQTI",
+      "VITE_PAYPAL_MODE": "live"
     }
   }
 }

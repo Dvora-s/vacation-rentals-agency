@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import SiteLogo from './SiteLogo';
+import FooterLogo from './FooterLogo';
 import './styles/Footer.css';
 
 function Footer() {
@@ -7,7 +7,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo">
-          <SiteLogo />
+          <FooterLogo />
         </Link>
         <nav className="footer-legal" aria-label="מסמכים משפטיים">
           <Link to="/privacy" className="footer-legal-link">מדיניות פרטיות</Link>
