@@ -8,7 +8,10 @@
       "source": "/api/:path*",
       "destination": "https://vacation-rentals-agency-production.up.railway.app/api/:path*"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!google[a-f0-9]+\\.html).*)",
+      "destination": "/index.html"
+    }
   ],
   "build": {
     "env": {
