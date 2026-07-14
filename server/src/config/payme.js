@@ -12,6 +12,33 @@
  */
 
 const DEFAULT_SANDBOX_BASE = 'https://sandbox.payme.io/api';
+const DEFAULT_GENERATE_PATH = '/generate-sale';
+
+function normalizeBaseUrl(raw) {
+  let s = optionalTrim(raw);
+  if (!s) s = DEFAULT_SANDBOX_BASE;
+  s = s.replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, '')}`;
+  }
+  try {
+    // eslint-disable-next-line no-new
+    new URL(s);
+  } catch {
+    const err = new Error(
+      `PAYME_BASE_URL לא תקין (${JSON.stringify(raw)}). השתמשו ב: ${DEFAULT_SANDBOX_BASE}`,
+    );
+    err.code = 'PAYME_CONFIG';
+    throw err;
+  }
+  return s;
+}
+
+function normalizeGeneratePath(raw) {
+  const s = String(raw || DEFAULT_GENERATE_PATH).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return s.startsWith('/') ? s : `/${s}`;
+}
 
 /**
  * @returns {{
@@ -22,14 +49,14 @@ const DEFAULT_SANDBOX_BASE = 'https://sandbox.payme.io/api';
  * }}
  */
 export function getPayMeConfig() {
-  const baseUrl = String(process.env.PAYME_BASE_URL || DEFAULT_SANDBOX_BASE)
-    .trim()
-    .replace(/\/+$/, '');
+  const baseUrl = normalizeBaseUrl(process.env.PAYME_BASE_URL);
   return {
     baseUrl,
     apiKey: optionalTrim(process.env.PAYME_API_KEY),
     merchantId: optionalTrim(process.env.PAYME_MERCHANT_ID),
-    generatePaymentPath: String(process.env.PAYME_GENERATE_PAYMENT_PATH || '/generate-payment').trim(),
+    generatePaymentPath: normalizeGeneratePath(
+      process.env.PAYME_GENERATE_PAYMENT_PATH || process.env.PAYME_CREATE_PAYMENT_PATH,
+    ),
   };
 }
 

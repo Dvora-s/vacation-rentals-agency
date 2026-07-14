@@ -7,9 +7,27 @@ import { logger } from '../utils/logger.js';
 async function paymeRequest(path, { method = 'POST', body } = {}) {
   assertPayMeConfiguredForApi();
   const { baseUrl } = getPayMeConfig();
-  const base = String(baseUrl).replace(/\/+$/, '');
-  const p = path.startsWith('/') ? path : `/${path}`;
-  const url = `${base}${p}`;
+
+  let url;
+  if (/^https?:\/\//i.test(path)) {
+    url = path;
+  } else {
+    const base = String(baseUrl).replace(/\/+$/, '');
+    const p = path.startsWith('/') ? path : `/${path}`;
+    url = `${base}${p}`;
+  }
+
+  try {
+    // eslint-disable-next-line no-new
+    new URL(url);
+  } catch {
+    const err = new Error(
+      `כתובת PayMe לא תקינה: ${url}. בדקו PAYME_BASE_URL ב-Railway (צריך להיות ${baseUrl}).`,
+    );
+    err.code = 'PAYME_CONFIG';
+    throw err;
+  }
+
   const timeoutMs = Number(process.env.PAYME_HTTP_TIMEOUT_MS) || 20000;
 
   const ac = new AbortController();
@@ -69,6 +87,15 @@ export function normalizePayMeError(error, context = 'payme') {
   }
   if (error && typeof error === 'object' && 'code' in error && error.code === 'PAYME_TIMEOUT') {
     return { status: 504, message: String(error.message), code: 'PAYME_TIMEOUT', context };
+  }
+  if (error instanceof TypeError && /parse URL/i.test(error.message)) {
+    return {
+      status: 503,
+      message:
+        'כתובת PayMe לא תקינה. הגדירו PAYME_BASE_URL=https://sandbox.payme.io/api ב-Railway (ללא רווחים / תווים מיותרים).',
+      code: 'PAYME_CONFIG',
+      context,
+    };
   }
   if (error && typeof error === 'object' && 'response' in error && error.response) {
     const r = /** @type {{ status?: number, data?: unknown }} */ (error.response);
