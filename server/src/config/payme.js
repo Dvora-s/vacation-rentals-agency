@@ -1,27 +1,35 @@
 /**
  * PayMe configuration (server-side only).
- *
  * Never import this module from client-side code or expose values to the browser.
  *
- * Variable guide (adjust after you read PayMe's official docs — names may differ):
- * - PAYME_API_KEY: Often used as a public/server API key for REST calls. Remove if PayMe uses only Basic auth or a single secret.
- * - PAYME_SECRET: Shared secret for signing requests or HMAC. Remove if PayMe does not use request signing.
- * - PAYME_MERCHANT_ID: Your merchant / seller id in PayMe's system.
- * - PAYME_BASE_URL: REST API base (sandbox vs production). No trailing slash.
- * - PAYME_WEBHOOK_SECRET: Separate secret to verify webhook signatures. If PayMe signs with PAYME_SECRET only, you can remove this and use PAYME_SECRET in verification (documented in paymeService).
+ * Required:
+ * - PAYME_API_KEY — sent as `payme_key` in Generate Payment requests.
+ *
+ * Optional:
+ * - PAYME_BASE_URL — API base (default sandbox). No trailing slash.
+ * - PAYME_MERCHANT_ID — seller_payme_id when PayMe requires it in addition to payme_key.
+ * - API_PUBLIC_URL — public backend URL for notify_url (IPN callback).
  */
 
+const DEFAULT_SANDBOX_BASE = 'https://sandbox.payme.io/api';
+
 /**
- * @returns {{ baseUrl: string, apiKey: string | undefined, secret: string | undefined, merchantId: string | undefined, webhookSecret: string | undefined }}
+ * @returns {{
+ *   baseUrl: string,
+ *   apiKey: string | undefined,
+ *   merchantId: string | undefined,
+ *   generatePaymentPath: string,
+ * }}
  */
 export function getPayMeConfig() {
-  const baseUrl = String(process.env.PAYME_BASE_URL || '').trim().replace(/\/+$/, '');
+  const baseUrl = String(process.env.PAYME_BASE_URL || DEFAULT_SANDBOX_BASE)
+    .trim()
+    .replace(/\/+$/, '');
   return {
     baseUrl,
     apiKey: optionalTrim(process.env.PAYME_API_KEY),
-    secret: optionalTrim(process.env.PAYME_SECRET),
     merchantId: optionalTrim(process.env.PAYME_MERCHANT_ID),
-    webhookSecret: optionalTrim(process.env.PAYME_WEBHOOK_SECRET),
+    generatePaymentPath: String(process.env.PAYME_GENERATE_PAYMENT_PATH || '/generate-payment').trim(),
   };
 }
 
@@ -31,9 +39,22 @@ function optionalTrim(v) {
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     s = s.slice(1, -1).trim();
   }
-  // כותרות HTTP חייבות להיות ASCII — מונע שגיאת ByteString כשמדביקים עם תווים עבריים/חצים
   s = s.replace(/[^\x20-\x7E]/g, '');
   return s === '' ? undefined : s;
+}
+
+/**
+ * Public API base used for PayMe notify_url (IPN).
+ */
+export function getApiPublicBaseUrl() {
+  const explicit = optionalTrim(process.env.API_PUBLIC_URL);
+  if (explicit) return explicit.replace(/\/+$/, '');
+
+  const railway = optionalTrim(process.env.RAILWAY_PUBLIC_DOMAIN);
+  if (railway) return `https://${railway.replace(/^https?:\/\//, '')}`;
+
+  const port = Number(process.env.PORT) || 5000;
+  return `http://localhost:${port}`;
 }
 
 /**
@@ -42,34 +63,27 @@ function optionalTrim(v) {
 export function getPayMeEnvStatus() {
   const c = getPayMeConfig();
   return {
-    configured: Boolean(c.baseUrl && c.merchantId && (c.apiKey || c.secret)),
+    configured: Boolean(c.apiKey),
     hasBaseUrl: Boolean(c.baseUrl),
-    hasMerchantId: Boolean(c.merchantId),
     hasApiKey: Boolean(c.apiKey),
-    hasSecret: Boolean(c.secret),
-    hasWebhookSecret: Boolean(c.webhookSecret),
+    hasMerchantId: Boolean(c.merchantId),
+    generatePaymentPath: c.generatePaymentPath,
+    apiPublicBase: getApiPublicBaseUrl(),
   };
 }
 
 /**
  * Throws if PayMe is not minimally configured for outbound API calls.
- * TODO: Tighten required fields once you confirm PayMe's auth scheme.
  */
 export function assertPayMeConfiguredForApi() {
   const c = getPayMeConfig();
+  if (!c.apiKey) {
+    const err = new Error('PAYME_API_KEY is not configured');
+    err.code = 'PAYME_CONFIG';
+    throw err;
+  }
   if (!c.baseUrl) {
     const err = new Error('PAYME_BASE_URL is not configured');
-    err.code = 'PAYME_CONFIG';
-    throw err;
-  }
-  if (!c.merchantId) {
-    const err = new Error('PAYME_MERCHANT_ID is not configured');
-    err.code = 'PAYME_CONFIG';
-    throw err;
-  }
-  // Many gateways need at least one credential; keep flexible until docs are wired.
-  if (!c.apiKey && !c.secret) {
-    const err = new Error('PayMe credentials missing: set PAYME_API_KEY and/or PAYME_SECRET per PayMe docs');
     err.code = 'PAYME_CONFIG';
     throw err;
   }

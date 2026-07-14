@@ -1,30 +1,29 @@
 import {
+  applyPayMeCallbackToPayment,
   insertPendingPayment,
   markPaymentFailed,
   selectPaymentById,
-  updatePaymentPaymeTransaction,
-  updatePaymentStatusById,
-  updatePaymentStatusByPaymeTransactionId,
+  updatePaymentPaymeSaleId,
 } from '../models/paymentModel.js';
 import { logger } from '../utils/logger.js';
 import { HttpError } from '../utils/HttpError.js';
 import {
-  createPayment as paymeCreatePayment,
-  getPaymentStatus as paymeGetRemoteStatus,
-  handleWebhook as paymeHandleWebhook,
-  mapRemoteStatusToLocal,
+  generatePaymentSession,
+  logPayMeCallback,
   normalizePayMeError,
-  verifyPayment as paymeVerifyPayment,
+  parsePayMeCallback,
 } from '../services/paymeService.js';
 
 function appBaseUrl() {
-  const raw = String(process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
-  return raw;
+  return String(process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 }
 
-export async function createPayMePayment(req, res) {
+/**
+ * Shared logic: create DB row + call PayMe Generate Payment API.
+ */
+async function bootstrapPayMeSession(req, res) {
   const userId = req.user.id;
-  const { amount, currency, description, metadata } = req.paymeCreate;
+  const { priceAgorot, amountMajor, currency, productName, metadata } = req.paymeCreate;
 
   const returnUrl =
     String(req.body?.return_url || '').trim() ||
@@ -32,35 +31,36 @@ export async function createPayMePayment(req, res) {
   const cancelUrl =
     String(req.body?.cancel_url || '').trim() || `${appBaseUrl()}/pay/failed?provider=payme`;
 
-  if (!/^https?:\/\//i.test(returnUrl) || !/^https?:\/\//i.test(cancelUrl)) {
-    return res.status(400).json({ error: 'return_url and cancel_url must be http(s) URLs' });
+  if (returnUrl && !/^https?:\/\//i.test(returnUrl)) {
+    return res.status(400).json({ error: 'return_url must be an http(s) URL when provided' });
+  }
+  if (cancelUrl && !/^https?:\/\//i.test(cancelUrl)) {
+    return res.status(400).json({ error: 'cancel_url must be an http(s) URL when provided' });
   }
 
-  const paymentId = await insertPendingPayment(userId, amount, currency);
-  const idempotencyKey = `pay-${paymentId}-${userId}`;
+  const paymentId = await insertPendingPayment(userId, amountMajor, currency);
 
   try {
-    const remote = await paymeCreatePayment({
-      amount,
+    const remote = await generatePaymentSession({
+      priceAgorot,
       currency,
-      description: description || `Payment #${paymentId}`,
+      productName,
+      transactionId: String(paymentId),
       returnUrl: appendQuery(returnUrl, { paymentId }),
-      cancelUrl: appendQuery(cancelUrl, { paymentId }),
-      idempotencyKey,
-      metadata: { ...metadata, internal_payment_id: paymentId, user_id: userId },
     });
 
-    await updatePaymentPaymeTransaction(paymentId, userId, remote.paymeTransactionId);
+    await updatePaymentPaymeSaleId(paymentId, userId, remote.paymeSaleId);
 
     return res.status(201).json({
       paymentId,
-      checkoutUrl: remote.checkoutUrl,
-      paymeTransactionId: remote.paymeTransactionId,
+      payme_sale_id: remote.paymeSaleId,
+      paymeSaleId: remote.paymeSaleId,
+      saleUrl: remote.saleUrl,
       status: 'pending',
     });
   } catch (error) {
     await markPaymentFailed(paymentId, userId).catch(() => {});
-    const norm = normalizePayMeError(error, 'create');
+    const norm = normalizePayMeError(error, 'create-session');
     throw new HttpError(norm.status, norm.message, norm.code);
   }
 }
@@ -71,6 +71,16 @@ function appendQuery(url, params) {
     u.searchParams.set(k, String(v));
   }
   return u.toString();
+}
+
+/** POST /api/payments/create-session — iFrame / Hosted Fields (Option 2) */
+export async function createPayMeSession(req, res) {
+  return bootstrapPayMeSession(req, res);
+}
+
+/** POST /api/payments/create — backward-compatible alias */
+export async function createPayMePayment(req, res) {
+  return bootstrapPayMeSession(req, res);
 }
 
 export async function getPayMePaymentStatus(req, res) {
@@ -88,25 +98,10 @@ export async function getPayMePaymentStatus(req, res) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const sync = String(req.query.sync || '') === '1' || String(req.query.sync || '') === 'true';
-  if (sync && row.payme_transaction_id) {
-    try {
-      const remote = await paymeGetRemoteStatus(row.payme_transaction_id);
-      const remoteStatus =
-        remote?.status || remote?.payment_status || remote?.state || remote?.data?.status;
-      if (remoteStatus) {
-        const local = mapRemoteStatusToLocal(String(remoteStatus));
-        await updatePaymentStatusById(paymentId, local);
-        row.status = local;
-      }
-    } catch {
-      /* best-effort sync */
-    }
-  }
-
   return res.json({
     id: row.id,
     paymeTransactionId: row.payme_transaction_id,
+    paymeSaleId: row.payme_transaction_id,
     amount: row.amount,
     currency: row.currency,
     status: row.status,
@@ -115,26 +110,54 @@ export async function getPayMePaymentStatus(req, res) {
   });
 }
 
-export async function handlePayMeWebhookRequest(req, res) {
-  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
-  const verified = paymeHandleWebhook(rawBody, req.headers);
-  if (!verified.ok) {
-    return res.status(400).json({ error: verified.reason });
+/**
+ * POST /api/payments/callback — PayMe IPN (notify_url).
+ * Body format: application/x-www-form-urlencoded (parsed by express.urlencoded).
+ */
+export async function handlePayMeCallback(req, res) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const parsed = parsePayMeCallback(body);
+  logPayMeCallback(parsed);
+
+  if (!parsed.paymeSaleId && !parsed.transactionId) {
+    logger.warn('[PayMe callback] Missing payme_sale_id and transaction_id', body);
+    return res.status(400).send('missing sale id');
   }
 
-  const localStatus = mapRemoteStatusToLocal(verified.status);
-
-  const updated = await updatePaymentStatusByPaymeTransactionId(localStatus, verified.transactionId);
+  const updated = await applyPayMeCallbackToPayment({
+    paymeSaleId: parsed.paymeSaleId,
+    paymeTransactionId: parsed.paymeTransactionId,
+    localStatus: parsed.localStatus,
+    internalTransactionId: parsed.transactionId,
+  });
 
   if (!updated) {
     logger.warn(
-      `[PayMe webhook] No local row matched payme_transaction_id=${verified.transactionId}. Check transaction id mapping / migration.`,
+      `[PayMe callback] No local row matched payme_sale_id=${parsed.paymeSaleId} transaction_id=${parsed.transactionId}`,
     );
   }
 
-  return res.status(200).json({ ok: true, updated });
+  return res.status(200).send('OK');
 }
 
-export async function verifyPayMeRemoteTransaction(paymeTransactionId) {
-  return paymeVerifyPayment(paymeTransactionId);
+/** @deprecated — use handlePayMeCallback; kept for legacy webhook route */
+export async function handlePayMeWebhookRequest(req, res) {
+  let body = {};
+  if (Buffer.isBuffer(req.body)) {
+    try {
+      const text = req.body.toString('utf8');
+      const params = new URLSearchParams(text);
+      for (const [k, v] of params) body[k] = v;
+    } catch {
+      try {
+        body = JSON.parse(req.body.toString('utf8') || '{}');
+      } catch {
+        body = {};
+      }
+    }
+  } else if (req.body && typeof req.body === 'object') {
+    body = req.body;
+  }
+  req.body = body;
+  return handlePayMeCallback(req, res);
 }

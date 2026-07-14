@@ -29,19 +29,29 @@ async function paymentFetch(path, { method = 'GET', body } = {}) {
 }
 
 /**
- * Start a PayMe checkout session (server creates PayMe payment + DB row).
- * @param {{ amount: number, currency?: string, description?: string, metadata?: object, return_url?: string, cancel_url?: string }} payload
+ * Create a PayMe iFrame / Hosted Fields session (Generate Payment API).
+ * @param {{ price: number, currency?: string, product_name: string, amount?: number, description?: string, metadata?: object, return_url?: string, cancel_url?: string }} payload
+ * @returns {Promise<{ paymentId: number, payme_sale_id: string, paymeSaleId: string }>}
  */
+export async function createPaymentSession(payload) {
+  return paymentFetch('/payments/create-session', { method: 'POST', body: payload });
+}
+
+/** @deprecated use createPaymentSession */
 export async function createPayment(payload) {
   return paymentFetch('/payments/create', { method: 'POST', body: payload });
 }
 
 /**
- * Fetch payment status from your API (DB; optional sync from PayMe via query).
- * @param {number|string} paymentId - Internal `payments.id`
- * @param {{ sync?: boolean }} [opts]
+ * Fetch payment status from your API (DB; updated via IPN callback).
+ * @param {number|string} paymentId
  */
 export async function getPaymentStatus(paymentId, { sync = false } = {}) {
   const q = sync ? '?sync=1' : '';
   return paymentFetch(`/payments/${encodeURIComponent(String(paymentId))}/status${q}`);
+}
+
+/** Convert ILS major units to agorot (integer). */
+export function ilsToAgorot(ils) {
+  return Math.round(Number(ils) * 100);
 }

@@ -21,7 +21,7 @@ import { ensureFaqSeed } from './bootstrap/ensureFaq.js';
 import { ensurePricingSeed } from './bootstrap/ensurePricing.js';
 import { startListingExpiryJob } from './jobs/listingExpiry.js';
 import { logger } from './utils/logger.js';
-import { handlePayMeWebhookRequest } from './controllers/paymentController.js';
+import { handlePayMeCallback, handlePayMeWebhookRequest } from './controllers/paymentController.js';
 import { getPayMeEnvStatus } from './config/payme.js';
 import { selectDatabaseInfo } from './models/dbMetaModel.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -140,13 +140,17 @@ app.use((req, res, next) => {
 });
 
 /**
- * PayMe webhooks must receive the raw body for signature verification.
- * TODO: If PayMe sends a non-JSON body (e.g. form-urlencoded), switch to `express.raw({ type: () => true })`
- * or a dedicated `express.text()` / `express.urlencoded()` chain per PayMe docs.
+ * PayMe IPN callbacks arrive as application/x-www-form-urlencoded (not JSON).
+ * Parse with urlencoded before the global JSON middleware.
  */
 app.post(
+  '/api/payments/callback',
+  express.urlencoded({ extended: false }),
+  asyncHandler(handlePayMeCallback),
+);
+app.post(
   '/api/payments/webhook',
-  express.raw({ type: 'application/json' }),
+  express.urlencoded({ extended: false }),
   asyncHandler(handlePayMeWebhookRequest),
 );
 
@@ -255,7 +259,7 @@ app.listen(PORT, HOST, () => {
   const pm = getPayMeEnvStatus();
   if (!pm.configured) {
     logger.warn(
-      `[PayMe] חסרים משתני סביבה או תצורה חלקית: configured=${pm.configured} baseUrl=${pm.hasBaseUrl} merchantId=${pm.hasMerchantId} apiKey=${pm.hasApiKey} secret=${pm.hasSecret} webhookSecret=${pm.hasWebhookSecret}. ראו docs/PAYME_INTEGRATION.md ו־GET /api/health.`,
+      `[PayMe] חסר PAYME_API_KEY או תצורה חלקית: configured=${pm.configured} baseUrl=${pm.hasBaseUrl} apiKey=${pm.hasApiKey} merchantId=${pm.hasMerchantId}. ראו docs/PAYME_INTEGRATION.md ו־GET /api/health.`,
     );
   }
   logMailerStartup();

@@ -1,121 +1,61 @@
-# PayMe integration (vacation-rentals-agency)
+# PayMe integration (iFrame / Hosted Fields — Option 2)
 
-This project integrates PayMe as a **server-side** payment provider. **Never** put PayMe secrets in the React app or in `VITE_*` variables.
+PayMe secrets live **only** on the server (`PAYME_API_KEY`). Never put them in the React app or `VITE_*` variables.
 
-## Folder structure (added)
+## Required npm packages
 
-```text
-server/src/
-  config/payme.js                 # env helpers + safe health status
-  controllers/paymentController.js
-  middlewares/validatePayMeCreate.js
-  routes/payments.js              # extended with PayMe routes + existing listing payments
-  services/paymeService.js        # all outbound PayMe HTTP + webhook verification helpers
+All dependencies are already in the project:
 
-db/
-  payments_payme.sql              # standalone schema snippet
-  schema.sql                      # includes `payments` for fresh installs
+| Package | Where | Purpose |
+|---------|-------|---------|
+| `express` | `server/` | HTTP API |
+| `cors` | `server/` | CORS |
+| `dotenv` | `server/` | Load `server/.env` |
+| `mysql2` | `server/` | Persist payments |
 
-client/src/
-  pages/PaymentPage.jsx
-  pages/PaymentSuccess.jsx
-  pages/PaymentFailed.jsx
-  pages/PaymentPages.css
-  services/paymentService.js
-```
-
-## Installation
-
-1. **Server dependencies**
-
-PayMe HTTP calls use Node’s built-in **`fetch`** (Node 18+), so no extra HTTP client package is required. Run `npm install` in `server/` only when you add or change other dependencies.
-
-2. **צרו את טבלת `payments` (PayMe)**
-
-מתוך `server/` (עם `server/.env` שמצביע על אותו מסד כמו הפריסה):
-
-```bash
-npm run setup-payments
-```
-
-סקריפט זה מריץ `CREATE TABLE IF NOT EXISTS payments ...` ומתאים ל־Railway גם כש־`DB_HOST` הוא `*.internal` (משתמש ב־`DATABASE_URL` הציבורי) וגם כשיש `db/ca.pem` מקומי — ל־`*.rlwy.net` נעשה TLS רפוי כדי לא לשבור את החיבור.
-
-חלופה: להדביק את תוכן `db/payments_payme.sql` ב־**Railway → MySQL → Query** (או `npm run migrate` כשיש חיבור תקין למסד).
-
-3. **מיגרציה כללית (אופציונלי)**
-
-לשאר העדכונים האידמפוטנטיים של `migrate.mjs`:
-
-```bash
-cd server
-npm run migrate
-```
-
-4. **Configure environment variables (server)**
-
-Copy `server/.env.example` to `server/.env` and fill values (see below). Restart the API after changes.
-
-5. **Configure PayMe dashboard**
-
-- Set the webhook URL to your public API: `https://YOUR_API_DOMAIN/api/payments/webhook`
-- Ensure PayMe allows your server IP if they use IP allowlists.
+No extra packages are needed for PayMe HTTP calls (Node 18+ `fetch`).
 
 ## Environment variables (server)
 
-Add these to `server/.env` (placeholders are in `server/.env.example`):
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PAYME_API_KEY` | **Yes** | Sent as `payme_key` in Generate Payment body |
+| `PAYME_BASE_URL` | No | Default: `https://sandbox.payme.io/api` |
+| `PAYME_MERCHANT_ID` | No | `seller_payme_id` if PayMe requires it |
+| `API_PUBLIC_URL` | Recommended | Public backend URL for IPN (`notify_url`), e.g. `https://your-api.railway.app` |
+| `APP_URL` | Recommended | Frontend URL for buyer return links |
 
-| Variable | Purpose |
-|----------|---------|
-| `PAYME_BASE_URL` | REST API base URL (sandbox vs production). **No trailing slash.** |
-| `PAYME_MERCHANT_ID` | Merchant / seller id from PayMe. |
-| `PAYME_API_KEY` | Often used for API authentication (scheme depends on PayMe docs). |
-| `PAYME_SECRET` | Often used for signing / secondary auth. |
-| `PAYME_WEBHOOK_SECRET` | Dedicated secret for verifying webhooks (recommended). If PayMe does not provide a separate webhook secret, you may be able to verify using `PAYME_SECRET` instead — see comments in `server/src/services/paymeService.js`. |
+Configure PayMe dashboard **notify URL**:
 
-Optional tuning:
-
-- `PAYME_HTTP_TIMEOUT_MS` (default `20000`)
-- `PAYME_CREATE_PAYMENT_PATH` (override create endpoint path)
-- `PAYME_GET_STATUS_PATH` / `PAYME_VERIFY_PAYMENT_PATH` (override status/verify paths)
-- `RATE_LIMIT_PAYME_CREATE_MAX` (default `60` per 15 minutes / IP for `POST /api/payments/create`)
-
-Also required for correct default return URLs:
-
-- `APP_URL` — public site base (example: `https://your-site.com`)
+`https://YOUR_API_DOMAIN/api/payments/callback`
 
 ## API endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/payments/create` | JWT | Creates DB row + PayMe session; returns `checkoutUrl`. |
-| `GET` | `/api/payments/:id/status?sync=1` | JWT | Reads DB; with `sync=1` tries to refresh from PayMe (best-effort). |
-| `POST` | `/api/payments/webhook` | PayMe | **Raw JSON body** route registered in `server/src/index.js` before `express.json()`. |
-
-> Note: `POST /api/payments` remains the existing **listing payment** endpoint for apartment publishing.
-
-## Security notes
-
-- **Webhook signature**: implemented as a **TODO-shaped** HMAC example in `paymeService.handleWebhook()`. Replace header names, digest format, and payload parsing with PayMe’s official specification.
-- **Rate limiting**: `paymeCreateLimiter` is an in-memory limiter (OK for single instance). For multiple instances, use Redis / edge rate limits — see comments in `server/src/middlewares/rateLimit.js`.
-- **Secrets**: only on the server process environment. The React client uses JWT to call your API only.
+| `POST` | `/api/payments/create-session` | JWT | Calls PayMe `generate-payment`, returns `payme_sale_id` |
+| `POST` | `/api/payments/create` | JWT | Alias of `create-session` |
+| `POST` | `/api/payments/callback` | PayMe IPN | `x-www-form-urlencoded` — updates `payments` table |
+| `GET` | `/api/payments/:id/status` | JWT | Read payment status from DB |
 
 ## Frontend flow
 
-1. User opens `/pay` (protected).
-2. Client calls `POST /api/payments/create` via `client/src/services/paymentService.js`.
-3. Server returns `checkoutUrl` → browser navigates to PayMe.
-4. User pays (or cancels).
-5. PayMe calls `POST /api/payments/webhook` → server updates `payments.status`.
-6. User lands on `/pay/success` (or `/pay/failed`) and the UI polls `GET /api/payments/:id/status?sync=1`.
+1. Load `https://gateway.payme.io/js/payme-fields.js`
+2. `POST /api/payments/create-session` with `{ price: 10000, currency: "ILS", product_name: "..." }` (price in **agorot**)
+3. `new PayMeFields({ saleId: payme_sale_id, container: '#payme-iframe-container' })`
+4. On success → poll `GET /api/payments/:id/status` until `paid` (IPN also updates server)
+
+## Key files
+
+```text
+server/src/config/payme.js
+server/src/services/paymeService.js
+server/src/controllers/paymentController.js
+server/src/routes/payments.js
+client/src/integrations/payme/PayMeHostedFields.jsx
+client/src/services/paymentService.js
+```
 
 ## Health check
 
-`GET /api/health` includes a non-secret `payme` configuration summary (similar to `paypal`).
-
-## TODOs before production
-
-Search the codebase for:
-
-- `TODO: Insert actual PayMe`
-
-and replace endpoint paths, auth headers, response parsing, and webhook verification with PayMe’s official documentation.
+`GET /api/health` includes non-secret `payme` configuration summary.

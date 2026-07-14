@@ -1,0 +1,51 @@
+.payme-hosted {
+  margin-top: 1rem;
+}
+
+.payme-hosted__intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.payme-hosted__muted {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.payme-hosted__start {
+  margin-bottom: 1rem;
+}
+
+.payme-hosted__iframe {
+  min-height: 420px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.payme-hosted__iframe:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payme-hosted__iframe:empty::after {
+  content: 'טוען טופס תשלום…';
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.payme-hosted--success .payme-hosted__thankyou {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.payme-hosted--success h3 {
+  margin: 0 0 0.35rem;
+  color: #065f46;
+}
