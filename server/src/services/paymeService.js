@@ -141,9 +141,10 @@ export async function generatePaymentSession(input) {
   const { apiKey, merchantId, generatePaymentPath } = getPayMeConfig();
   const notifyUrl = input.notifyUrl || `${getApiPublicBaseUrl()}/api/payments/callback`;
 
+  // PayMe Generate Sale requires seller_payme_id (merchant id from dashboard Settings).
   /** @type {Record<string, unknown>} */
   const payload = {
-    payme_key: apiKey,
+    seller_payme_id: merchantId,
     sale_price: Math.round(Number(input.priceAgorot)),
     currency: String(input.currency || 'ILS').toUpperCase(),
     product_name: String(input.productName || 'Payment').slice(0, 500),
@@ -152,8 +153,8 @@ export async function generatePaymentSession(input) {
     capture_buyer: 0,
   };
 
-  if (merchantId) {
-    payload.seller_payme_id = merchantId;
+  if (apiKey) {
+    payload.payme_key = apiKey;
   }
   if (input.transactionId) {
     payload.transaction_id = String(input.transactionId);

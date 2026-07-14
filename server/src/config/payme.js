@@ -90,7 +90,7 @@ export function getApiPublicBaseUrl() {
 export function getPayMeEnvStatus() {
   const c = getPayMeConfig();
   return {
-    configured: Boolean(c.apiKey),
+    configured: Boolean(c.merchantId && c.apiKey),
     hasBaseUrl: Boolean(c.baseUrl),
     hasApiKey: Boolean(c.apiKey),
     hasMerchantId: Boolean(c.merchantId),
@@ -101,16 +101,27 @@ export function getPayMeEnvStatus() {
 
 /**
  * Throws if PayMe is not minimally configured for outbound API calls.
+ * PayMe Generate Sale requires seller_payme_id (PAYME_MERCHANT_ID).
  */
 export function assertPayMeConfiguredForApi() {
   const c = getPayMeConfig();
-  if (!c.apiKey) {
-    const err = new Error('PAYME_API_KEY is not configured');
+  if (!c.baseUrl) {
+    const err = new Error('PAYME_BASE_URL is not configured');
     err.code = 'PAYME_CONFIG';
     throw err;
   }
-  if (!c.baseUrl) {
-    const err = new Error('PAYME_BASE_URL is not configured');
+  if (!c.merchantId) {
+    const err = new Error(
+      'מוכר לא נמצא — חסר PAYME_MERCHANT_ID. העתיקו מ-PayMe Dashboard → Settings את seller_payme_id (מזהה הסוחר) ל-Railway.',
+    );
+    err.code = 'PAYME_CONFIG';
+    throw err;
+  }
+  if (!c.apiKey) {
+    // Some accounts use seller_payme_id only; still recommend PAYME_API_KEY when available.
+    const err = new Error(
+      'חסר PAYME_API_KEY. העתיקו את ה-API Key מ-PayMe Dashboard → Settings ל-Railway.',
+    );
     err.code = 'PAYME_CONFIG';
     throw err;
   }
