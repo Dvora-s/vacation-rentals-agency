@@ -51,10 +51,10 @@ function HomePage() {
         <div className="page-hero-overlay" />
         <div className="page-hero-inner hero-content">
           <EditableText as="h1" id="home.hero.title" className="page-hero-title hero-title">
-            דירות נופש: הדרך הפשוטה והנעימה לחופשה הבאה שלכם
+            דירות נופש - להשכרה לשבת, חג ובין הזמנים
           </EditableText>
           <EditableText as="p" id="home.hero.subtitle" className="page-hero-subtitle hero-subtitle">
-            כל המידע שאתם צריכים במקום אחד. בוחרים נכס, יוצרים קשר ישיר עם המארח, ויוצאים לחופשה.
+            מצאו דירת נופש לשבת, לחג או בין הזמנים — בחרו נכס, צרו קשר ישיר עם המארח, וצאו לחופשה.
           </EditableText>
           <SearchBar />
         </div>
