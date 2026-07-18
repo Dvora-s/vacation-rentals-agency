@@ -155,6 +155,8 @@ function buildSalePayload({ sellerId, apiKey, input, notifyUrl }) {
     installments: 1,
     sale_callback_url: notifyUrl,
     capture_buyer: 0,
+    // Helps PayMe show Hebrew UI / 3DS prompts correctly.
+    language: 'he',
   };
   if (apiKey) payload.payme_key = apiKey;
   if (input.transactionId) payload.transaction_id = String(input.transactionId);
