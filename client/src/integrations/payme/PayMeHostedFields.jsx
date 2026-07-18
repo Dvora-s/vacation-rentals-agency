@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import {
-  bindPayMeFieldsEvents,
-  createPayMeFieldsInstance,
-  loadPayMeFieldsScript,
-} from './paymeFieldsLoader.js';
 import { createPaymentSession, getPaymentStatus, ilsToAgorot } from '../../services/paymentService.js';
 import './PayMeHostedFields.css';
 
 /**
- * PayMe iFrame / Hosted Fields checkout (Option 2).
+ * PayMe iFrame checkout.
  *
  * Flow:
- * 1. Fetch payme_sale_id from POST /api/payments/create-session
- * 2. Initialize PayMeFields with sale ID + #payme-iframe-container
- * 3. On success → poll DB status (IPN) and invoke onPaid
+ * 1. POST /api/payments/create-session → server calls PayMe generate-sale
+ *    and returns payme_sale_id + sale_url.
+ * 2. Embed sale_url in an iframe (PayMe's official IFRAME integration —
+ *    no external SDK script needed).
+ * 3. Poll GET /api/payments/:id/status until IPN marks the payment as paid,
+ *    then show a thank-you message and invoke onPaid.
  */
 export default function PayMeHostedFields({
   /** Price in ILS (major units) — converted to agorot for the API */
@@ -30,14 +28,14 @@ export default function PayMeHostedFields({
 }) {
   const reactId = useId();
   const containerId = `payme-iframe-container-${reactId.replace(/:/g, '')}`;
-  const containerSelector = `#${containerId}`;
 
   const [phase, setPhase] = useState(autoStart ? 'loading' : 'idle');
   const [error, setError] = useState('');
+  const [saleUrl, setSaleUrl] = useState('');
   const [paymentId, setPaymentId] = useState(null);
   const [thankYou, setThankYou] = useState(false);
-  const instanceRef = useRef(null);
   const startedRef = useRef(false);
+  const activeRef = useRef(true);
 
   const reportError = useCallback(
     (msg) => {
@@ -48,17 +46,33 @@ export default function PayMeHostedFields({
     [onError],
   );
 
-  const waitForPaid = useCallback(async (id) => {
-    for (let i = 0; i < 25; i++) {
-      const st = await getPaymentStatus(id);
-      if (st.status === 'paid') return st;
-      if (st.status === 'failed' || st.status === 'refunded') {
-        throw new Error('תשלום PayMe לא הושלם');
+  /** Poll DB status (updated by PayMe IPN) until terminal state. */
+  const pollUntilPaid = useCallback(
+    async (id, saleId) => {
+      // ~10 minutes: enough time to type card details in the iframe.
+      for (let i = 0; i < 200; i++) {
+        if (!activeRef.current) return;
+        try {
+          const st = await getPaymentStatus(id);
+          if (!activeRef.current) return;
+          if (st.status === 'paid') {
+            setThankYou(true);
+            setPhase('done');
+            onPaid?.({ paymentId: id, paymeSaleId: saleId, status: st });
+            return;
+          }
+          if (st.status === 'failed' || st.status === 'refunded') {
+            reportError('תשלום PayMe לא הושלם או בוטל.');
+            return;
+          }
+        } catch {
+          /* transient network error — keep polling */
+        }
+        await new Promise((r) => setTimeout(r, 3000));
       }
-      await new Promise((r) => setTimeout(r, 1200));
-    }
-    throw new Error('ממתינים לאישור התשלום — נסו לרענן בעוד דקה');
-  }, []);
+    },
+    [onPaid, reportError],
+  );
 
   const startCheckout = useCallback(async () => {
     if (disabled || startedRef.current) return;
@@ -83,42 +97,17 @@ export default function PayMeHostedFields({
       });
 
       const saleId = session.payme_sale_id || session.paymeSaleId;
+      const url = session.saleUrl;
       const internalId = session.paymentId;
       if (!saleId) throw new Error('השרת לא החזיר payme_sale_id');
+      if (!url) throw new Error('השרת לא החזיר sale_url מ-PayMe');
+
       setPaymentId(internalId);
-
-      await loadPayMeFieldsScript();
-
-      const container = document.getElementById(containerId);
-      if (!container) throw new Error('מיכל התשלום לא נמצא');
-
-      container.innerHTML = '';
-
-      const instance = createPayMeFieldsInstance(saleId, containerSelector);
-      instanceRef.current = instance;
-
-      bindPayMeFieldsEvents(instance, {
-        onSuccess: async () => {
-          setPhase('confirming');
-          try {
-            const st = await waitForPaid(internalId);
-            setThankYou(true);
-            setPhase('done');
-            onPaid?.({ paymentId: internalId, paymeSaleId: saleId, status: st });
-          } catch (e) {
-            reportError(e instanceof Error ? e.message : String(e));
-          }
-        },
-        onError: (err) => {
-          const msg =
-            err && typeof err === 'object' && 'message' in err
-              ? String(err.message)
-              : 'שגיאה בתשלום PayMe';
-          reportError(msg);
-        },
-      });
-
+      setSaleUrl(url);
       setPhase('ready');
+
+      // Start watching for IPN confirmation while the buyer pays in the iframe.
+      pollUntilPaid(internalId, saleId);
     } catch (e) {
       startedRef.current = false;
       reportError(e instanceof Error ? e.message : String(e));
@@ -131,19 +120,17 @@ export default function PayMeHostedFields({
     metadata,
     returnUrl,
     cancelUrl,
-    containerId,
-    containerSelector,
-    onPaid,
+    pollUntilPaid,
     reportError,
-    waitForPaid,
   ]);
 
   useEffect(() => {
+    activeRef.current = true;
     if (autoStart && !disabled) {
       startCheckout();
     }
     return () => {
-      instanceRef.current = null;
+      activeRef.current = false;
     };
   }, [autoStart, disabled, startCheckout]);
 
@@ -176,9 +163,9 @@ export default function PayMeHostedFields({
         </button>
       )}
 
-      {(phase === 'loading' || phase === 'confirming') && (
+      {phase === 'loading' && (
         <p className="payme-hosted__muted" aria-live="polite">
-          {phase === 'confirming' ? 'מאשרים את התשלום…' : 'מכינים את טופס התשלום…'}
+          מכינים את טופס התשלום…
         </p>
       )}
 
@@ -188,14 +175,30 @@ export default function PayMeHostedFields({
         </div>
       ) : null}
 
-      {phase === 'error' && !autoStart ? (
-        <button type="button" className="btn-primary payme-hosted__start" onClick={() => { startedRef.current = false; startCheckout(); }}>
+      {phase === 'error' ? (
+        <button
+          type="button"
+          className="btn-primary payme-hosted__start"
+          onClick={() => {
+            startedRef.current = false;
+            startCheckout();
+          }}
+        >
           נסו שוב
         </button>
       ) : null}
 
-      {/* PayMe iFrame / Hosted Fields mount point (required by PayMe SDK) */}
-      <div id={containerId} className="payme-hosted__iframe" aria-label="טופס תשלום PayMe" />
+      {/* PayMe iFrame mount point */}
+      <div id={containerId} className="payme-hosted__iframe" aria-label="טופס תשלום PayMe">
+        {phase === 'ready' && saleUrl ? (
+          <iframe
+            src={saleUrl}
+            title="PayMe — תשלום מאובטח"
+            className="payme-hosted__iframe-el"
+            allow="payment"
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
