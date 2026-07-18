@@ -195,47 +195,60 @@ export async function generatePaymentSession(input) {
 
   // Candidate seller ids: configured merchant first, then API key (common swap / single-credential accounts).
   const sellerCandidates = [...new Set([merchantId, apiKey].filter(Boolean))];
+  // Try configured path first, then the alternate PayMe endpoint name.
+  const pathCandidates = [
+    ...new Set([generatePaymentPath, '/generate-sale', '/generate-payment'].filter(Boolean)),
+  ];
 
   let lastError = null;
-  for (const sellerId of sellerCandidates) {
-    const payload = buildSalePayload({ sellerId, apiKey, input, notifyUrl });
-    const res = await paymeRequest(generatePaymentPath, { method: 'POST', body: payload });
+  for (const path of pathCandidates) {
+    for (const sellerId of sellerCandidates) {
+      const payload = buildSalePayload({ sellerId, apiKey, input, notifyUrl });
+      let res;
+      try {
+        res = await paymeRequest(path, { method: 'POST', body: payload });
+      } catch (err) {
+        lastError = err;
+        continue;
+      }
 
-    // HTTP-level failure
-    if (res.status < 200 || res.status >= 300) {
-      lastError = new Error(`PayMe generate-sale failed (${res.status})`);
-      lastError.response = { status: res.status, data: res.data };
-      continue;
-    }
+      // HTTP-level failure
+      if (res.status < 200 || res.status >= 300) {
+        lastError = new Error(`PayMe ${path} failed (${res.status})`);
+        lastError.response = { status: res.status, data: res.data };
+        continue;
+      }
 
-    const data = /** @type {Record<string, unknown>} */ (
-      typeof res.data === 'object' && res.data !== null ? res.data : {}
-    );
+      const data = /** @type {Record<string, unknown>} */ (
+        typeof res.data === 'object' && res.data !== null ? res.data : {}
+      );
 
-    if (isSellerNotFound(data)) {
-      logger.warn('[PayMe] seller not found for candidate', {
-        sellerPrefix: String(sellerId).slice(0, 4),
-        baseUrl,
-        path: generatePaymentPath,
-      });
-      lastError = new Error(String(data.status_error_details || 'מוכר לא נמצא'));
-      lastError.code = 'PAYME_PARSE';
-      lastError.paymeRaw = data;
-      continue;
-    }
+      if (isSellerNotFound(data)) {
+        logger.warn('[PayMe] seller not found for candidate', {
+          sellerPrefix: String(sellerId).slice(0, 4),
+          baseUrl,
+          path,
+        });
+        lastError = new Error(String(data.status_error_details || 'מוכר לא נמצא'));
+        lastError.code = 'PAYME_PARSE';
+        lastError.paymeRaw = data;
+        continue;
+      }
 
-    try {
-      return parseGenerateSaleResponse(data);
-    } catch (err) {
-      lastError = err;
-      continue;
+      try {
+        return parseGenerateSaleResponse(data);
+      } catch (err) {
+        lastError = err;
+        continue;
+      }
     }
   }
 
   if (lastError) {
     if (isSellerNotFound(lastError.paymeRaw || {}) || /מוכר לא נמצא/i.test(String(lastError.message))) {
       const err = new Error(
-        `מוכר לא נמצא ב-PayMe (${baseUrl}). בדקו ש-PAYME_MERCHANT_ID הוא ה-seller_payme_id מחשבון Production (לרוב מתחיל ב-MPL), וש-PAYME_API_KEY מאותו חשבון. אם השדות הוחלפו ב-Railway — החליפו ביניהם.`,
+        `מוכר לא נמצא ב-PayMe (${baseUrl}, מזהה מתחיל ב-${String(merchantId || '').slice(0, 4)}). ` +
+          'ודאו ב-PayMe Dashboard (Production) שהחשבון פעיל לסליקה, וש-PAYME_MERCHANT_ID הוא Seller PayMe ID (MPL…) ו-PAYME_API_KEY הוא ה-API Key הנפרד מאותו חשבון. אם שניהם זהים — אחד מהם שגוי.',
       );
       err.code = 'PAYME_PARSE';
       throw err;

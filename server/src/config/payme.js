@@ -95,10 +95,12 @@ export function getPayMeEnvStatus() {
     baseUrl: c.baseUrl,
     hasBaseUrl: Boolean(c.baseUrl),
     hasApiKey: Boolean(c.apiKey),
+    apiKeyPrefix: c.apiKey ? c.apiKey.slice(0, 4) : null,
     apiKeyLength: c.apiKey ? c.apiKey.length : 0,
     hasMerchantId: Boolean(c.merchantId),
     merchantIdPrefix: c.merchantId ? c.merchantId.slice(0, 4) : null,
     merchantIdLength: c.merchantId ? c.merchantId.length : 0,
+    sameKeyAndMerchant: Boolean(c.apiKey && c.merchantId && c.apiKey === c.merchantId),
     generatePaymentPath: c.generatePaymentPath,
     apiPublicBase: getApiPublicBaseUrl(),
   };
