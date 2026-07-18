@@ -91,9 +91,13 @@ export function getPayMeEnvStatus() {
   const c = getPayMeConfig();
   return {
     configured: Boolean(c.merchantId && c.apiKey),
+    baseUrl: c.baseUrl,
     hasBaseUrl: Boolean(c.baseUrl),
     hasApiKey: Boolean(c.apiKey),
+    apiKeyLength: c.apiKey ? c.apiKey.length : 0,
     hasMerchantId: Boolean(c.merchantId),
+    merchantIdPrefix: c.merchantId ? c.merchantId.slice(0, 4) : null,
+    merchantIdLength: c.merchantId ? c.merchantId.length : 0,
     generatePaymentPath: c.generatePaymentPath,
     apiPublicBase: getApiPublicBaseUrl(),
   };
