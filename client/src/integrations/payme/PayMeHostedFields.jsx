@@ -3,18 +3,16 @@ import { createPaymentSession, getPaymentStatus, ilsToAgorot } from '../../servi
 import './PayMeHostedFields.css';
 
 /**
- * PayMe iFrame checkout.
+ * PayMe embedded iFrame checkout (card form stays on our site).
  *
  * Flow:
- * 1. POST /api/payments/create-session → server calls PayMe generate-sale
- *    and returns payme_sale_id + sale_url.
- * 2. Embed sale_url in an iframe (PayMe's official IFRAME integration —
- *    no external SDK script needed).
- * 3. Poll GET /api/payments/:id/status until IPN marks the payment as paid,
- *    then show a thank-you message and invoke onPaid.
+ * 1. POST /api/payments/create-session → payme_sale_id + sale_url
+ * 2. Embed sale_url in an iframe on this page
+ * 3. Poll payment status until IPN marks paid → thank-you + onPaid
+ *
+ * Also offers a full-page fallback if the bank 3DS fails inside the iframe.
  */
 export default function PayMeHostedFields({
-  /** Price in ILS (major units) — converted to agorot for the API */
   totalIls,
   currencyCode = 'ILS',
   productName,
@@ -46,10 +44,8 @@ export default function PayMeHostedFields({
     [onError],
   );
 
-  /** Poll DB status (updated by PayMe IPN) until terminal state. */
   const pollUntilPaid = useCallback(
     async (id, saleId) => {
-      // ~10 minutes: enough time to type card details in the iframe.
       for (let i = 0; i < 200; i++) {
         if (!activeRef.current) return;
         try {
@@ -66,7 +62,7 @@ export default function PayMeHostedFields({
             return;
           }
         } catch {
-          /* transient network error — keep polling */
+          /* keep polling */
         }
         await new Promise((r) => setTimeout(r, 3000));
       }
@@ -105,8 +101,6 @@ export default function PayMeHostedFields({
       setPaymentId(internalId);
       setSaleUrl(url);
       setPhase('ready');
-
-      // Start watching for IPN confirmation while the buyer pays in the iframe.
       pollUntilPaid(internalId, saleId);
     } catch (e) {
       startedRef.current = false;
@@ -188,17 +182,32 @@ export default function PayMeHostedFields({
         </button>
       ) : null}
 
-      {/* PayMe iFrame mount point */}
       <div id={containerId} className="payme-hosted__iframe" aria-label="טופס תשלום PayMe">
         {phase === 'ready' && saleUrl ? (
           <iframe
             src={saleUrl}
             title="PayMe — תשלום מאובטח"
             className="payme-hosted__iframe-el"
-            allow="payment"
+            allow="payment *"
+            referrerPolicy="no-referrer-when-downgrade"
           />
         ) : null}
       </div>
+
+      {phase === 'ready' && saleUrl ? (
+        <p className="payme-hosted__fallback">
+          אם מופיעה שגיאה או שהאימות הבנקאי לא נפתח —{' '}
+          <button
+            type="button"
+            className="payme-hosted__fallback-btn"
+            onClick={() => {
+              window.location.assign(saleUrl);
+            }}
+          >
+            המשיכו לדף התשלום המלא של PayMe
+          </button>
+        </p>
+      ) : null}
     </div>
   );
 }

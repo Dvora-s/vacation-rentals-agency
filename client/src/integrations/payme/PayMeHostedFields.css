@@ -45,6 +45,24 @@
   border: 0;
 }
 
+.payme-hosted__fallback {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.payme-hosted__fallback-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #0f766e;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
 .payme-hosted--success .payme-hosted__thankyou {
   background: #ecfdf5;
   border: 1px solid #a7f3d0;

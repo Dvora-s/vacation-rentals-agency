@@ -11,14 +11,19 @@
  * - API_PUBLIC_URL — public backend URL for notify_url (IPN callback).
  */
 
-/** Production by default (user request). Sandbox: https://sandbox.payme.io/api */
+/** Production by default. Sandbox: https://sandbox.payme.io/api */
 const DEFAULT_LIVE_BASE = 'https://live.payme.io/api';
 const DEFAULT_GENERATE_PATH = '/generate-sale';
 
+/**
+ * Normalize API base. If someone pastes a full endpoint URL
+ * (…/api/generate-sale or …/generate-payment), strip the path.
+ */
 function normalizeBaseUrl(raw) {
   let s = optionalTrim(raw);
   if (!s) s = DEFAULT_LIVE_BASE;
   s = s.replace(/\/+$/, '');
+  s = s.replace(/\/(generate-sale|generate-payment)\/?$/i, '');
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s.replace(/^\/+/, '')}`;
   }
@@ -27,7 +32,7 @@ function normalizeBaseUrl(raw) {
     new URL(s);
   } catch {
     const err = new Error(
-      `PAYME_BASE_URL לא תקין (${JSON.stringify(raw)}). השתמשו ב: ${DEFAULT_LIVE_BASE}`,
+      `PAYME_BASE_URL לא תקין (${JSON.stringify(raw)}). ל-Sandbox: https://sandbox.payme.io/api | לפרודקשן: https://live.payme.io/api`,
     );
     err.code = 'PAYME_CONFIG';
     throw err;
@@ -36,7 +41,11 @@ function normalizeBaseUrl(raw) {
 }
 
 function normalizeGeneratePath(raw) {
-  const s = String(raw || DEFAULT_GENERATE_PATH).trim();
+  let s = String(raw || DEFAULT_GENERATE_PATH).trim();
+  // PayMe's real endpoint is generate-sale. generate-payment does not exist.
+  if (/generate-payment/i.test(s)) {
+    s = DEFAULT_GENERATE_PATH;
+  }
   if (/^https?:\/\//i.test(s)) return s;
   return s.startsWith('/') ? s : `/${s}`;
 }
