@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PayPalCheckout from '../integrations/paypal/PayPalCheckout.jsx';
+import PayMeHostedFields from '../integrations/payme/PayMeHostedFields.jsx';
 import PolicyConsentCheckbox from './PolicyConsentCheckbox.jsx';
 import { payForListing, getToken } from '../services/api.js';
 import { createPaymentSession, ilsToAgorot } from '../services/paymentService.js';
@@ -15,7 +16,7 @@ function paypalAuthorizeRef(result) {
 }
 
 /**
- * בחירת תשלום: PayPal או PayMe (הפניה לדף תשלום מאובטח — תואם 3D Secure בפרודקשן).
+ * בחירת תשלום: PayPal או PayMe (טופס מוטמע באתר + גיבוי לדף מלא).
  */
 export default function PaymentMethodSelector({
   totalIls,
@@ -38,7 +39,8 @@ export default function PaymentMethodSelector({
     return 'none';
   });
   const [paypalWorking, setPaypalWorking] = useState(false);
-  const [paymeWorking, setPaymeWorking] = useState(false);
+  const [paymeStarted, setPaymeStarted] = useState(false);
+  const [paymeFullPageWorking, setPaymeFullPageWorking] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [policyConsent, setPolicyConsent] = useState(false);
   const [policyConsentError, setPolicyConsentError] = useState(null);
@@ -60,17 +62,39 @@ export default function PaymentMethodSelector({
     if (!requirePolicyConsent()) return;
     setMethod(next);
     setLocalError(null);
+    if (next !== 'payme') setPaymeStarted(false);
   }
 
-  /**
-   * Full-page redirect to PayMe sale_url.
-   * Embedded iframes often fail 3D Secure in production with
-   * "הפעולה לא הצליחה נא לנסות אמצעי תשלום אחר".
-   */
-  const startPayMeCard = useCallback(async () => {
+  function savePayMePending() {
+    sessionStorage.setItem(
+      PAYME_LISTING_STORAGE_KEY,
+      JSON.stringify({
+        apartmentId: Number(apartmentId),
+        months: Number(months),
+        tier: String(tier),
+        flow: paymeFlow,
+        ...(paymeExtraRef.current && typeof paymeExtraRef.current === 'object' ? paymeExtraRef.current : {}),
+      }),
+    );
+  }
+
+  const startPayMeEmbedded = useCallback(() => {
     if (!requirePolicyConsent()) return;
     setLocalError(null);
-    setPaymeWorking(true);
+    try {
+      savePayMePending();
+    } catch {
+      setLocalError('לא ניתן לשמור פרטי עסקה בדפדפן — בדקו שאינכם במצב פרטי חוסם אחסון.');
+      return;
+    }
+    setPaymeStarted(true);
+  }, [apartmentId, months, tier, paymeFlow, policyConsent]);
+
+  /** Fallback: full-page PayMe (better for some banks' 3D Secure). */
+  const startPayMeFullPage = useCallback(async () => {
+    if (!requirePolicyConsent()) return;
+    setLocalError(null);
+    setPaymeFullPageWorking(true);
 
     const origin = window.location.origin;
     const basePath = String(paymeReturnPath).split('?')[0];
@@ -78,23 +102,7 @@ export default function PaymentMethodSelector({
     const cancelUrl = `${origin}${basePath}${basePath.includes('?') ? '&' : '?'}payme_cancel=1`;
 
     try {
-      sessionStorage.setItem(
-        PAYME_LISTING_STORAGE_KEY,
-        JSON.stringify({
-          apartmentId: Number(apartmentId),
-          months: Number(months),
-          tier: String(tier),
-          flow: paymeFlow,
-          ...(paymeExtraRef.current && typeof paymeExtraRef.current === 'object' ? paymeExtraRef.current : {}),
-        }),
-      );
-    } catch {
-      setLocalError('לא ניתן לשמור פרטי עסקה בדפדפן — בדקו שאינכם במצב פרטי חוסם אחסון.');
-      setPaymeWorking(false);
-      return;
-    }
-
-    try {
+      savePayMePending();
       const session = await createPaymentSession({
         price: ilsToAgorot(totalIls),
         currency: currencyCode,
@@ -108,13 +116,12 @@ export default function PaymentMethodSelector({
         return_url: returnUrl,
         cancel_url: cancelUrl,
       });
-
       const url = session?.saleUrl;
-      if (!url) throw new Error('השרת לא החזיר כתובת תשלום PayMe (sale_url)');
+      if (!url) throw new Error('השרת לא החזיר כתובת תשלום PayMe');
       window.location.assign(url);
     } catch (e) {
       setLocalError(e instanceof Error ? e.message : String(e));
-      setPaymeWorking(false);
+      setPaymeFullPageWorking(false);
     }
   }, [
     apartmentId,
@@ -127,6 +134,30 @@ export default function PaymentMethodSelector({
     policyConsent,
   ]);
 
+  const handlePayMePaid = useCallback(
+    async ({ paymentId, paymeSaleId }) => {
+      setLocalError(null);
+      try {
+        await payForListing({
+          apartment_id: apartmentId,
+          months,
+          tier,
+          provider: 'payme',
+          provider_reference: paymeSaleId || `payme:${paymentId}`,
+        });
+        try {
+          sessionStorage.removeItem(PAYME_LISTING_STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        onSuccess?.();
+      } catch (e) {
+        setLocalError(e?.message || String(e));
+      }
+    },
+    [apartmentId, months, tier, onSuccess],
+  );
+
   useEffect(() => {
     if (method === 'paypal' && paypalSectionRef.current) {
       paypalSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -138,6 +169,8 @@ export default function PaymentMethodSelector({
 
   const showChooser = hasPayPalClient || hasPayMePath;
   const totalStr = Number(totalIls).toFixed(2);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const basePath = String(paymeReturnPath || '').split('?')[0];
 
   return (
     <div className="payment-method-selector" dir="rtl">
@@ -196,7 +229,7 @@ export default function PaymentMethodSelector({
                 </span>
                 <span className="pay-tile__label">כרטיס אשראי (PayMe)</span>
                 <span className="pay-tile__sub">
-                  תועברו לדף התשלום המאובטח של PayMe (כולל אימות 3D Secure)
+                  הזנת פרטי כרטיס בטופס מאובטח בתוך האתר
                 </span>
               </button>
             )}
@@ -257,16 +290,49 @@ export default function PaymentMethodSelector({
             סכום לתשלום בכרטיס אשראי: <strong>₪{totalStr}</strong> ({currencyCode}) — דרך <strong>PayMe</strong>
           </p>
           <p className="payment-method-selector__payme-hint">
-            תועברו לדף התשלום המאובטח של PayMe. אחרי התשלום תחזרו לאתר אוטומטית. החיוב מתבצע מיד.
+            הטופס המאובטח יוצג כאן באתר. אם הבנק דורש אימות וזה נכשל — השתמשו באפשרות &quot;דף תשלום מלא&quot;.
           </p>
-          <button
-            type="button"
-            className="btn-primary payment-method-selector__payme-btn"
-            onClick={startPayMeCard}
-            disabled={paymeWorking || paypalWorking || !policyConsent}
-          >
-            {paymeWorking ? 'מכין תשלום…' : 'המשך לתשלום בכרטיס אשראי (PayMe)'}
-          </button>
+
+          {!paymeStarted ? (
+            <div className="payment-method-selector__payme-actions">
+              <button
+                type="button"
+                className="btn-primary payment-method-selector__payme-btn"
+                onClick={startPayMeEmbedded}
+                disabled={paypalWorking || paymeFullPageWorking || !policyConsent}
+              >
+                המשך לתשלום בכרטיס אשראי (PayMe)
+              </button>
+            </div>
+          ) : (
+            <>
+              <PayMeHostedFields
+                key={`payme-${apartmentId}-${totalStr}`}
+                totalIls={totalIls}
+                currencyCode={currencyCode}
+                productName={`פרסום דירה #${apartmentId} (${months} חודשים, ${tier})`}
+                metadata={{
+                  apartment_id: Number(apartmentId),
+                  months: Number(months),
+                  tier: String(tier),
+                  purpose: 'listing_publication',
+                }}
+                returnUrl={`${origin}${basePath}`}
+                cancelUrl={`${origin}${basePath}${basePath.includes('?') ? '&' : '?'}payme_cancel=1`}
+                autoStart
+                onPaid={handlePayMePaid}
+                onError={(msg) => setLocalError(msg)}
+              />
+              <button
+                type="button"
+                className="payment-method-selector__payme-fullpage"
+                onClick={startPayMeFullPage}
+                disabled={paymeFullPageWorking}
+              >
+                {paymeFullPageWorking ? 'מכין…' : 'לא עובד? פתיחה בדף תשלום מלא של PayMe'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
