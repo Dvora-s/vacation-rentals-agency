@@ -11,12 +11,13 @@
  * - API_PUBLIC_URL — public backend URL for notify_url (IPN callback).
  */
 
-const DEFAULT_SANDBOX_BASE = 'https://sandbox.payme.io/api';
+/** Production by default (user request). Sandbox: https://sandbox.payme.io/api */
+const DEFAULT_LIVE_BASE = 'https://live.payme.io/api';
 const DEFAULT_GENERATE_PATH = '/generate-sale';
 
 function normalizeBaseUrl(raw) {
   let s = optionalTrim(raw);
-  if (!s) s = DEFAULT_SANDBOX_BASE;
+  if (!s) s = DEFAULT_LIVE_BASE;
   s = s.replace(/\/+$/, '');
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s.replace(/^\/+/, '')}`;
@@ -26,7 +27,7 @@ function normalizeBaseUrl(raw) {
     new URL(s);
   } catch {
     const err = new Error(
-      `PAYME_BASE_URL לא תקין (${JSON.stringify(raw)}). השתמשו ב: ${DEFAULT_SANDBOX_BASE}`,
+      `PAYME_BASE_URL לא תקין (${JSON.stringify(raw)}). השתמשו ב: ${DEFAULT_LIVE_BASE}`,
     );
     err.code = 'PAYME_CONFIG';
     throw err;

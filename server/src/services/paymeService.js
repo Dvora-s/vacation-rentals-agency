@@ -137,14 +137,18 @@ export function normalizePayMeError(error, context = 'payme') {
  * @param {string} [input.returnUrl] — buyer redirect after success
  * @returns {Promise<{ paymeSaleId: string, saleUrl?: string, raw: unknown }>}
  */
-export async function generatePaymentSession(input) {
-  const { apiKey, merchantId, generatePaymentPath } = getPayMeConfig();
-  const notifyUrl = input.notifyUrl || `${getApiPublicBaseUrl()}/api/payments/callback`;
+function isSellerNotFound(data) {
+  const details = String(
+    (data && typeof data === 'object' && (data.status_error_details || data.message || data.error)) ||
+      '',
+  );
+  return /מוכר לא נמצא|seller not found|merchant not found/i.test(details);
+}
 
-  // PayMe Generate Sale requires seller_payme_id (merchant id from dashboard Settings).
+function buildSalePayload({ sellerId, apiKey, input, notifyUrl }) {
   /** @type {Record<string, unknown>} */
   const payload = {
-    seller_payme_id: merchantId,
+    seller_payme_id: sellerId,
     sale_price: Math.round(Number(input.priceAgorot)),
     currency: String(input.currency || 'ILS').toUpperCase(),
     product_name: String(input.productName || 'Payment').slice(0, 500),
@@ -152,28 +156,18 @@ export async function generatePaymentSession(input) {
     sale_callback_url: notifyUrl,
     capture_buyer: 0,
   };
+  if (apiKey) payload.payme_key = apiKey;
+  if (input.transactionId) payload.transaction_id = String(input.transactionId);
+  if (input.returnUrl) payload.sale_return_url = input.returnUrl;
+  return payload;
+}
 
-  if (apiKey) {
-    payload.payme_key = apiKey;
-  }
-  if (input.transactionId) {
-    payload.transaction_id = String(input.transactionId);
-  }
-  if (input.returnUrl) {
-    payload.sale_return_url = input.returnUrl;
-  }
-
-  const res = await paymeRequest(generatePaymentPath, { method: 'POST', body: payload });
-  throwIfNotOk(res, 'PayMe generate-payment');
-
-  const data = /** @type {Record<string, unknown>} */ (
-    typeof res.data === 'object' && res.data !== null ? res.data : {}
-  );
-
+function parseGenerateSaleResponse(data) {
   const statusCode = Number(data.status_code);
   if (statusCode === 1) {
-    const err = new Error(String(data.status_error_details || 'PayMe generate-payment error'));
+    const err = new Error(String(data.status_error_details || 'PayMe generate-sale error'));
     err.code = 'PAYME_PARSE';
+    err.paymeRaw = data;
     throw err;
   }
 
@@ -183,16 +177,75 @@ export async function generatePaymentSession(input) {
   if (!paymeSaleId) {
     const err = new Error('PayMe response missing payme_sale_id');
     err.code = 'PAYME_PARSE';
+    err.paymeRaw = data;
     throw err;
   }
 
   const saleUrl = data.sale_url || data.payment_url || data.checkout_url;
-
   return {
     paymeSaleId: String(paymeSaleId),
     saleUrl: saleUrl ? String(saleUrl) : undefined,
     raw: data,
   };
+}
+
+export async function generatePaymentSession(input) {
+  const { apiKey, merchantId, generatePaymentPath, baseUrl } = getPayMeConfig();
+  const notifyUrl = input.notifyUrl || `${getApiPublicBaseUrl()}/api/payments/callback`;
+
+  // Candidate seller ids: configured merchant first, then API key (common swap / single-credential accounts).
+  const sellerCandidates = [...new Set([merchantId, apiKey].filter(Boolean))];
+
+  let lastError = null;
+  for (const sellerId of sellerCandidates) {
+    const payload = buildSalePayload({ sellerId, apiKey, input, notifyUrl });
+    const res = await paymeRequest(generatePaymentPath, { method: 'POST', body: payload });
+
+    // HTTP-level failure
+    if (res.status < 200 || res.status >= 300) {
+      lastError = new Error(`PayMe generate-sale failed (${res.status})`);
+      lastError.response = { status: res.status, data: res.data };
+      continue;
+    }
+
+    const data = /** @type {Record<string, unknown>} */ (
+      typeof res.data === 'object' && res.data !== null ? res.data : {}
+    );
+
+    if (isSellerNotFound(data)) {
+      logger.warn('[PayMe] seller not found for candidate', {
+        sellerPrefix: String(sellerId).slice(0, 4),
+        baseUrl,
+        path: generatePaymentPath,
+      });
+      lastError = new Error(String(data.status_error_details || 'מוכר לא נמצא'));
+      lastError.code = 'PAYME_PARSE';
+      lastError.paymeRaw = data;
+      continue;
+    }
+
+    try {
+      return parseGenerateSaleResponse(data);
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
+  }
+
+  if (lastError) {
+    if (isSellerNotFound(lastError.paymeRaw || {}) || /מוכר לא נמצא/i.test(String(lastError.message))) {
+      const err = new Error(
+        `מוכר לא נמצא ב-PayMe (${baseUrl}). בדקו ש-PAYME_MERCHANT_ID הוא ה-seller_payme_id מחשבון Production (לרוב מתחיל ב-MPL), וש-PAYME_API_KEY מאותו חשבון. אם השדות הוחלפו ב-Railway — החליפו ביניהם.`,
+      );
+      err.code = 'PAYME_PARSE';
+      throw err;
+    }
+    throw lastError;
+  }
+
+  const err = new Error('PayMe generate-sale failed with no candidates');
+  err.code = 'PAYME_CONFIG';
+  throw err;
 }
 
 /**
